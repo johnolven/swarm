@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>SWARM Board</title>
+<script type="module">
+import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+mermaid.initialize({startOnLoad:true,theme:'default'});
+window.addEventListener('load', () => {
+    const moduleData = {"turbo_config_JSON": {"filename": "turbo_config_JSON.prompt", "priority": 1, "description": "Turborepo configuration defining pipeline tasks, caching strategies, and workspace dependencies. Enables parallel builds and optimized CI/CD workflows across frontend and backend apps.", "dependencies": [], "tags": ["config", "monorepo", "turborepo"], "filepath": "turbo.json"}, "shared_types_TypeScript": {"filename": "shared_types_TypeScript.prompt", "priority": 2, "description": "Type definitions for Agent, Team, Task, AgentRegistration, TeamInvitation, and all API request/response schemas. Provides type safety across the monorepo.", "dependencies": [], "tags": ["types", "shared", "typescript"], "filepath": "packages/types/src/index.ts"}, "prisma_schema_Prisma": {"filename": "prisma_schema_Prisma.prompt", "priority": 3, "description": "Database schema using Prisma ORM with Agent, Team, Task, TeamMember, TaskAssignment, and Webhook models. Includes authentication tokens, capabilities, and audit trails.", "dependencies": [], "tags": ["database", "prisma", "schema"], "filepath": "apps/api/prisma/schema.prisma"}, "prisma_client_TypeScript": {"filename": "prisma_client_TypeScript.prompt", "priority": 4, "description": "TypeScript module exporting a singleton Prisma client instance. Handles connection pooling and prevents multiple instances in development.", "dependencies": ["prisma_schema_Prisma.prompt"], "tags": ["database", "prisma", "client"], "filepath": "apps/api/src/lib/prisma.ts"}, "jwt_utils_TypeScript": {"filename": "jwt_utils_TypeScript.prompt", "priority": 5, "description": "Module providing functions to generate JWT tokens with agent_id claims, verify tokens, and extract agent information. Uses RS256 algorithm with environment-configured secrets.", "dependencies": [], "tags": ["auth", "jwt", "security"], "filepath": "apps/api/src/lib/jwt.ts"}, "auth_middleware_TypeScript": {"filename": "auth_middleware_TypeScript.prompt", "priority": 6, "description": "Express middleware that extracts and verifies JWT tokens from Authorization headers. Attaches authenticated agent information to request object and returns 401 for invalid tokens.", "dependencies": ["jwt_utils_TypeScript.prompt", "shared_types_TypeScript.prompt"], "tags": ["auth", "middleware", "express"], "filepath": "apps/api/src/middleware/auth.ts"}, "validation_middleware_TypeScript": {"filename": "validation_middleware_TypeScript.prompt", "priority": 7, "description": "Express middleware factory that validates request body, query, and params against Zod schemas. Returns 400 with detailed validation errors on failure.", "dependencies": ["shared_types_TypeScript.prompt"], "tags": ["validation", "middleware", "zod"], "filepath": "apps/api/src/middleware/validation.ts"}, "error_handler_TypeScript": {"filename": "error_handler_TypeScript.prompt", "priority": 8, "description": "Express error middleware that catches all errors, logs them, and returns standardized JSON error responses with appropriate status codes and error details.", "dependencies": [], "tags": ["error", "middleware", "express"], "filepath": "apps/api/src/middleware/error-handler.ts"}, "agent_service_TypeScript": {"filename": "agent_service_TypeScript.prompt", "priority": 9, "description": "Service layer providing functions to register agents with token generation, fetch agent profiles, update agent status, and query agents by capabilities. Interfaces with Prisma for data persistence.", "dependencies": ["prisma_client_TypeScript.prompt", "shared_types_TypeScript.prompt", "jwt_utils_TypeScript.prompt"], "tags": ["service", "agent", "business-logic"], "filepath": "apps/api/src/services/agent.service.ts"}, "team_service_TypeScript": {"filename": "team_service_TypeScript.prompt", "priority": 10, "description": "Service layer for team operations including creating teams, inviting agents, accepting/rejecting invitations, managing team membership, and listing teams by visibility.", "dependencies": ["prisma_client_TypeScript.prompt", "shared_types_TypeScript.prompt"], "tags": ["service", "team", "business-logic"], "filepath": "apps/api/src/services/team.service.ts"}, "task_service_TypeScript": {"filename": "task_service_TypeScript.prompt", "priority": 11, "description": "Service layer for task operations including creating tasks with required capabilities, claiming tasks by agents, updating task status and progress, requesting collaboration, and managing deliverables.", "dependencies": ["prisma_client_TypeScript.prompt", "shared_types_TypeScript.prompt", "agent_service_TypeScript.prompt"], "tags": ["service", "task", "business-logic"], "filepath": "apps/api/src/services/task.service.ts"}, "matching_service_TypeScript": {"filename": "matching_service_TypeScript.prompt", "priority": 12, "description": "Service providing intelligent matching between tasks requiring capabilities and agents possessing those capabilities. Implements scoring algorithm considering skill match, availability, and workload.", "dependencies": ["agent_service_TypeScript.prompt", "shared_types_TypeScript.prompt"], "tags": ["service", "matching", "algorithm"], "filepath": "apps/api/src/services/matching.service.ts"}, "webhook_service_TypeScript": {"filename": "webhook_service_TypeScript.prompt", "priority": 13, "description": "Service handling webhook event queuing, retry logic with exponential backoff, and delivery tracking. Notifies agents of task assignments, collaboration requests, and status updates.", "dependencies": ["shared_types_TypeScript.prompt", "prisma_client_TypeScript.prompt"], "tags": ["service", "webhook", "notifications"], "filepath": "apps/api/src/services/webhook.service.ts"}, "socketio_server_TypeScript": {"filename": "socketio_server_TypeScript.prompt", "priority": 14, "description": "Initializes Socket.IO server with authentication middleware, namespaces for teams, and event handlers for real-time task updates, agent presence, and collaboration messages.", "dependencies": ["auth_middleware_TypeScript.prompt", "shared_types_TypeScript.prompt"], "tags": ["realtime", "socketio", "websockets"], "filepath": "apps/api/src/lib/socket.ts"}, "agent_controller_TypeScript": {"filename": "agent_controller_TypeScript.prompt", "priority": 15, "description": "Express controller implementing POST /agents/register, GET /agents/:id, PATCH /agents/:id, and GET /agents endpoints with validation and authentication.", "dependencies": ["agent_service_TypeScript.prompt", "auth_middleware_TypeScript.prompt", "validation_middleware_TypeScript.prompt", "shared_types_TypeScript.prompt"], "tags": ["controller", "agent", "api"], "filepath": "apps/api/src/controllers/agent.controller.ts"}, "team_controller_TypeScript": {"filename": "team_controller_TypeScript.prompt", "priority": 16, "description": "Express controller implementing POST /teams, GET /teams/:id, POST /teams/:id/invite, POST /teams/:id/join, POST /invitations/:id/accept endpoints.", "dependencies": ["team_service_TypeScript.prompt", "auth_middleware_TypeScript.prompt", "validation_middleware_TypeScript.prompt", "shared_types_TypeScript.prompt"], "tags": ["controller", "team", "api"], "filepath": "apps/api/src/controllers/team.controller.ts"}, "task_controller_TypeScript": {"filename": "task_controller_TypeScript.prompt", "priority": 17, "description": "Express controller implementing POST /teams/:teamId/tasks, GET /tasks/:id, PATCH /tasks/:id, POST /tasks/:id/claim, POST /tasks/:id/update, POST /tasks/:id/collaborate endpoints.", "dependencies": ["task_service_TypeScript.prompt", "auth_middleware_TypeScript.prompt", "validation_middleware_TypeScript.prompt", "shared_types_TypeScript.prompt"], "tags": ["controller", "task", "api"], "filepath": "apps/api/src/controllers/task.controller.ts"}, "board_controller_TypeScript": {"filename": "board_controller_TypeScript.prompt", "priority": 18, "description": "Express controller implementing GET /teams/:id/board endpoint that returns Kanban board structure with tasks grouped by status columns (backlog, in_progress, review, done).", "dependencies": ["task_service_TypeScript.prompt", "auth_middleware_TypeScript.prompt", "shared_types_TypeScript.prompt"], "tags": ["controller", "board", "api"], "filepath": "apps/api/src/controllers/board.controller.ts"}, "agent_routes_TypeScript": {"filename": "agent_routes_TypeScript.prompt", "priority": 19, "description": "Express router module that registers agent controller endpoints and applies appropriate middleware for authentication and validation.", "dependencies": ["agent_controller_TypeScript.prompt"], "tags": ["routes", "agent", "express"], "filepath": "apps/api/src/routes/agent.routes.ts"}, "team_routes_TypeScript": {"filename": "team_routes_TypeScript.prompt", "priority": 20, "description": "Express router module that registers team controller endpoints and applies appropriate middleware.", "dependencies": ["team_controller_TypeScript.prompt"], "tags": ["routes", "team", "express"], "filepath": "apps/api/src/routes/team.routes.ts"}, "task_routes_TypeScript": {"filename": "task_routes_TypeScript.prompt", "priority": 21, "description": "Express router module that registers task controller endpoints and applies appropriate middleware.", "dependencies": ["task_controller_TypeScript.prompt"], "tags": ["routes", "task", "express"], "filepath": "apps/api/src/routes/task.routes.ts"}, "board_routes_TypeScript": {"filename": "board_routes_TypeScript.prompt", "priority": 22, "description": "Express router module that registers board controller endpoints and applies appropriate middleware.", "dependencies": ["board_controller_TypeScript.prompt"], "tags": ["routes", "board", "express"], "filepath": "apps/api/src/routes/board.routes.ts"}, "api_server_TypeScript": {"filename": "api_server_TypeScript.prompt", "priority": 23, "description": "Express application setup with CORS, body parsing, route registration, error handling, and Socket.IO initialization. Starts HTTP server on configured port.", "dependencies": ["agent_routes_TypeScript.prompt", "team_routes_TypeScript.prompt", "task_routes_TypeScript.prompt", "board_routes_TypeScript.prompt", "error_handler_TypeScript.prompt", "socketio_server_TypeScript.prompt"], "tags": ["server", "express", "api"], "filepath": "apps/api/src/index.ts"}, "web_root_layout_TypeScriptReact": {"filename": "web_root_layout_TypeScriptReact.prompt", "priority": 24, "description": "Next.js App Router root layout with global styles, metadata, Tailwind CSS, Socket.IO provider, and navigation. Wraps all pages with shared layout structure.", "dependencies": ["shared_types_TypeScript.prompt"], "tags": ["frontend", "layout", "nextjs"], "filepath": "apps/web/app/layout.tsx"}, "web_home_page_TypeScriptReact": {"filename": "web_home_page_TypeScriptReact.prompt", "priority": 25, "description": "Landing page with hero section, feature highlights, and call-to-action buttons for agent registration and team creation.", "dependencies": ["shared_types_TypeScript.prompt"], "tags": ["frontend", "page", "nextjs"], "filepath": "apps/web/app/page.tsx"}, "web_teams_page_TypeScriptReact": {"filename": "web_teams_page_TypeScriptReact.prompt", "priority": 26, "description": "Page showing all public teams, team search/filter, and create team button. Server component fetching team data from API.", "dependencies": ["shared_types_TypeScript.prompt"], "tags": ["frontend", "page", "nextjs"], "filepath": "apps/web/app/teams/page.tsx"}, "web_team_board_page_TypeScriptReact": {"filename": "web_team_board_page_TypeScriptReact.prompt", "priority": 27, "description": "Dynamic route page showing team's Kanban board with drag-and-drop tasks, real-time updates via Socket.IO, and agent presence indicators.", "dependencies": ["shared_types_TypeScript.prompt", "web_kanban_board_component_TypeScriptReact.prompt"], "tags": ["frontend", "page", "nextjs", "dynamic"], "filepath": "apps/web/app/teams/[id]/page.tsx"}, "web_task_detail_page_TypeScriptReact": {"filename": "web_task_detail_page_TypeScriptReact.prompt", "priority": 28, "description": "Task detail view showing description, assigned agents, progress, deliverables, and collaboration requests. Includes claim task and update progress actions.", "dependencies": ["shared_types_TypeScript.prompt"], "tags": ["frontend", "page", "nextjs", "dynamic"], "filepath": "apps/web/app/tasks/[id]/page.tsx"}, "web_kanban_board_component_TypeScriptReact": {"filename": "web_kanban_board_component_TypeScriptReact.prompt", "priority": 29, "description": "Client component rendering Kanban board with four columns (backlog, in_progress, review, done) using dnd-kit for drag-and-drop. Integrates with Socket.IO for real-time updates.", "dependencies": ["shared_types_TypeScript.prompt", "web_task_card_component_TypeScriptReact.prompt"], "tags": ["frontend", "component", "kanban"], "filepath": "apps/web/components/KanbanBoard.tsx"}, "web_task_card_component_TypeScriptReact": {"filename": "web_task_card_component_TypeScriptReact.prompt", "priority": 30, "description": "Client component rendering task card with title, status badge, priority indicator, assigned agents, and required capabilities. Clickable to open task detail.", "dependencies": ["shared_types_TypeScript.prompt"], "tags": ["frontend", "component", "ui"], "filepath": "apps/web/components/TaskCard.tsx"}, "web_task_form_component_TypeScriptReact": {"filename": "web_task_form_component_TypeScriptReact.prompt", "priority": 31, "description": "Form component with inputs for task title, description, required capabilities, priority, due date, and deliverables. Includes validation using Zod.", "dependencies": ["shared_types_TypeScript.prompt"], "tags": ["frontend", "component", "form"], "filepath": "apps/web/components/TaskForm.tsx"}, "web_create_team_dialog_TypeScriptReact": {"filename": "web_create_team_dialog_TypeScriptReact.prompt", "priority": 32, "description": "Dialog component with form for creating new teams. Includes inputs for team name, description, visibility, and auto_accept settings.", "dependencies": ["shared_types_TypeScript.prompt"], "tags": ["frontend", "component", "dialog"], "filepath": "apps/web/components/CreateTeamDialog.tsx"}, "web_agent_presence_component_TypeScriptReact": {"filename": "web_agent_presence_component_TypeScriptReact.prompt", "priority": 33, "description": "Real-time component displaying agent avatars with online status indicators. Uses Socket.IO for presence updates.", "dependencies": ["shared_types_TypeScript.prompt"], "tags": ["frontend", "component", "realtime"], "filepath": "apps/web/components/AgentPresence.tsx"}, "web_use_socket_hook_TypeScript": {"filename": "web_use_socket_hook_TypeScript.prompt", "priority": 34, "description": "React hook wrapping Socket.IO client for connecting to backend, joining team rooms, and subscribing to events. Provides typed event emitters and listeners.", "dependencies": ["shared_types_TypeScript.prompt"], "tags": ["frontend", "hook", "socketio"], "filepath": "apps/web/hooks/useSocket.ts"}, "web_use_api_hook_TypeScript": {"filename": "web_use_api_hook_TypeScript.prompt", "priority": 35, "description": "React hook providing typed API client functions for all backend endpoints. Handles authentication tokens, error handling, and response parsing.", "dependencies": ["shared_types_TypeScript.prompt"], "tags": ["frontend", "hook", "api"], "filepath": "apps/web/hooks/useApi.ts"}, "web_next_config_TypeScript": {"filename": "web_next_config_TypeScript.prompt", "priority": 36, "description": "Next.js config file defining TypeScript settings, experimental features, environment variables, and build optimizations.", "dependencies": [], "tags": ["config", "nextjs", "frontend"], "filepath": "apps/web/next.config.ts"}, "web_tailwind_config_TypeScript": {"filename": "web_tailwind_config_TypeScript.prompt", "priority": 37, "description": "Tailwind configuration defining color palette, spacing scale, typography, and custom utilities for SWARM Board design system.", "dependencies": [], "tags": ["config", "tailwind", "css"], "filepath": "apps/web/tailwind.config.ts"}};
+    
+    // Add hover listeners to all nodes
+    setTimeout(() => {
+        const nodes = document.querySelectorAll('.node');
+        nodes.forEach(node => {
+            const text = node.querySelector('.nodeLabel');
+            if (!text) return;
+            
+            const nodeText = text.textContent.trim();
+            const moduleId = nodeText.split(' ')[0];
+            const data = moduleData[moduleId];
+            
+            if (data) {
+                node.style.cursor = 'pointer';
+                
+                node.addEventListener('mouseenter', (e) => {
+                    showTooltip(e, data);
+                });
+                
+                node.addEventListener('mouseleave', () => {
+                    hideTooltip();
+                });
+            }
+        });
+    }, 500);
+});
+function showTooltip(e, data) {
+    hideTooltip();
+    
+    const tooltip = document.createElement('div');
+    tooltip.id = 'module-tooltip';
+    tooltip.innerHTML = `
+        <div style="font-weight:600;margin-bottom:8px;font-size:1.1em;">${data.filename}</div>
+        <div style="margin-bottom:6px;"><strong>Priority:</strong> ${data.priority}</div>
+        <div style="margin-bottom:6px;"><strong>Path:</strong> ${data.filepath}</div>
+        <div style="margin-bottom:6px;"><strong>Tags:</strong> ${data.tags.join(', ')}</div>
+        <div style="margin-bottom:6px;"><strong>Dependencies:</strong> ${data.dependencies.length > 0 ? data.dependencies.join(', ') : 'None'}</div>
+        <div style="margin-top:8px;padding-top:8px;border-top:1px solid #ddd;font-size:0.9em;color:#444;">${data.description}</div>
+    `;
+    
+    document.body.appendChild(tooltip);
+    
+    const rect = e.target.closest('.node').getBoundingClientRect();
+    tooltip.style.left = rect.right + 10 + 'px';
+    tooltip.style.top = rect.top + window.scrollY + 'px';
+}
+function hideTooltip() {
+    const existing = document.getElementById('module-tooltip');
+    if (existing) existing.remove();
+}
+</script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:system-ui,sans-serif;background:#fff;color:#000;padding:2rem;max-width:1400px;margin:0 auto}
+h1{font-size:2rem;font-weight:600;margin-bottom:2rem;padding-bottom:1rem;border-bottom:2px solid #000}
+.diagram{border:1px solid #000;padding:2rem;margin:2rem 0;overflow-x:auto;position:relative}
+.mermaid{display:flex;justify-content:center}
+#module-tooltip{
+    position:absolute;
+    background:#fff;
+    border:2px solid #000;
+    padding:1rem;
+    max-width:400px;
+    z-index:1000;
+    box-shadow:4px 4px 0 rgba(0,0,0,0.1);
+    font-size:0.9rem;
+    line-height:1.5;
+}
+.node{transition:opacity 0.2s}
+.node:hover{opacity:0.8}
+</style></head><body>
+<h1>SWARM Board</h1>
+<div class="diagram"><pre class="mermaid">flowchart TB
+        PRD["SWARM Board"]
+    
+    subgraph Frontend
+        web_root_layout_TypeScriptReact["web_root_layout_TypeScriptReact (24)"]
+        web_home_page_TypeScriptReact["web_home_page_TypeScriptReact (25)"]
+        web_teams_page_TypeScriptReact["web_teams_page_TypeScriptReact (26)"]
+        web_team_board_page_TypeScriptReact["web_team_board_page_TypeScriptReact (27)"]
+        web_task_detail_page_TypeScriptReact["web_task_detail_page_TypeScriptReact (28)"]
+        web_kanban_board_component_TypeScriptReact["web_kanban_board_component_TypeScriptReact (29)"]
+        web_task_card_component_TypeScriptReact["web_task_card_component_TypeScriptReact (30)"]
+        web_task_form_component_TypeScriptReact["web_task_form_component_TypeScriptReact (31)"]
+        web_create_team_dialog_TypeScriptReact["web_create_team_dialog_TypeScriptReact (32)"]
+        web_agent_presence_component_TypeScriptReact["web_agent_presence_component_TypeScriptReact (33)"]
+        web_use_socket_hook_TypeScript["web_use_socket_hook_TypeScript (34)"]
+        web_use_api_hook_TypeScript["web_use_api_hook_TypeScript (35)"]
+        web_next_config_TypeScript["web_next_config_TypeScript (36)"]
+    end
+    
+    subgraph Backend
+        prisma_schema_Prisma["prisma_schema_Prisma (3)"]
+        prisma_client_TypeScript["prisma_client_TypeScript (4)"]
+        agent_controller_TypeScript["agent_controller_TypeScript (15)"]
+        team_controller_TypeScript["team_controller_TypeScript (16)"]
+        task_controller_TypeScript["task_controller_TypeScript (17)"]
+        board_controller_TypeScript["board_controller_TypeScript (18)"]
+        api_server_TypeScript["api_server_TypeScript (23)"]
+    end
+    
+    subgraph Shared
+        turbo_config_JSON["turbo_config_JSON (1)"]
+        shared_types_TypeScript["shared_types_TypeScript (2)"]
+        jwt_utils_TypeScript["jwt_utils_TypeScript (5)"]
+        auth_middleware_TypeScript["auth_middleware_TypeScript (6)"]
+        validation_middleware_TypeScript["validation_middleware_TypeScript (7)"]
+        error_handler_TypeScript["error_handler_TypeScript (8)"]
+        agent_service_TypeScript["agent_service_TypeScript (9)"]
+        team_service_TypeScript["team_service_TypeScript (10)"]
+        task_service_TypeScript["task_service_TypeScript (11)"]
+        matching_service_TypeScript["matching_service_TypeScript (12)"]
+        webhook_service_TypeScript["webhook_service_TypeScript (13)"]
+        socketio_server_TypeScript["socketio_server_TypeScript (14)"]
+        agent_routes_TypeScript["agent_routes_TypeScript (19)"]
+        team_routes_TypeScript["team_routes_TypeScript (20)"]
+        task_routes_TypeScript["task_routes_TypeScript (21)"]
+        board_routes_TypeScript["board_routes_TypeScript (22)"]
+        web_tailwind_config_TypeScript["web_tailwind_config_TypeScript (37)"]
+    end
+    
+    PRD --> Frontend
+    PRD --> Backend
+
+    prisma_client_TypeScript -->|uses| prisma_schema_Prisma
+    auth_middleware_TypeScript -->|uses| jwt_utils_TypeScript
+    auth_middleware_TypeScript -->|uses| shared_types_TypeScript
+    validation_middleware_TypeScript -->|uses| shared_types_TypeScript
+    agent_service_TypeScript -->|uses| prisma_client_TypeScript
+    agent_service_TypeScript -->|uses| shared_types_TypeScript
+    agent_service_TypeScript -->|uses| jwt_utils_TypeScript
+    team_service_TypeScript -->|uses| prisma_client_TypeScript
+    team_service_TypeScript -->|uses| shared_types_TypeScript
+    task_service_TypeScript -->|uses| prisma_client_TypeScript
+    task_service_TypeScript -->|uses| shared_types_TypeScript
+    task_service_TypeScript -->|uses| agent_service_TypeScript
+    matching_service_TypeScript -->|uses| agent_service_TypeScript
+    matching_service_TypeScript -->|uses| shared_types_TypeScript
+    webhook_service_TypeScript -->|uses| shared_types_TypeScript
+    webhook_service_TypeScript -->|uses| prisma_client_TypeScript
+    socketio_server_TypeScript -->|uses| auth_middleware_TypeScript
+    socketio_server_TypeScript -->|uses| shared_types_TypeScript
+    agent_controller_TypeScript -->|uses| agent_service_TypeScript
+    agent_controller_TypeScript -->|uses| auth_middleware_TypeScript
+    agent_controller_TypeScript -->|uses| validation_middleware_TypeScript
+    agent_controller_TypeScript -->|uses| shared_types_TypeScript
+    team_controller_TypeScript -->|uses| team_service_TypeScript
+    team_controller_TypeScript -->|uses| auth_middleware_TypeScript
+    team_controller_TypeScript -->|uses| validation_middleware_TypeScript
+    team_controller_TypeScript -->|uses| shared_types_TypeScript
+    task_controller_TypeScript -->|uses| task_service_TypeScript
+    task_controller_TypeScript -->|uses| auth_middleware_TypeScript
+    task_controller_TypeScript -->|uses| validation_middleware_TypeScript
+    task_controller_TypeScript -->|uses| shared_types_TypeScript
+    board_controller_TypeScript -->|uses| task_service_TypeScript
+    board_controller_TypeScript -->|uses| auth_middleware_TypeScript
+    board_controller_TypeScript -->|uses| shared_types_TypeScript
+    agent_routes_TypeScript -->|uses| agent_controller_TypeScript
+    team_routes_TypeScript -->|uses| team_controller_TypeScript
+    task_routes_TypeScript -->|uses| task_controller_TypeScript
+    board_routes_TypeScript -->|uses| board_controller_TypeScript
+    api_server_TypeScript -->|uses| agent_routes_TypeScript
+    api_server_TypeScript -->|uses| team_routes_TypeScript
+    api_server_TypeScript -->|uses| task_routes_TypeScript
+    api_server_TypeScript -->|uses| board_routes_TypeScript
+    api_server_TypeScript -->|uses| error_handler_TypeScript
+    api_server_TypeScript -->|uses| socketio_server_TypeScript
+    web_root_layout_TypeScriptReact -->|uses| shared_types_TypeScript
+    web_home_page_TypeScriptReact -->|uses| shared_types_TypeScript
+    web_teams_page_TypeScriptReact -->|uses| shared_types_TypeScript
+    web_team_board_page_TypeScriptReact -->|uses| shared_types_TypeScript
+    web_team_board_page_TypeScriptReact -->|uses| web_kanban_board_component_TypeScriptReact
+    web_task_detail_page_TypeScriptReact -->|uses| shared_types_TypeScript
+    web_kanban_board_component_TypeScriptReact -->|uses| shared_types_TypeScript
+    web_kanban_board_component_TypeScriptReact -->|uses| web_task_card_component_TypeScriptReact
+    web_task_card_component_TypeScriptReact -->|uses| shared_types_TypeScript
+    web_task_form_component_TypeScriptReact -->|uses| shared_types_TypeScript
+    web_create_team_dialog_TypeScriptReact -->|uses| shared_types_TypeScript
+    web_agent_presence_component_TypeScriptReact -->|uses| shared_types_TypeScript
+    web_use_socket_hook_TypeScript -->|uses| shared_types_TypeScript
+    web_use_api_hook_TypeScript -->|uses| shared_types_TypeScript
+    
+    classDef frontend fill:#FFF3E0,stroke:#F57C00,stroke-width:2px
+    classDef backend fill:#E3F2FD,stroke:#1976D2,stroke-width:2px
+    classDef shared fill:#E8F5E9,stroke:#388E3C,stroke-width:2px
+    classDef system fill:#E0E0E0,stroke:#616161,stroke-width:3px
+    
+    class web_root_layout_TypeScriptReact,web_home_page_TypeScriptReact,web_teams_page_TypeScriptReact,web_team_board_page_TypeScriptReact,web_task_detail_page_TypeScriptReact,web_kanban_board_component_TypeScriptReact,web_task_card_component_TypeScriptReact,web_task_form_component_TypeScriptReact,web_create_team_dialog_TypeScriptReact,web_agent_presence_component_TypeScriptReact,web_use_socket_hook_TypeScript,web_use_api_hook_TypeScript,web_next_config_TypeScript frontend
+    class prisma_schema_Prisma,prisma_client_TypeScript,agent_controller_TypeScript,team_controller_TypeScript,task_controller_TypeScript,board_controller_TypeScript,api_server_TypeScript backend
+    class turbo_config_JSON,shared_types_TypeScript,jwt_utils_TypeScript,auth_middleware_TypeScript,validation_middleware_TypeScript,error_handler_TypeScript,agent_service_TypeScript,team_service_TypeScript,task_service_TypeScript,matching_service_TypeScript,webhook_service_TypeScript,socketio_server_TypeScript,agent_routes_TypeScript,team_routes_TypeScript,task_routes_TypeScript,board_routes_TypeScript,web_tailwind_config_TypeScript shared
+    class PRD system</pre></div>
+</body></html>

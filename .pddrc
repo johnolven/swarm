@@ -1,0 +1,327 @@
+version: "1.0"
+
+contexts:
+  # ============================================================
+  # MONOREPO CONFIGURATION
+  # ============================================================
+
+  turbo_config:
+    paths: ["*turbo_config*"]
+    defaults:
+      outputs:
+        code:
+          path: "turbo.json"
+
+  # ============================================================
+  # SHARED TYPES
+  # ============================================================
+
+  shared_types:
+    paths: ["*shared_types*"]
+    defaults:
+      outputs:
+        code:
+          path: "packages/types/src/index.ts"
+
+  # ============================================================
+  # DATABASE / PRISMA
+  # ============================================================
+
+  prisma_schema:
+    paths: ["*prisma_schema*"]
+    defaults:
+      outputs:
+        code:
+          path: "apps/api/prisma/schema.prisma"
+
+  prisma_client:
+    paths: ["*prisma_client*"]
+    defaults:
+      outputs:
+        code:
+          path: "apps/api/src/lib/prisma.ts"
+
+  # ============================================================
+  # AUTH & SECURITY
+  # ============================================================
+
+  jwt_utils:
+    paths: ["*jwt_utils*"]
+    defaults:
+      outputs:
+        code:
+          path: "apps/api/src/lib/jwt.ts"
+
+  # ============================================================
+  # MIDDLEWARE
+  # ============================================================
+
+  auth_middleware:
+    paths: ["*auth_middleware*"]
+    defaults:
+      outputs:
+        code:
+          path: "apps/api/src/middleware/auth.ts"
+
+  validation_middleware:
+    paths: ["*validation_middleware*"]
+    defaults:
+      outputs:
+        code:
+          path: "apps/api/src/middleware/validation.ts"
+
+  error_handler:
+    paths: ["*error_handler*"]
+    defaults:
+      outputs:
+        code:
+          path: "apps/api/src/middleware/error-handler.ts"
+
+  # ============================================================
+  # SERVICES
+  # ============================================================
+
+  agent_service:
+    paths: ["*agent_service*"]
+    defaults:
+      outputs:
+        code:
+          path: "apps/api/src/services/agent.service.ts"
+
+  team_service:
+    paths: ["*team_service*"]
+    defaults:
+      outputs:
+        code:
+          path: "apps/api/src/services/team.service.ts"
+
+  task_service:
+    paths: ["*task_service*"]
+    defaults:
+      outputs:
+        code:
+          path: "apps/api/src/services/task.service.ts"
+
+  matching_service:
+    paths: ["*matching_service*"]
+    defaults:
+      outputs:
+        code:
+          path: "apps/api/src/services/matching.service.ts"
+
+  webhook_service:
+    paths: ["*webhook_service*"]
+    defaults:
+      outputs:
+        code:
+          path: "apps/api/src/services/webhook.service.ts"
+
+  # ============================================================
+  # REAL-TIME
+  # ============================================================
+
+  socketio_server:
+    paths: ["*socketio_server*"]
+    defaults:
+      outputs:
+        code:
+          path: "apps/api/src/lib/socket.ts"
+
+  # ============================================================
+  # CONTROLLERS
+  # ============================================================
+
+  agent_controller:
+    paths: ["*agent_controller*"]
+    defaults:
+      outputs:
+        code:
+          path: "apps/api/src/controllers/agent.controller.ts"
+
+  team_controller:
+    paths: ["*team_controller*"]
+    defaults:
+      outputs:
+        code:
+          path: "apps/api/src/controllers/team.controller.ts"
+
+  task_controller:
+    paths: ["*task_controller*"]
+    defaults:
+      outputs:
+        code:
+          path: "apps/api/src/controllers/task.controller.ts"
+
+  board_controller:
+    paths: ["*board_controller*"]
+    defaults:
+      outputs:
+        code:
+          path: "apps/api/src/controllers/board.controller.ts"
+
+  # ============================================================
+  # ROUTES
+  # ============================================================
+
+  agent_routes:
+    paths: ["*agent_routes*"]
+    defaults:
+      outputs:
+        code:
+          path: "apps/api/src/routes/agent.routes.ts"
+
+  team_routes:
+    paths: ["*team_routes*"]
+    defaults:
+      outputs:
+        code:
+          path: "apps/api/src/routes/team.routes.ts"
+
+  task_routes:
+    paths: ["*task_routes*"]
+    defaults:
+      outputs:
+        code:
+          path: "apps/api/src/routes/task.routes.ts"
+
+  board_routes:
+    paths: ["*board_routes*"]
+    defaults:
+      outputs:
+        code:
+          path: "apps/api/src/routes/board.routes.ts"
+
+  # ============================================================
+  # API SERVER
+  # ============================================================
+
+  api_server:
+    paths: ["*api_server*"]
+    defaults:
+      outputs:
+        code:
+          path: "apps/api/src/index.ts"
+
+  # ============================================================
+  # FRONTEND - LAYOUTS & PAGES
+  # ============================================================
+
+  web_root_layout:
+    paths: ["*web_root_layout*"]
+    defaults:
+      outputs:
+        code:
+          path: "apps/web/app/layout.tsx"
+
+  web_home_page:
+    paths: ["*web_home_page*"]
+    defaults:
+      outputs:
+        code:
+          path: "apps/web/app/page.tsx"
+
+  web_teams_page:
+    paths: ["*web_teams_page*"]
+    defaults:
+      outputs:
+        code:
+          path: "apps/web/app/teams/page.tsx"
+
+  web_team_board_page:
+    paths: ["*web_team_board_page*"]
+    defaults:
+      outputs:
+        code:
+          path: "apps/web/app/teams/[id]/page.tsx"
+
+  web_task_detail_page:
+    paths: ["*web_task_detail_page*"]
+    defaults:
+      outputs:
+        code:
+          path: "apps/web/app/tasks/[id]/page.tsx"
+
+  # ============================================================
+  # FRONTEND - COMPONENTS
+  # ============================================================
+
+  web_kanban_board_component:
+    paths: ["*web_kanban_board_component*"]
+    defaults:
+      outputs:
+        code:
+          path: "apps/web/components/KanbanBoard.tsx"
+
+  web_task_card_component:
+    paths: ["*web_task_card_component*"]
+    defaults:
+      outputs:
+        code:
+          path: "apps/web/components/TaskCard.tsx"
+
+  web_task_form_component:
+    paths: ["*web_task_form_component*"]
+    defaults:
+      outputs:
+        code:
+          path: "apps/web/components/TaskForm.tsx"
+
+  web_create_team_dialog:
+    paths: ["*web_create_team_dialog*"]
+    defaults:
+      outputs:
+        code:
+          path: "apps/web/components/CreateTeamDialog.tsx"
+
+  web_agent_presence_component:
+    paths: ["*web_agent_presence_component*"]
+    defaults:
+      outputs:
+        code:
+          path: "apps/web/components/AgentPresence.tsx"
+
+  # ============================================================
+  # FRONTEND - HOOKS
+  # ============================================================
+
+  web_use_socket_hook:
+    paths: ["*web_use_socket_hook*"]
+    defaults:
+      outputs:
+        code:
+          path: "apps/web/hooks/useSocket.ts"
+
+  web_use_api_hook:
+    paths: ["*web_use_api_hook*"]
+    defaults:
+      outputs:
+        code:
+          path: "apps/web/hooks/useApi.ts"
+
+  # ============================================================
+  # FRONTEND - CONFIGURATION
+  # ============================================================
+
+  web_next_config:
+    paths: ["*web_next_config*"]
+    defaults:
+      outputs:
+        code:
+          path: "apps/web/next.config.ts"
+
+  web_tailwind_config:
+    paths: ["*web_tailwind_config*"]
+    defaults:
+      outputs:
+        code:
+          path: "apps/web/tailwind.config.ts"
+
+  # ============================================================
+  # DEFAULT FALLBACK
+  # ============================================================
+  # CRITICAL: prompts_dir goes ONLY here, not in other contexts!
+
+  default:
+    defaults:
+      prompts_dir: "prompts/"
+      generate_output_path: "src/"
