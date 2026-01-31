@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: swarm-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: swarm
+      POSTGRES_PASSWORD: swarm_password
+      POSTGRES_DB: swarm_board
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U swarm"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      target: api-runner
+    container_name: swarm-api
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    environment:
+      DATABASE_URL: postgresql://swarm:swarm_password@postgres:5432/swarm_board
+      JWT_SECRET: your-secret-key-change-in-production
+      JWT_EXPIRES_IN: 30d
+      PORT: 3001
+      NODE_ENV: production
+      CORS_ORIGIN: http://localhost:3000
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: sh -c "npx prisma migrate deploy && node dist/index.js"
+
+  web:
+    build:
+      context: .
+      target: web-runner
+    container_name: swarm-web
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:3001
+      NEXT_PUBLIC_WS_URL: http://localhost:3001
+      NODE_ENV: production
+    depends_on:
+      - api
+
+volumes:
+  postgres_data:

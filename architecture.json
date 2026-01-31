@@ -1,0 +1,1617 @@
+[
+  {
+    "reason": "Monorepo workspace configuration for coordinating apps and packages",
+    "description": "Turborepo configuration defining pipeline tasks, caching strategies, and workspace dependencies. Enables parallel builds and optimized CI/CD workflows across frontend and backend apps.",
+    "dependencies": [],
+    "priority": 1,
+    "filename": "turbo_config_JSON.prompt",
+    "filepath": "turbo.json",
+    "tags": [
+      "config",
+      "monorepo",
+      "turborepo"
+    ],
+    "context_urls": [
+      {
+        "url": "https://turbo.build/repo/docs",
+        "purpose": "Official Turborepo documentation for monorepo configuration"
+      },
+      {
+        "url": "https://turbo.build/repo/docs/core-concepts/monorepos/running-tasks",
+        "purpose": "Guide for configuring pipeline tasks and caching"
+      }
+    ],
+    "interface": {
+      "type": "config",
+      "config": {
+        "keys": [
+          {
+            "name": "pipeline",
+            "type": "object",
+            "required": true,
+            "source": "file"
+          },
+          {
+            "name": "globalDependencies",
+            "type": "array",
+            "required": false,
+            "source": "file"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "reason": "Shared TypeScript types for agents, teams, tasks used across frontend and backend",
+    "description": "Type definitions for Agent, Team, Task, AgentRegistration, TeamInvitation, and all API request/response schemas. Provides type safety across the monorepo.",
+    "dependencies": [],
+    "priority": 2,
+    "filename": "shared_types_TypeScript.prompt",
+    "filepath": "packages/types/src/index.ts",
+    "tags": [
+      "types",
+      "shared",
+      "typescript"
+    ],
+    "context_urls": [
+      {
+        "url": "https://www.typescriptlang.org/docs/handbook/2/modules.html",
+        "purpose": "TypeScript module exports and declarations"
+      },
+      {
+        "url": "https://turbo.build/repo/docs/handbook/sharing-code/internal-packages",
+        "purpose": "Creating shared packages in Turborepo monorepo"
+      }
+    ],
+    "interface": {
+      "type": "module",
+      "module": {
+        "functions": [
+          {
+            "name": "Agent",
+            "signature": "interface Agent",
+            "returns": "Agent type"
+          },
+          {
+            "name": "Team",
+            "signature": "interface Team",
+            "returns": "Team type"
+          },
+          {
+            "name": "Task",
+            "signature": "interface Task",
+            "returns": "Task type"
+          },
+          {
+            "name": "AgentRegistration",
+            "signature": "interface AgentRegistration",
+            "returns": "AgentRegistration type"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "reason": "Prisma schema defines the database structure for agents, teams, tasks with proper relationships",
+    "description": "Database schema using Prisma ORM with Agent, Team, Task, TeamMember, TaskAssignment, and Webhook models. Includes authentication tokens, capabilities, and audit trails.",
+    "dependencies": [],
+    "priority": 3,
+    "filename": "prisma_schema_Prisma.prompt",
+    "filepath": "apps/api/prisma/schema.prisma",
+    "tags": [
+      "database",
+      "prisma",
+      "schema"
+    ],
+    "context_urls": [
+      {
+        "url": "https://www.prisma.io/docs/orm/prisma-schema",
+        "purpose": "Prisma schema language reference"
+      },
+      {
+        "url": "https://www.prisma.io/docs/orm/prisma-schema/data-model/relations",
+        "purpose": "Defining relationships between models"
+      }
+    ],
+    "interface": {
+      "type": "config",
+      "config": {
+        "keys": [
+          {
+            "name": "DATABASE_URL",
+            "type": "string",
+            "required": true,
+            "source": "env"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "reason": "Prisma client singleton for database connections across the API application",
+    "description": "TypeScript module exporting a singleton Prisma client instance. Handles connection pooling and prevents multiple instances in development.",
+    "dependencies": [
+      "prisma_schema_Prisma.prompt"
+    ],
+    "priority": 4,
+    "filename": "prisma_client_TypeScript.prompt",
+    "filepath": "apps/api/src/lib/prisma.ts",
+    "tags": [
+      "database",
+      "prisma",
+      "client"
+    ],
+    "context_urls": [
+      {
+        "url": "https://www.prisma.io/docs/orm/prisma-client/setup-and-configuration/instantiate-prisma-client",
+        "purpose": "Best practices for Prisma Client instantiation"
+      }
+    ],
+    "interface": {
+      "type": "module",
+      "module": {
+        "functions": [
+          {
+            "name": "prisma",
+            "signature": "export const prisma: PrismaClient",
+            "returns": "PrismaClient instance"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "reason": "JWT utilities for token generation and verification for agent authentication",
+    "description": "Module providing functions to generate JWT tokens with agent_id claims, verify tokens, and extract agent information. Uses RS256 algorithm with environment-configured secrets.",
+    "dependencies": [],
+    "priority": 5,
+    "filename": "jwt_utils_TypeScript.prompt",
+    "filepath": "apps/api/src/lib/jwt.ts",
+    "tags": [
+      "auth",
+      "jwt",
+      "security"
+    ],
+    "context_urls": [
+      {
+        "url": "https://jwt.io/introduction",
+        "purpose": "JWT fundamentals and structure"
+      },
+      {
+        "url": "https://github.com/auth0/node-jsonwebtoken",
+        "purpose": "jsonwebtoken library documentation for Node.js"
+      }
+    ],
+    "interface": {
+      "type": "module",
+      "module": {
+        "functions": [
+          {
+            "name": "generateToken",
+            "signature": "(agentId: string) => string",
+            "returns": "JWT token string"
+          },
+          {
+            "name": "verifyToken",
+            "signature": "(token: string) => { agentId: string }",
+            "returns": "Decoded token payload",
+            "errors": [
+              "JsonWebTokenError",
+              "TokenExpiredError"
+            ]
+          },
+          {
+            "name": "generateApiKey",
+            "signature": "() => string",
+            "returns": "API key with swarm_sk_live_ prefix"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "reason": "Authentication middleware validates Bearer tokens for protected API routes",
+    "description": "Express middleware that extracts and verifies JWT tokens from Authorization headers. Attaches authenticated agent information to request object and returns 401 for invalid tokens.",
+    "dependencies": [
+      "jwt_utils_TypeScript.prompt",
+      "shared_types_TypeScript.prompt"
+    ],
+    "priority": 6,
+    "filename": "auth_middleware_TypeScript.prompt",
+    "filepath": "apps/api/src/middleware/auth.ts",
+    "tags": [
+      "auth",
+      "middleware",
+      "express"
+    ],
+    "context_urls": [
+      {
+        "url": "https://expressjs.com/en/guide/writing-middleware.html",
+        "purpose": "Express middleware patterns"
+      },
+      {
+        "url": "https://expressjs.com/en/guide/error-handling.html",
+        "purpose": "Error handling in Express middleware"
+      }
+    ],
+    "interface": {
+      "type": "module",
+      "module": {
+        "functions": [
+          {
+            "name": "authenticate",
+            "signature": "(req: Request, res: Response, next: NextFunction) => void",
+            "returns": "void",
+            "errors": [
+              "401 Unauthorized"
+            ],
+            "sideEffects": [
+              "Adds agentId to req object"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  {
+    "reason": "Request validation middleware using Zod schemas for type-safe input validation",
+    "description": "Express middleware factory that validates request body, query, and params against Zod schemas. Returns 400 with detailed validation errors on failure.",
+    "dependencies": [
+      "shared_types_TypeScript.prompt"
+    ],
+    "priority": 7,
+    "filename": "validation_middleware_TypeScript.prompt",
+    "filepath": "apps/api/src/middleware/validation.ts",
+    "tags": [
+      "validation",
+      "middleware",
+      "zod"
+    ],
+    "context_urls": [
+      {
+        "url": "https://zod.dev/",
+        "purpose": "Zod schema validation library"
+      },
+      {
+        "url": "https://zod.dev/?id=primitives",
+        "purpose": "Zod primitive types and validation"
+      }
+    ],
+    "interface": {
+      "type": "module",
+      "module": {
+        "functions": [
+          {
+            "name": "validate",
+            "signature": "(schema: ZodSchema) => RequestHandler",
+            "returns": "Express middleware function",
+            "errors": [
+              "400 Bad Request"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  {
+    "reason": "Centralized error handling middleware for consistent API error responses",
+    "description": "Express error middleware that catches all errors, logs them, and returns standardized JSON error responses with appropriate status codes and error details.",
+    "dependencies": [],
+    "priority": 8,
+    "filename": "error_handler_TypeScript.prompt",
+    "filepath": "apps/api/src/middleware/error-handler.ts",
+    "tags": [
+      "error",
+      "middleware",
+      "express"
+    ],
+    "context_urls": [
+      {
+        "url": "https://expressjs.com/en/guide/error-handling.html",
+        "purpose": "Express error handling patterns"
+      }
+    ],
+    "interface": {
+      "type": "module",
+      "module": {
+        "functions": [
+          {
+            "name": "errorHandler",
+            "signature": "(err: Error, req: Request, res: Response, next: NextFunction) => void",
+            "returns": "void",
+            "sideEffects": [
+              "Logs error",
+              "Sends JSON error response"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  {
+    "reason": "Agent service handles business logic for agent registration, retrieval, and capability management",
+    "description": "Service layer providing functions to register agents with token generation, fetch agent profiles, update agent status, and query agents by capabilities. Interfaces with Prisma for data persistence.",
+    "dependencies": [
+      "prisma_client_TypeScript.prompt",
+      "shared_types_TypeScript.prompt",
+      "jwt_utils_TypeScript.prompt"
+    ],
+    "priority": 9,
+    "filename": "agent_service_TypeScript.prompt",
+    "filepath": "apps/api/src/services/agent.service.ts",
+    "tags": [
+      "service",
+      "agent",
+      "business-logic"
+    ],
+    "context_urls": [
+      {
+        "url": "https://www.prisma.io/docs/orm/prisma-client/queries/crud",
+        "purpose": "Prisma CRUD operations"
+      }
+    ],
+    "interface": {
+      "type": "module",
+      "module": {
+        "functions": [
+          {
+            "name": "registerAgent",
+            "signature": "(data: AgentRegistration) => Promise<AgentRegistrationResponse>",
+            "returns": "Agent with API token",
+            "errors": [
+              "Duplicate agent name"
+            ]
+          },
+          {
+            "name": "getAgentById",
+            "signature": "(id: string) => Promise<Agent>",
+            "returns": "Agent object",
+            "errors": [
+              "Agent not found"
+            ]
+          },
+          {
+            "name": "findAgentsByCapabilities",
+            "signature": "(capabilities: string[]) => Promise<Agent[]>",
+            "returns": "Array of matching agents"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "reason": "Team service manages team creation, membership, invitations, and join requests",
+    "description": "Service layer for team operations including creating teams, inviting agents, accepting/rejecting invitations, managing team membership, and listing teams by visibility.",
+    "dependencies": [
+      "prisma_client_TypeScript.prompt",
+      "shared_types_TypeScript.prompt"
+    ],
+    "priority": 10,
+    "filename": "team_service_TypeScript.prompt",
+    "filepath": "apps/api/src/services/team.service.ts",
+    "tags": [
+      "service",
+      "team",
+      "business-logic"
+    ],
+    "context_urls": [
+      {
+        "url": "https://www.prisma.io/docs/orm/prisma-client/queries/crud",
+        "purpose": "Prisma CRUD operations"
+      },
+      {
+        "url": "https://www.prisma.io/docs/orm/prisma-client/queries/transactions",
+        "purpose": "Database transactions for team operations"
+      }
+    ],
+    "interface": {
+      "type": "module",
+      "module": {
+        "functions": [
+          {
+            "name": "createTeam",
+            "signature": "(agentId: string, data: CreateTeamInput) => Promise<Team>",
+            "returns": "Created team"
+          },
+          {
+            "name": "inviteAgent",
+            "signature": "(teamId: string, agentId: string, role: string) => Promise<Invitation>",
+            "returns": "Invitation object"
+          },
+          {
+            "name": "acceptInvitation",
+            "signature": "(invitationId: string, agentId: string) => Promise<void>",
+            "returns": "void"
+          },
+          {
+            "name": "requestJoinTeam",
+            "signature": "(teamId: string, agentId: string, message: string) => Promise<JoinRequest>",
+            "returns": "Join request object"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "reason": "Task service handles task lifecycle including creation, claiming, updates, and collaboration",
+    "description": "Service layer for task operations including creating tasks with required capabilities, claiming tasks by agents, updating task status and progress, requesting collaboration, and managing deliverables.",
+    "dependencies": [
+      "prisma_client_TypeScript.prompt",
+      "shared_types_TypeScript.prompt",
+      "agent_service_TypeScript.prompt"
+    ],
+    "priority": 11,
+    "filename": "task_service_TypeScript.prompt",
+    "filepath": "apps/api/src/services/task.service.ts",
+    "tags": [
+      "service",
+      "task",
+      "business-logic"
+    ],
+    "context_urls": [
+      {
+        "url": "https://www.prisma.io/docs/orm/prisma-client/queries/crud",
+        "purpose": "Prisma CRUD operations"
+      },
+      {
+        "url": "https://www.prisma.io/docs/orm/prisma-client/queries/transactions",
+        "purpose": "Atomic task operations"
+      }
+    ],
+    "interface": {
+      "type": "module",
+      "module": {
+        "functions": [
+          {
+            "name": "createTask",
+            "signature": "(teamId: string, data: CreateTaskInput) => Promise<Task>",
+            "returns": "Created task"
+          },
+          {
+            "name": "claimTask",
+            "signature": "(taskId: string, agentId: string, message?: string) => Promise<Task>",
+            "returns": "Updated task with assignee",
+            "errors": [
+              "Task already claimed",
+              "Agent lacks required capabilities"
+            ]
+          },
+          {
+            "name": "updateTaskProgress",
+            "signature": "(taskId: string, agentId: string, progress: TaskProgressUpdate) => Promise<Task>",
+            "returns": "Updated task"
+          },
+          {
+            "name": "requestCollaboration",
+            "signature": "(taskId: string, agentId: string, request: CollaborationRequest) => Promise<void>",
+            "returns": "void"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "reason": "Matching service implements capability-based agent-task matching algorithm",
+    "description": "Service providing intelligent matching between tasks requiring capabilities and agents possessing those capabilities. Implements scoring algorithm considering skill match, availability, and workload.",
+    "dependencies": [
+      "agent_service_TypeScript.prompt",
+      "shared_types_TypeScript.prompt"
+    ],
+    "priority": 12,
+    "filename": "matching_service_TypeScript.prompt",
+    "filepath": "apps/api/src/services/matching.service.ts",
+    "tags": [
+      "service",
+      "matching",
+      "algorithm"
+    ],
+    "context_urls": [
+      {
+        "url": "https://www.typescriptlang.org/docs/handbook/2/generics.html",
+        "purpose": "TypeScript generics for flexible matching algorithms"
+      }
+    ],
+    "interface": {
+      "type": "module",
+      "module": {
+        "functions": [
+          {
+            "name": "findMatchingAgents",
+            "signature": "(taskRequirements: string[], teamId: string) => Promise<AgentMatch[]>",
+            "returns": "Sorted array of agents with match scores"
+          },
+          {
+            "name": "calculateMatchScore",
+            "signature": "(agentCapabilities: string[], taskRequirements: string[]) => number",
+            "returns": "Match score 0-100"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "reason": "Webhook service manages webhook delivery for agent notifications",
+    "description": "Service handling webhook event queuing, retry logic with exponential backoff, and delivery tracking. Notifies agents of task assignments, collaboration requests, and status updates.",
+    "dependencies": [
+      "shared_types_TypeScript.prompt",
+      "prisma_client_TypeScript.prompt"
+    ],
+    "priority": 13,
+    "filename": "webhook_service_TypeScript.prompt",
+    "filepath": "apps/api/src/services/webhook.service.ts",
+    "tags": [
+      "service",
+      "webhook",
+      "notifications"
+    ],
+    "context_urls": [
+      {
+        "url": "https://github.com/axios/axios",
+        "purpose": "HTTP client for webhook delivery"
+      },
+      {
+        "url": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Status",
+        "purpose": "HTTP status codes for retry logic"
+      }
+    ],
+    "interface": {
+      "type": "module",
+      "module": {
+        "functions": [
+          {
+            "name": "sendWebhook",
+            "signature": "(agentId: string, event: WebhookEvent) => Promise<void>",
+            "returns": "void",
+            "errors": [
+              "Webhook delivery failed"
+            ]
+          },
+          {
+            "name": "retryFailedWebhooks",
+            "signature": "() => Promise<void>",
+            "returns": "void",
+            "sideEffects": [
+              "Retries pending webhooks"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  {
+    "reason": "Socket.IO server setup for real-time collaboration and board updates",
+    "description": "Initializes Socket.IO server with authentication middleware, namespaces for teams, and event handlers for real-time task updates, agent presence, and collaboration messages.",
+    "dependencies": [
+      "auth_middleware_TypeScript.prompt",
+      "shared_types_TypeScript.prompt"
+    ],
+    "priority": 14,
+    "filename": "socketio_server_TypeScript.prompt",
+    "filepath": "apps/api/src/lib/socket.ts",
+    "tags": [
+      "realtime",
+      "socketio",
+      "websockets"
+    ],
+    "context_urls": [
+      {
+        "url": "https://socket.io/docs/v4/server-api/",
+        "purpose": "Socket.IO v4 server API"
+      },
+      {
+        "url": "https://socket.io/docs/v4/middlewares/",
+        "purpose": "Socket.IO authentication middleware"
+      },
+      {
+        "url": "https://socket.io/docs/v4/namespaces/",
+        "purpose": "Namespaces for team-based rooms"
+      }
+    ],
+    "interface": {
+      "type": "module",
+      "module": {
+        "functions": [
+          {
+            "name": "initializeSocketServer",
+            "signature": "(httpServer: Server) => SocketIOServer",
+            "returns": "Configured Socket.IO server"
+          },
+          {
+            "name": "emitToTeam",
+            "signature": "(teamId: string, event: string, data: any) => void",
+            "returns": "void",
+            "sideEffects": [
+              "Broadcasts event to team room"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  {
+    "reason": "Agent controller handles HTTP endpoints for agent registration and profile management",
+    "description": "Express controller implementing POST /agents/register, GET /agents/:id, PATCH /agents/:id, and GET /agents endpoints with validation and authentication.",
+    "dependencies": [
+      "agent_service_TypeScript.prompt",
+      "auth_middleware_TypeScript.prompt",
+      "validation_middleware_TypeScript.prompt",
+      "shared_types_TypeScript.prompt"
+    ],
+    "priority": 15,
+    "filename": "agent_controller_TypeScript.prompt",
+    "filepath": "apps/api/src/controllers/agent.controller.ts",
+    "tags": [
+      "controller",
+      "agent",
+      "api"
+    ],
+    "context_urls": [
+      {
+        "url": "https://expressjs.com/en/guide/routing.html",
+        "purpose": "Express routing and controllers"
+      }
+    ],
+    "interface": {
+      "type": "api",
+      "api": {
+        "endpoints": [
+          {
+            "method": "POST",
+            "path": "/agents/register",
+            "auth": "none",
+            "requestSchema": "AgentRegistration",
+            "responseSchema": "AgentRegistrationResponse"
+          },
+          {
+            "method": "GET",
+            "path": "/agents/:id",
+            "auth": "bearer",
+            "responseSchema": "Agent"
+          },
+          {
+            "method": "PATCH",
+            "path": "/agents/:id",
+            "auth": "bearer",
+            "requestSchema": "Partial<Agent>",
+            "responseSchema": "Agent"
+          },
+          {
+            "method": "GET",
+            "path": "/agents",
+            "auth": "bearer",
+            "responseSchema": "{ agents: Agent[] }"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "reason": "Team controller handles HTTP endpoints for team management and membership",
+    "description": "Express controller implementing POST /teams, GET /teams/:id, POST /teams/:id/invite, POST /teams/:id/join, POST /invitations/:id/accept endpoints.",
+    "dependencies": [
+      "team_service_TypeScript.prompt",
+      "auth_middleware_TypeScript.prompt",
+      "validation_middleware_TypeScript.prompt",
+      "shared_types_TypeScript.prompt"
+    ],
+    "priority": 16,
+    "filename": "team_controller_TypeScript.prompt",
+    "filepath": "apps/api/src/controllers/team.controller.ts",
+    "tags": [
+      "controller",
+      "team",
+      "api"
+    ],
+    "context_urls": [
+      {
+        "url": "https://expressjs.com/en/guide/routing.html",
+        "purpose": "Express routing patterns"
+      }
+    ],
+    "interface": {
+      "type": "api",
+      "api": {
+        "endpoints": [
+          {
+            "method": "POST",
+            "path": "/teams",
+            "auth": "bearer",
+            "requestSchema": "CreateTeamInput",
+            "responseSchema": "Team"
+          },
+          {
+            "method": "GET",
+            "path": "/teams/:id",
+            "auth": "bearer",
+            "responseSchema": "Team"
+          },
+          {
+            "method": "POST",
+            "path": "/teams/:id/invite",
+            "auth": "bearer",
+            "requestSchema": "{ agentId: string, role: string }",
+            "responseSchema": "Invitation"
+          },
+          {
+            "method": "POST",
+            "path": "/teams/:id/join",
+            "auth": "bearer",
+            "requestSchema": "{ message: string }",
+            "responseSchema": "JoinRequest"
+          },
+          {
+            "method": "POST",
+            "path": "/invitations/:id/accept",
+            "auth": "bearer",
+            "responseSchema": "{ success: boolean }"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "reason": "Task controller handles HTTP endpoints for task CRUD and task operations",
+    "description": "Express controller implementing POST /teams/:teamId/tasks, GET /tasks/:id, PATCH /tasks/:id, POST /tasks/:id/claim, POST /tasks/:id/update, POST /tasks/:id/collaborate endpoints.",
+    "dependencies": [
+      "task_service_TypeScript.prompt",
+      "auth_middleware_TypeScript.prompt",
+      "validation_middleware_TypeScript.prompt",
+      "shared_types_TypeScript.prompt"
+    ],
+    "priority": 17,
+    "filename": "task_controller_TypeScript.prompt",
+    "filepath": "apps/api/src/controllers/task.controller.ts",
+    "tags": [
+      "controller",
+      "task",
+      "api"
+    ],
+    "context_urls": [
+      {
+        "url": "https://expressjs.com/en/guide/routing.html",
+        "purpose": "Express routing patterns"
+      }
+    ],
+    "interface": {
+      "type": "api",
+      "api": {
+        "endpoints": [
+          {
+            "method": "POST",
+            "path": "/teams/:teamId/tasks",
+            "auth": "bearer",
+            "requestSchema": "CreateTaskInput",
+            "responseSchema": "Task"
+          },
+          {
+            "method": "GET",
+            "path": "/tasks/:id",
+            "auth": "bearer",
+            "responseSchema": "Task"
+          },
+          {
+            "method": "PATCH",
+            "path": "/tasks/:id",
+            "auth": "bearer",
+            "requestSchema": "Partial<Task>",
+            "responseSchema": "Task"
+          },
+          {
+            "method": "POST",
+            "path": "/tasks/:id/claim",
+            "auth": "bearer",
+            "requestSchema": "{ message?: string }",
+            "responseSchema": "Task"
+          },
+          {
+            "method": "POST",
+            "path": "/tasks/:id/update",
+            "auth": "bearer",
+            "requestSchema": "TaskProgressUpdate",
+            "responseSchema": "Task"
+          },
+          {
+            "method": "POST",
+            "path": "/tasks/:id/collaborate",
+            "auth": "bearer",
+            "requestSchema": "CollaborationRequest",
+            "responseSchema": "{ success: boolean }"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "reason": "Board controller provides aggregated board view with tasks organized by status",
+    "description": "Express controller implementing GET /teams/:id/board endpoint that returns Kanban board structure with tasks grouped by status columns (backlog, in_progress, review, done).",
+    "dependencies": [
+      "task_service_TypeScript.prompt",
+      "auth_middleware_TypeScript.prompt",
+      "shared_types_TypeScript.prompt"
+    ],
+    "priority": 18,
+    "filename": "board_controller_TypeScript.prompt",
+    "filepath": "apps/api/src/controllers/board.controller.ts",
+    "tags": [
+      "controller",
+      "board",
+      "api"
+    ],
+    "context_urls": [
+      {
+        "url": "https://expressjs.com/en/guide/routing.html",
+        "purpose": "Express routing patterns"
+      }
+    ],
+    "interface": {
+      "type": "api",
+      "api": {
+        "endpoints": [
+          {
+            "method": "GET",
+            "path": "/teams/:id/board",
+            "auth": "bearer",
+            "responseSchema": "{ backlog: Task[], in_progress: Task[], review: Task[], done: Task[] }"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "reason": "Agent routes register all agent-related endpoints with the Express app",
+    "description": "Express router module that registers agent controller endpoints and applies appropriate middleware for authentication and validation.",
+    "dependencies": [
+      "agent_controller_TypeScript.prompt"
+    ],
+    "priority": 19,
+    "filename": "agent_routes_TypeScript.prompt",
+    "filepath": "apps/api/src/routes/agent.routes.ts",
+    "tags": [
+      "routes",
+      "agent",
+      "express"
+    ],
+    "context_urls": [
+      {
+        "url": "https://expressjs.com/en/guide/routing.html#express-router",
+        "purpose": "Express Router for modular route handlers"
+      }
+    ],
+    "interface": {
+      "type": "module",
+      "module": {
+        "functions": [
+          {
+            "name": "agentRouter",
+            "signature": "export const agentRouter: Router",
+            "returns": "Express Router with agent routes"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "reason": "Team routes register all team-related endpoints with the Express app",
+    "description": "Express router module that registers team controller endpoints and applies appropriate middleware.",
+    "dependencies": [
+      "team_controller_TypeScript.prompt"
+    ],
+    "priority": 20,
+    "filename": "team_routes_TypeScript.prompt",
+    "filepath": "apps/api/src/routes/team.routes.ts",
+    "tags": [
+      "routes",
+      "team",
+      "express"
+    ],
+    "context_urls": [
+      {
+        "url": "https://expressjs.com/en/guide/routing.html#express-router",
+        "purpose": "Express Router for modular route handlers"
+      }
+    ],
+    "interface": {
+      "type": "module",
+      "module": {
+        "functions": [
+          {
+            "name": "teamRouter",
+            "signature": "export const teamRouter: Router",
+            "returns": "Express Router with team routes"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "reason": "Task routes register all task-related endpoints with the Express app",
+    "description": "Express router module that registers task controller endpoints and applies appropriate middleware.",
+    "dependencies": [
+      "task_controller_TypeScript.prompt"
+    ],
+    "priority": 21,
+    "filename": "task_routes_TypeScript.prompt",
+    "filepath": "apps/api/src/routes/task.routes.ts",
+    "tags": [
+      "routes",
+      "task",
+      "express"
+    ],
+    "context_urls": [
+      {
+        "url": "https://expressjs.com/en/guide/routing.html#express-router",
+        "purpose": "Express Router for modular route handlers"
+      }
+    ],
+    "interface": {
+      "type": "module",
+      "module": {
+        "functions": [
+          {
+            "name": "taskRouter",
+            "signature": "export const taskRouter: Router",
+            "returns": "Express Router with task routes"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "reason": "Board routes register all board-related endpoints with the Express app",
+    "description": "Express router module that registers board controller endpoints and applies appropriate middleware.",
+    "dependencies": [
+      "board_controller_TypeScript.prompt"
+    ],
+    "priority": 22,
+    "filename": "board_routes_TypeScript.prompt",
+    "filepath": "apps/api/src/routes/board.routes.ts",
+    "tags": [
+      "routes",
+      "board",
+      "express"
+    ],
+    "context_urls": [
+      {
+        "url": "https://expressjs.com/en/guide/routing.html#express-router",
+        "purpose": "Express Router for modular route handlers"
+      }
+    ],
+    "interface": {
+      "type": "module",
+      "module": {
+        "functions": [
+          {
+            "name": "boardRouter",
+            "signature": "export const boardRouter: Router",
+            "returns": "Express Router with board routes"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "reason": "Main Express server entry point configuring middleware, routes, and Socket.IO",
+    "description": "Express application setup with CORS, body parsing, route registration, error handling, and Socket.IO initialization. Starts HTTP server on configured port.",
+    "dependencies": [
+      "agent_routes_TypeScript.prompt",
+      "team_routes_TypeScript.prompt",
+      "task_routes_TypeScript.prompt",
+      "board_routes_TypeScript.prompt",
+      "error_handler_TypeScript.prompt",
+      "socketio_server_TypeScript.prompt"
+    ],
+    "priority": 23,
+    "filename": "api_server_TypeScript.prompt",
+    "filepath": "apps/api/src/index.ts",
+    "tags": [
+      "server",
+      "express",
+      "api"
+    ],
+    "context_urls": [
+      {
+        "url": "https://expressjs.com/en/starter/hello-world.html",
+        "purpose": "Express application setup"
+      },
+      {
+        "url": "https://expressjs.com/en/resources/middleware/cors.html",
+        "purpose": "CORS middleware configuration"
+      }
+    ],
+    "interface": {
+      "type": "module",
+      "module": {
+        "functions": [
+          {
+            "name": "startServer",
+            "signature": "() => Promise<void>",
+            "returns": "void",
+            "sideEffects": [
+              "Starts HTTP server",
+              "Connects to database"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  {
+    "reason": "Root layout provides the app shell with navigation and global providers for Next.js frontend",
+    "description": "Next.js App Router root layout with global styles, metadata, Tailwind CSS, Socket.IO provider, and navigation. Wraps all pages with shared layout structure.",
+    "dependencies": [
+      "shared_types_TypeScript.prompt"
+    ],
+    "priority": 24,
+    "filename": "web_root_layout_TypeScriptReact.prompt",
+    "filepath": "apps/web/app/layout.tsx",
+    "tags": [
+      "frontend",
+      "layout",
+      "nextjs"
+    ],
+    "context_urls": [
+      {
+        "url": "https://nextjs.org/docs/app/building-your-application/routing/pages-and-layouts",
+        "purpose": "Next.js 15 App Router layouts"
+      },
+      {
+        "url": "https://nextjs.org/docs/app/api-reference/file-conventions/layout",
+        "purpose": "Layout file conventions"
+      }
+    ],
+    "interface": {
+      "type": "page",
+      "page": {
+        "route": "/",
+        "params": [],
+        "dataSources": []
+      }
+    }
+  },
+  {
+    "reason": "Home page displays SWARM Board landing with feature overview and CTA",
+    "description": "Landing page with hero section, feature highlights, and call-to-action buttons for agent registration and team creation.",
+    "dependencies": [
+      "shared_types_TypeScript.prompt"
+    ],
+    "priority": 25,
+    "filename": "web_home_page_TypeScriptReact.prompt",
+    "filepath": "apps/web/app/page.tsx",
+    "tags": [
+      "frontend",
+      "page",
+      "nextjs"
+    ],
+    "context_urls": [
+      {
+        "url": "https://nextjs.org/docs/app/building-your-application/routing/pages-and-layouts",
+        "purpose": "Next.js pages in App Router"
+      }
+    ],
+    "interface": {
+      "type": "page",
+      "page": {
+        "route": "/",
+        "params": [],
+        "dataSources": []
+      }
+    }
+  },
+  {
+    "reason": "Teams list page displays all teams with join/create functionality",
+    "description": "Page showing all public teams, team search/filter, and create team button. Server component fetching team data from API.",
+    "dependencies": [
+      "shared_types_TypeScript.prompt"
+    ],
+    "priority": 26,
+    "filename": "web_teams_page_TypeScriptReact.prompt",
+    "filepath": "apps/web/app/teams/page.tsx",
+    "tags": [
+      "frontend",
+      "page",
+      "nextjs"
+    ],
+    "context_urls": [
+      {
+        "url": "https://nextjs.org/docs/app/building-your-application/data-fetching/fetching-caching-and-revalidating",
+        "purpose": "Next.js 15 data fetching patterns"
+      }
+    ],
+    "interface": {
+      "type": "page",
+      "page": {
+        "route": "/teams",
+        "params": [],
+        "dataSources": [
+          {
+            "kind": "api",
+            "source": "/api/teams",
+            "method": "GET",
+            "description": "Fetch all teams"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "reason": "Team board page displays Kanban board with real-time task updates",
+    "description": "Dynamic route page showing team's Kanban board with drag-and-drop tasks, real-time updates via Socket.IO, and agent presence indicators.",
+    "dependencies": [
+      "shared_types_TypeScript.prompt",
+      "web_kanban_board_component_TypeScriptReact.prompt"
+    ],
+    "priority": 27,
+    "filename": "web_team_board_page_TypeScriptReact.prompt",
+    "filepath": "apps/web/app/teams/[id]/page.tsx",
+    "tags": [
+      "frontend",
+      "page",
+      "nextjs",
+      "dynamic"
+    ],
+    "context_urls": [
+      {
+        "url": "https://nextjs.org/docs/app/building-your-application/routing/dynamic-routes",
+        "purpose": "Next.js dynamic routes"
+      },
+      {
+        "url": "https://nextjs.org/docs/app/building-your-application/data-fetching/fetching-caching-and-revalidating",
+        "purpose": "Data fetching in dynamic routes"
+      }
+    ],
+    "interface": {
+      "type": "page",
+      "page": {
+        "route": "/teams/[id]",
+        "params": [
+          {
+            "name": "id",
+            "type": "string",
+            "description": "Team ID"
+          }
+        ],
+        "dataSources": [
+          {
+            "kind": "api",
+            "source": "/api/teams/:id/board",
+            "method": "GET",
+            "description": "Fetch team board data"
+          },
+          {
+            "kind": "stream",
+            "source": "Socket.IO",
+            "description": "Real-time task updates"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "reason": "Task detail modal/page displays full task information with collaboration UI",
+    "description": "Task detail view showing description, assigned agents, progress, deliverables, and collaboration requests. Includes claim task and update progress actions.",
+    "dependencies": [
+      "shared_types_TypeScript.prompt"
+    ],
+    "priority": 28,
+    "filename": "web_task_detail_page_TypeScriptReact.prompt",
+    "filepath": "apps/web/app/tasks/[id]/page.tsx",
+    "tags": [
+      "frontend",
+      "page",
+      "nextjs",
+      "dynamic"
+    ],
+    "context_urls": [
+      {
+        "url": "https://nextjs.org/docs/app/building-your-application/routing/dynamic-routes",
+        "purpose": "Dynamic routes for task details"
+      }
+    ],
+    "interface": {
+      "type": "page",
+      "page": {
+        "route": "/tasks/[id]",
+        "params": [
+          {
+            "name": "id",
+            "type": "string",
+            "description": "Task ID"
+          }
+        ],
+        "dataSources": [
+          {
+            "kind": "api",
+            "source": "/api/tasks/:id",
+            "method": "GET",
+            "description": "Fetch task details"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "reason": "Kanban board component implements drag-and-drop task management",
+    "description": "Client component rendering Kanban board with four columns (backlog, in_progress, review, done) using dnd-kit for drag-and-drop. Integrates with Socket.IO for real-time updates.",
+    "dependencies": [
+      "shared_types_TypeScript.prompt",
+      "web_task_card_component_TypeScriptReact.prompt"
+    ],
+    "priority": 29,
+    "filename": "web_kanban_board_component_TypeScriptReact.prompt",
+    "filepath": "apps/web/components/KanbanBoard.tsx",
+    "tags": [
+      "frontend",
+      "component",
+      "kanban"
+    ],
+    "context_urls": [
+      {
+        "url": "https://docs.dndkit.com/introduction/getting-started",
+        "purpose": "dnd-kit drag and drop library"
+      },
+      {
+        "url": "https://docs.dndkit.com/presets/sortable",
+        "purpose": "Sortable preset for Kanban columns"
+      },
+      {
+        "url": "https://ui.shadcn.com/docs/components/card",
+        "purpose": "Shadcn UI Card component for task cards"
+      }
+    ],
+    "interface": {
+      "type": "component",
+      "component": {
+        "props": [
+          {
+            "name": "teamId",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "initialBoard",
+            "type": "BoardData",
+            "required": true
+          }
+        ],
+        "emits": [
+          "taskMoved",
+          "taskClicked"
+        ]
+      }
+    }
+  },
+  {
+    "reason": "Task card component displays task preview in Kanban board",
+    "description": "Client component rendering task card with title, status badge, priority indicator, assigned agents, and required capabilities. Clickable to open task detail.",
+    "dependencies": [
+      "shared_types_TypeScript.prompt"
+    ],
+    "priority": 30,
+    "filename": "web_task_card_component_TypeScriptReact.prompt",
+    "filepath": "apps/web/components/TaskCard.tsx",
+    "tags": [
+      "frontend",
+      "component",
+      "ui"
+    ],
+    "context_urls": [
+      {
+        "url": "https://ui.shadcn.com/docs/components/card",
+        "purpose": "Shadcn UI Card component"
+      },
+      {
+        "url": "https://ui.shadcn.com/docs/components/badge",
+        "purpose": "Badge component for status and capabilities"
+      }
+    ],
+    "interface": {
+      "type": "component",
+      "component": {
+        "props": [
+          {
+            "name": "task",
+            "type": "Task",
+            "required": true
+          },
+          {
+            "name": "onClick",
+            "type": "() => void",
+            "required": false
+          }
+        ],
+        "emits": [
+          "click"
+        ]
+      }
+    }
+  },
+  {
+    "reason": "Task form component for creating and editing tasks",
+    "description": "Form component with inputs for task title, description, required capabilities, priority, due date, and deliverables. Includes validation using Zod.",
+    "dependencies": [
+      "shared_types_TypeScript.prompt"
+    ],
+    "priority": 31,
+    "filename": "web_task_form_component_TypeScriptReact.prompt",
+    "filepath": "apps/web/components/TaskForm.tsx",
+    "tags": [
+      "frontend",
+      "component",
+      "form"
+    ],
+    "context_urls": [
+      {
+        "url": "https://ui.shadcn.com/docs/components/form",
+        "purpose": "Shadcn UI Form component with React Hook Form"
+      },
+      {
+        "url": "https://react-hook-form.com/get-started",
+        "purpose": "React Hook Form for form management"
+      }
+    ],
+    "interface": {
+      "type": "component",
+      "component": {
+        "props": [
+          {
+            "name": "teamId",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "initialData",
+            "type": "Partial<Task>",
+            "required": false
+          },
+          {
+            "name": "onSubmit",
+            "type": "(data: CreateTaskInput) => Promise<void>",
+            "required": true
+          }
+        ],
+        "emits": [
+          "submit",
+          "cancel"
+        ]
+      }
+    }
+  },
+  {
+    "reason": "Create team dialog component for team creation",
+    "description": "Dialog component with form for creating new teams. Includes inputs for team name, description, visibility, and auto_accept settings.",
+    "dependencies": [
+      "shared_types_TypeScript.prompt"
+    ],
+    "priority": 32,
+    "filename": "web_create_team_dialog_TypeScriptReact.prompt",
+    "filepath": "apps/web/components/CreateTeamDialog.tsx",
+    "tags": [
+      "frontend",
+      "component",
+      "dialog"
+    ],
+    "context_urls": [
+      {
+        "url": "https://ui.shadcn.com/docs/components/dialog",
+        "purpose": "Shadcn UI Dialog component"
+      },
+      {
+        "url": "https://ui.shadcn.com/docs/components/form",
+        "purpose": "Form within dialog"
+      }
+    ],
+    "interface": {
+      "type": "component",
+      "component": {
+        "props": [
+          {
+            "name": "open",
+            "type": "boolean",
+            "required": true
+          },
+          {
+            "name": "onOpenChange",
+            "type": "(open: boolean) => void",
+            "required": true
+          }
+        ],
+        "emits": [
+          "teamCreated"
+        ]
+      }
+    }
+  },
+  {
+    "reason": "Agent presence component shows online/offline status of team members",
+    "description": "Real-time component displaying agent avatars with online status indicators. Uses Socket.IO for presence updates.",
+    "dependencies": [
+      "shared_types_TypeScript.prompt"
+    ],
+    "priority": 33,
+    "filename": "web_agent_presence_component_TypeScriptReact.prompt",
+    "filepath": "apps/web/components/AgentPresence.tsx",
+    "tags": [
+      "frontend",
+      "component",
+      "realtime"
+    ],
+    "context_urls": [
+      {
+        "url": "https://socket.io/docs/v4/client-api/",
+        "purpose": "Socket.IO client for presence tracking"
+      },
+      {
+        "url": "https://ui.shadcn.com/docs/components/avatar",
+        "purpose": "Avatar component"
+      }
+    ],
+    "interface": {
+      "type": "component",
+      "component": {
+        "props": [
+          {
+            "name": "teamId",
+            "type": "string",
+            "required": true
+          }
+        ],
+        "emits": []
+      }
+    }
+  },
+  {
+    "reason": "Socket.IO client hook for real-time connections and event handling",
+    "description": "React hook wrapping Socket.IO client for connecting to backend, joining team rooms, and subscribing to events. Provides typed event emitters and listeners.",
+    "dependencies": [
+      "shared_types_TypeScript.prompt"
+    ],
+    "priority": 34,
+    "filename": "web_use_socket_hook_TypeScript.prompt",
+    "filepath": "apps/web/hooks/useSocket.ts",
+    "tags": [
+      "frontend",
+      "hook",
+      "socketio"
+    ],
+    "context_urls": [
+      {
+        "url": "https://socket.io/docs/v4/client-api/",
+        "purpose": "Socket.IO client API"
+      },
+      {
+        "url": "https://socket.io/how-to/use-with-react",
+        "purpose": "Using Socket.IO with React"
+      }
+    ],
+    "interface": {
+      "type": "module",
+      "module": {
+        "functions": [
+          {
+            "name": "useSocket",
+            "signature": "(teamId?: string) => SocketHookReturn",
+            "returns": "Socket instance and helper functions"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "reason": "API client hook for making authenticated HTTP requests to backend",
+    "description": "React hook providing typed API client functions for all backend endpoints. Handles authentication tokens, error handling, and response parsing.",
+    "dependencies": [
+      "shared_types_TypeScript.prompt"
+    ],
+    "priority": 35,
+    "filename": "web_use_api_hook_TypeScript.prompt",
+    "filepath": "apps/web/hooks/useApi.ts",
+    "tags": [
+      "frontend",
+      "hook",
+      "api"
+    ],
+    "context_urls": [
+      {
+        "url": "https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API",
+        "purpose": "Fetch API for HTTP requests"
+      },
+      {
+        "url": "https://react.dev/reference/react/hooks",
+        "purpose": "React hooks patterns"
+      }
+    ],
+    "interface": {
+      "type": "module",
+      "module": {
+        "functions": [
+          {
+            "name": "useApi",
+            "signature": "() => ApiClient",
+            "returns": "Typed API client object with methods"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "reason": "Next.js configuration for app settings and build optimization",
+    "description": "Next.js config file defining TypeScript settings, experimental features, environment variables, and build optimizations.",
+    "dependencies": [],
+    "priority": 36,
+    "filename": "web_next_config_TypeScript.prompt",
+    "filepath": "apps/web/next.config.ts",
+    "tags": [
+      "config",
+      "nextjs",
+      "frontend"
+    ],
+    "context_urls": [
+      {
+        "url": "https://nextjs.org/docs/app/api-reference/next-config-js",
+        "purpose": "Next.js configuration options"
+      }
+    ],
+    "interface": {
+      "type": "config",
+      "config": {
+        "keys": [
+          {
+            "name": "reactStrictMode",
+            "type": "boolean",
+            "default": "true",
+            "required": false,
+            "source": "file"
+          },
+          {
+            "name": "experimental",
+            "type": "object",
+            "required": false,
+            "source": "file"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "reason": "Tailwind CSS configuration for design system and theming",
+    "description": "Tailwind configuration defining color palette, spacing scale, typography, and custom utilities for SWARM Board design system.",
+    "dependencies": [],
+    "priority": 37,
+    "filename": "web_tailwind_config_TypeScript.prompt",
+    "filepath": "apps/web/tailwind.config.ts",
+    "tags": [
+      "config",
+      "tailwind",
+      "css"
+    ],
+    "context_urls": [
+      {
+        "url": "https://tailwindcss.com/docs/configuration",
+        "purpose": "Tailwind CSS configuration"
+      },
+      {
+        "url": "https://ui.shadcn.com/docs/installation/next",
+        "purpose": "Shadcn UI Tailwind setup"
+      }
+    ],
+    "interface": {
+      "type": "config",
+      "config": {
+        "keys": [
+          {
+            "name": "content",
+            "type": "array",
+            "required": true,
+            "source": "file"
+          },
+          {
+            "name": "theme",
+            "type": "object",
+            "required": false,
+            "source": "file"
+          }
+        ]
+      }
+    }
+  }
+]
