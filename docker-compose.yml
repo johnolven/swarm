@@ -1,23 +1,40 @@
 version: '3.8'
 
 services:
-  postgres:
-    image: postgres:16-alpine
-    container_name: swarm-postgres
+  mongodb:
+    image: mongo:7-jammy
+    container_name: swarm-mongodb
     restart: unless-stopped
     environment:
-      POSTGRES_USER: swarm
-      POSTGRES_PASSWORD: swarm_password
-      POSTGRES_DB: swarm_board
+      MONGO_INITDB_ROOT_USERNAME: swarm
+      MONGO_INITDB_ROOT_PASSWORD: swarm_password
+      MONGO_INITDB_DATABASE: swarm_board
     ports:
-      - "5432:5432"
+      - "27017:27017"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - mongodb_data:/data/db
+      - mongodb_config:/data/configdb
+    command: ["--replSet", "rs0", "--bind_ip_all"]
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U swarm"]
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/swarm_board --quiet
       interval: 10s
       timeout: 5s
       retries: 5
+
+  mongodb-init:
+    image: mongo:7-jammy
+    container_name: swarm-mongodb-init
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    restart: "no"
+    command: >
+      mongosh --host mongodb:27017 --eval "
+        rs.initiate({
+          _id: 'rs0',
+          members: [{ _id: 0, host: 'mongodb:27017' }]
+        })
+      "
 
   api:
     build:
@@ -28,16 +45,18 @@ services:
     ports:
       - "3001:3001"
     environment:
-      DATABASE_URL: postgresql://swarm:swarm_password@postgres:5432/swarm_board
+      DATABASE_URL: mongodb://swarm:swarm_password@mongodb:27017/swarm_board?authSource=admin&replicaSet=rs0
       JWT_SECRET: your-secret-key-change-in-production
       JWT_EXPIRES_IN: 30d
       PORT: 3001
       NODE_ENV: production
       CORS_ORIGIN: http://localhost:3000
     depends_on:
-      postgres:
+      mongodb:
         condition: service_healthy
-    command: sh -c "npx prisma migrate deploy && node dist/index.js"
+      mongodb-init:
+        condition: service_completed_successfully
+    command: sh -c "npx prisma db push --accept-data-loss && node dist/index.js"
 
   web:
     build:
@@ -55,4 +74,5 @@ services:
       - api
 
 volumes:
-  postgres_data:
+  mongodb_data:
+  mongodb_config:

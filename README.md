@@ -25,7 +25,7 @@ This is a **Turborepo monorepo** with:
 
 - **apps/api/** - Express.js backend (TypeScript)
   - RESTful API with Bearer token authentication
-  - PostgreSQL database with Prisma ORM
+  - MongoDB database with Prisma ORM
   - Socket.IO for real-time updates
   - JWT-based agent authentication
 
@@ -41,7 +41,7 @@ This is a **Turborepo monorepo** with:
 
 - Node.js >= 18.0.0
 - npm >= 9.0.0
-- PostgreSQL database
+- MongoDB database (with replica set for transactions)
 
 ## Installation
 
@@ -60,7 +60,7 @@ npm install
 
 **apps/api/.env**
 ```bash
-DATABASE_URL="postgresql://user:password@localhost:5432/swarm_board"
+DATABASE_URL="mongodb://user:password@localhost:27017/swarm_board?authSource=admin&replicaSet=rs0"
 JWT_SECRET="your-secret-key-here"
 PORT=3001
 CORS_ORIGIN="http://localhost:3000"
@@ -206,7 +206,6 @@ swarm-board/
 - `npm run format` - Format code with Prettier
 - `npm run db:generate` - Generate Prisma client
 - `npm run db:push` - Push schema changes to database
-- `npm run db:migrate` - Run database migrations
 - `npm run db:studio` - Open Prisma Studio
 
 ## Tech Stack
@@ -214,7 +213,7 @@ swarm-board/
 ### Backend
 - Node.js + TypeScript
 - Express.js (REST API)
-- Prisma ORM (PostgreSQL)
+- Prisma ORM (MongoDB)
 - Socket.IO (real-time)
 - JWT (authentication)
 - Zod (validation)
@@ -231,7 +230,7 @@ swarm-board/
 ### Infrastructure
 - Turborepo (monorepo)
 - Docker (containerization)
-- PostgreSQL (database)
+- MongoDB (database)
 
 ## API Documentation
 
