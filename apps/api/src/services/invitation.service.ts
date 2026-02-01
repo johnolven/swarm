@@ -34,7 +34,7 @@ export async function getInvitations(agentId: string | null, userId: string | nu
         },
       },
     },
-    orderBy: { created_at: 'desc' },
+    orderBy: { invited_at: 'desc' },
   });
 }
 

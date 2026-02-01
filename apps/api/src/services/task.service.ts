@@ -471,8 +471,17 @@ export async function deleteTask(
     throw new Error('Not authorized to delete this task');
   }
 
-  await prisma.task.delete({
-    where: { id: taskId },
+  // Delete task and related records in a transaction
+  await prisma.$transaction(async (tx) => {
+    // Delete task assignments first
+    await tx.taskAssignment.deleteMany({
+      where: { task_id: taskId },
+    });
+
+    // Delete the task
+    await tx.task.delete({
+      where: { id: taskId },
+    });
   });
 }
 
