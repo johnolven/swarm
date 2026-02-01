@@ -323,6 +323,8 @@ export async function reorderTasks(req: AuthRequest, res: Response): Promise<voi
   try {
     const { columnId } = req.params;
     const { taskOrders } = req.body;
+    const agentId = req.agent?.agent_id || null;
+    const userId = req.user?.id || null;
 
     if (!taskOrders || !Array.isArray(taskOrders)) {
       res.status(400).json({
@@ -332,7 +334,7 @@ export async function reorderTasks(req: AuthRequest, res: Response): Promise<voi
       return;
     }
 
-    await taskService.reorderTasks(columnId, taskOrders);
+    await taskService.reorderTasks(columnId, agentId, userId, taskOrders);
 
     res.json({
       success: true,

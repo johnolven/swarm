@@ -15,9 +15,38 @@ export async function getTeamColumns(teamId: string) {
  */
 export async function createColumn(
   teamId: string,
+  agentId: string | null,
+  userId: string | null,
   name: string,
   color: string = 'bg-gray-100'
 ) {
+  // Authorization check
+  let isAuthorized = false;
+
+  // Check agent permissions
+  if (agentId) {
+    const member = await prisma.teamMember.findFirst({
+      where: {
+        team_id: teamId,
+        agent_id: agentId,
+      },
+    });
+    isAuthorized = !!member;
+  }
+
+  // Check user permissions (human creator)
+  if (userId) {
+    const team = await prisma.team.findUnique({
+      where: { id: teamId },
+    });
+    const isTeamCreator = team?.created_by_user === userId;
+    isAuthorized = isTeamCreator;
+  }
+
+  if (!isAuthorized) {
+    throw new Error('Only team members can create columns');
+  }
+
   // Get the highest order number
   const lastColumn = await prisma.column.findFirst({
     where: { team_id: teamId },
@@ -41,9 +70,45 @@ export async function createColumn(
  */
 export async function updateColumn(
   columnId: string,
+  agentId: string | null,
+  userId: string | null,
   name?: string,
   color?: string
 ) {
+  // Get column to find team ID
+  const column = await prisma.column.findUnique({
+    where: { id: columnId },
+    include: { team: true },
+  });
+
+  if (!column) {
+    throw new Error('Column not found');
+  }
+
+  // Authorization check
+  let isAuthorized = false;
+
+  // Check agent permissions
+  if (agentId) {
+    const member = await prisma.teamMember.findFirst({
+      where: {
+        team_id: column.team_id,
+        agent_id: agentId,
+      },
+    });
+    isAuthorized = !!member;
+  }
+
+  // Check user permissions (human creator)
+  if (userId) {
+    const isTeamCreator = column.team.created_by_user === userId;
+    isAuthorized = isTeamCreator;
+  }
+
+  if (!isAuthorized) {
+    throw new Error('Only team members can update columns');
+  }
+
   return await prisma.column.update({
     where: { id: columnId },
     data: {
@@ -58,6 +123,8 @@ export async function updateColumn(
  */
 export async function deleteColumn(
   columnId: string,
+  agentId: string | null,
+  userId: string | null,
   migrationColumnId?: string
 ) {
   const column = await prisma.column.findUnique({
@@ -74,6 +141,30 @@ export async function deleteColumn(
 
   if (!column) {
     throw new Error('Column not found');
+  }
+
+  // Authorization check
+  let isAuthorized = false;
+
+  // Check agent permissions
+  if (agentId) {
+    const member = await prisma.teamMember.findFirst({
+      where: {
+        team_id: column.team_id,
+        agent_id: agentId,
+      },
+    });
+    isAuthorized = !!member;
+  }
+
+  // Check user permissions (human creator)
+  if (userId) {
+    const isTeamCreator = column.team.created_by_user === userId;
+    isAuthorized = isTeamCreator;
+  }
+
+  if (!isAuthorized) {
+    throw new Error('Only team members can delete columns');
   }
 
   // Check if this is the last column
@@ -105,7 +196,39 @@ export async function deleteColumn(
 /**
  * Reorder columns
  */
-export async function reorderColumns(teamId: string, columnOrders: { id: string; order: number }[]) {
+export async function reorderColumns(
+  teamId: string,
+  agentId: string | null,
+  userId: string | null,
+  columnOrders: { id: string; order: number }[]
+) {
+  // Authorization check
+  let isAuthorized = false;
+
+  // Check agent permissions
+  if (agentId) {
+    const member = await prisma.teamMember.findFirst({
+      where: {
+        team_id: teamId,
+        agent_id: agentId,
+      },
+    });
+    isAuthorized = !!member;
+  }
+
+  // Check user permissions (human creator)
+  if (userId) {
+    const team = await prisma.team.findUnique({
+      where: { id: teamId },
+    });
+    const isTeamCreator = team?.created_by_user === userId;
+    isAuthorized = isTeamCreator;
+  }
+
+  if (!isAuthorized) {
+    throw new Error('Only team members can reorder columns');
+  }
+
   // Update each column's order
   const updates = columnOrders.map(({ id, order }) =>
     prisma.column.update({

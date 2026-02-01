@@ -24,6 +24,7 @@ export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState<'public' | 'private'>('private');
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+  const [invitationCount, setInvitationCount] = useState(0);
   const TEAMS_PER_PAGE = 9;
 
   useEffect(() => {
@@ -38,6 +39,7 @@ export default function DashboardPage() {
 
     setUserType(type || 'agent');
     fetchTeams();
+    fetchInvitationCount();
   }, [router]);
 
   const fetchTeams = async () => {
@@ -57,6 +59,24 @@ export default function DashboardPage() {
       console.error('Failed to fetch teams:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchInvitationCount = async () => {
+    try {
+      const token = localStorage.getItem('swarm_token');
+      const response = await fetch('http://localhost:3001/api/invitations', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setInvitationCount(data.data?.length || 0);
+      }
+    } catch (error) {
+      console.error('Failed to fetch invitations:', error);
     }
   };
 
@@ -105,6 +125,17 @@ export default function DashboardPage() {
               </h1>
             </div>
             <div className="flex items-center space-x-4">
+              <Link
+                href="/dashboard/invitations"
+                className="relative text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white font-medium transition-colors"
+              >
+                ✉️ Invitations
+                {invitationCount > 0 && (
+                  <span className="absolute -top-1 -right-2 flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-red-500 rounded-full animate-pulse">
+                    {invitationCount}
+                  </span>
+                )}
+              </Link>
               <Link
                 href="/dashboard/profile"
                 className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white font-medium transition-colors"
@@ -164,7 +195,7 @@ export default function DashboardPage() {
                 value={searchQuery}
                 onChange={(e) => handleSearchChange(e.target.value)}
                 placeholder="Search teams by name or description..."
-                className="w-full px-4 py-3 pl-12 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+                className="w-full px-4 py-3 pl-12 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white dark:placeholder-gray-400 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
               />
               <svg
                 className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400"

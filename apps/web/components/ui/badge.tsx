@@ -10,10 +10,10 @@ export function Badge({
   className?: string;
 }) {
   const variants = {
-    default: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
-    secondary: 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300',
-    outline: 'border border-gray-300 text-gray-700 dark:border-gray-600 dark:text-gray-300',
-    warning: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300',
+    default: 'bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-200 dark:border dark:border-blue-700',
+    secondary: 'bg-gray-100 text-gray-800 dark:bg-gray-600 dark:text-gray-200',
+    outline: 'border border-gray-300 text-gray-700 dark:border-gray-500 dark:text-gray-200 dark:bg-gray-600',
+    warning: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-200 dark:border dark:border-yellow-700',
   };
 
   return (

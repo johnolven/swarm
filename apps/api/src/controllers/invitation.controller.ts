@@ -5,12 +5,13 @@ import * as webhookService from '../services/webhook.service';
 
 /**
  * GET /api/invitations
- * Get all invitations for the authenticated agent
+ * Get all invitations for the authenticated agent or user
  */
 export async function getInvitations(req: AuthRequest, res: Response): Promise<void> {
   try {
-    const agentId = req.agent!.agent_id;
-    const invitations = await invitationService.getAgentInvitations(agentId);
+    const agentId = req.agent?.agent_id || null;
+    const userId = req.user?.id || null;
+    const invitations = await invitationService.getInvitations(agentId, userId);
 
     res.json({
       success: true,
@@ -34,20 +35,23 @@ export async function acceptInvitation(
 ): Promise<void> {
   try {
     const { id } = req.params;
-    const agentId = req.agent!.agent_id;
+    const agentId = req.agent?.agent_id || null;
+    const userId = req.user?.id || null;
 
-    const invitation = await invitationService.acceptInvitation(id, agentId);
+    const invitation = await invitationService.acceptInvitation(id, agentId, userId);
 
-    // Notify team
-    await webhookService.notifyTeamMembers(
-      invitation.team_id,
-      'team.join_approved',
-      {
-        agent_name: req.agent!.name,
-        agent_id: agentId,
-      },
-      agentId
-    );
+    // Notify team (only if accepted by agent)
+    if (agentId && req.agent) {
+      await webhookService.notifyTeamMembers(
+        invitation.team_id,
+        'team.join_approved',
+        {
+          agent_name: req.agent.name,
+          agent_id: agentId,
+        },
+        agentId
+      );
+    }
 
     res.json({
       success: true,
@@ -72,9 +76,10 @@ export async function declineInvitation(
 ): Promise<void> {
   try {
     const { id } = req.params;
-    const agentId = req.agent!.agent_id;
+    const agentId = req.agent?.agent_id || null;
+    const userId = req.user?.id || null;
 
-    const invitation = await invitationService.declineInvitation(id, agentId);
+    const invitation = await invitationService.declineInvitation(id, agentId, userId);
 
     res.json({
       success: true,
@@ -99,9 +104,10 @@ export async function getJoinRequests(
 ): Promise<void> {
   try {
     const { teamId } = req.params;
-    const agentId = req.agent!.agent_id;
+    const agentId = req.agent?.agent_id || null;
+    const userId = req.user?.id || null;
 
-    const requests = await invitationService.getTeamJoinRequests(teamId, agentId);
+    const requests = await invitationService.getTeamJoinRequests(teamId, agentId, userId);
 
     res.json({
       success: true,
@@ -125,9 +131,10 @@ export async function approveJoinRequest(
 ): Promise<void> {
   try {
     const { id } = req.params;
-    const agentId = req.agent!.agent_id;
+    const agentId = req.agent?.agent_id || null;
+    const userId = req.user?.id || null;
 
-    const request = await invitationService.approveJoinRequest(id, agentId);
+    const request = await invitationService.approveJoinRequest(id, agentId, userId);
 
     // Notify the agent who requested
     await webhookService.sendWebhookEvent(
@@ -135,7 +142,7 @@ export async function approveJoinRequest(
       'team.join_approved',
       {
         team_id: request.team_id,
-        approved_by: req.agent!.name,
+        approved_by: req.agent?.name || req.user?.email || 'Team Admin',
       }
     );
 
@@ -162,9 +169,10 @@ export async function rejectJoinRequest(
 ): Promise<void> {
   try {
     const { id } = req.params;
-    const agentId = req.agent!.agent_id;
+    const agentId = req.agent?.agent_id || null;
+    const userId = req.user?.id || null;
 
-    const request = await invitationService.rejectJoinRequest(id, agentId);
+    const request = await invitationService.rejectJoinRequest(id, agentId, userId);
 
     res.json({
       success: true,

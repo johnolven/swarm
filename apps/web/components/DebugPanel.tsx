@@ -15,11 +15,19 @@ export function DebugPanel() {
   const [agentCapabilities, setAgentCapabilities] = useState('research,analysis,coding');
   const [agentPersonality, setAgentPersonality] = useState('Helpful and efficient');
   const [teamName, setTeamName] = useState('My Test Team');
+  const [teamDescription, setTeamDescription] = useState('Created via debug panel');
   const [teamVisibility, setTeamVisibility] = useState('public');
   const [taskTitle, setTaskTitle] = useState('Write blog post');
+  const [taskDescription, setTaskDescription] = useState('Write a comprehensive blog post');
+  const [taskPriority, setTaskPriority] = useState('medium');
   const [taskCapabilities, setTaskCapabilities] = useState('writing,research');
   const [selectedTeamId, setSelectedTeamId] = useState('');
   const [selectedTaskId, setSelectedTaskId] = useState('');
+  const [selectedColumnId, setSelectedColumnId] = useState('');
+  const [selectedInvitationId, setSelectedInvitationId] = useState('');
+  const [selectedJoinRequestId, setSelectedJoinRequestId] = useState('');
+  const [columnName, setColumnName] = useState('New Column');
+  const [columnColor, setColumnColor] = useState('bg-blue-100');
 
   const getToken = () => localStorage.getItem('swarm_token') || '';
   const setToken = (token: string) => localStorage.setItem('swarm_token', token);
@@ -68,6 +76,7 @@ export function DebugPanel() {
   const tabs = [
     { id: 'agents', label: '🤖 Agents' },
     { id: 'teams', label: '👥 Teams' },
+    { id: 'columns', label: '📊 Columns' },
     { id: 'tasks', label: '📋 Tasks' },
     { id: 'invitations', label: '✉️ Invitations' },
     { id: 'messages', label: '💬 Messages' },
@@ -114,15 +123,15 @@ export function DebugPanel() {
             </div>
 
             {/* Tabs */}
-            <div className="flex border-b overflow-x-auto">
+            <div className="flex border-b dark:border-gray-700 overflow-x-auto">
               {tabs.map((tab) => (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
                   className={`px-4 py-2 font-medium whitespace-nowrap ${
                     activeTab === tab.id
-                      ? 'border-b-2 border-purple-600 text-purple-600'
-                      : 'text-gray-600 hover:text-gray-900'
+                      ? 'border-b-2 border-purple-600 text-purple-600 dark:text-purple-400'
+                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
                   }`}
                 >
                   {tab.label}
@@ -135,22 +144,22 @@ export function DebugPanel() {
               {/* AGENTS TAB */}
               {activeTab === 'agents' && (
                 <div className="space-y-4">
-                  <div className="border rounded p-4">
-                    <h3 className="font-bold mb-3">📝 Register Agent</h3>
+                  <div className="border rounded p-4 dark:border-gray-600">
+                    <h3 className="font-bold mb-3 dark:text-white">📝 Register Agent</h3>
                     <input
-                      className="w-full p-2 border rounded mb-2"
+                      className="w-full p-2 border rounded mb-2 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 dark:border-gray-600"
                       placeholder="Agent Name"
                       value={agentName}
                       onChange={(e) => setAgentName(e.target.value)}
                     />
                     <input
-                      className="w-full p-2 border rounded mb-2"
+                      className="w-full p-2 border rounded mb-2 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 dark:border-gray-600"
                       placeholder="Capabilities (comma-separated)"
                       value={agentCapabilities}
                       onChange={(e) => setAgentCapabilities(e.target.value)}
                     />
                     <input
-                      className="w-full p-2 border rounded mb-2"
+                      className="w-full p-2 border rounded mb-2 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 dark:border-gray-600"
                       placeholder="Personality"
                       value={agentPersonality}
                       onChange={(e) => setAgentPersonality(e.target.value)}
@@ -169,8 +178,8 @@ export function DebugPanel() {
                     </button>
                   </div>
 
-                  <div className="border rounded p-4">
-                    <h3 className="font-bold mb-3">👀 Get All Agents</h3>
+                  <div className="border rounded p-4 dark:border-gray-600">
+                    <h3 className="font-bold mb-3 dark:text-white">👀 Get All Agents</h3>
                     <button
                       onClick={() => apiCall('GET', '/agents')}
                       className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600"
@@ -179,10 +188,10 @@ export function DebugPanel() {
                     </button>
                   </div>
 
-                  <div className="border rounded p-4">
-                    <h3 className="font-bold mb-3">🔍 Search by Capabilities</h3>
+                  <div className="border rounded p-4 dark:border-gray-600">
+                    <h3 className="font-bold mb-3 dark:text-white">🔍 Search by Capabilities</h3>
                     <input
-                      className="w-full p-2 border rounded mb-2"
+                      className="w-full p-2 border rounded mb-2 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 dark:border-gray-600"
                       placeholder="Capabilities (comma-separated)"
                       defaultValue="research,analysis"
                     />
@@ -199,21 +208,21 @@ export function DebugPanel() {
               {/* TEAMS TAB */}
               {activeTab === 'teams' && (
                 <div className="space-y-4">
-                  <div className="border rounded p-4">
-                    <h3 className="font-bold mb-3">➕ Create Team</h3>
+                  <div className="border rounded p-4 dark:border-gray-600">
+                    <h3 className="font-bold mb-3 dark:text-white">➕ Create Team</h3>
                     <input
-                      className="w-full p-2 border rounded mb-2"
+                      className="w-full p-2 border rounded mb-2 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 dark:border-gray-600"
                       placeholder="Team Name"
                       value={teamName}
                       onChange={(e) => setTeamName(e.target.value)}
                     />
                     <select
-                      className="w-full p-2 border rounded mb-2"
+                      className="w-full p-2 border rounded mb-2 dark:bg-gray-700 dark:text-white dark:border-gray-600"
                       value={teamVisibility}
                       onChange={(e) => setTeamVisibility(e.target.value)}
                     >
-                      <option value="public">Public</option>
-                      <option value="private">Private</option>
+                      <option value="public" className="dark:bg-gray-700 dark:text-white">Public</option>
+                      <option value="private" className="dark:bg-gray-700 dark:text-white">Private</option>
                     </select>
                     <button
                       onClick={() =>
@@ -230,8 +239,8 @@ export function DebugPanel() {
                     </button>
                   </div>
 
-                  <div className="border rounded p-4">
-                    <h3 className="font-bold mb-3">👀 Get All Teams</h3>
+                  <div className="border rounded p-4 dark:border-gray-600">
+                    <h3 className="font-bold mb-3 dark:text-white">👀 Get All Teams</h3>
                     <button
                       onClick={() => apiCall('GET', '/teams')}
                       className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600"
@@ -240,10 +249,76 @@ export function DebugPanel() {
                     </button>
                   </div>
 
-                  <div className="border rounded p-4">
-                    <h3 className="font-bold mb-3">🚪 Join Team</h3>
+                  <div className="border rounded p-4 dark:border-gray-600">
+                    <h3 className="font-bold mb-3 dark:text-white">🔍 Get Team by ID</h3>
                     <input
-                      className="w-full p-2 border rounded mb-2"
+                      className="w-full p-2 border rounded mb-2 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 dark:border-gray-600"
+                      placeholder="Team ID"
+                      value={selectedTeamId}
+                      onChange={(e) => setSelectedTeamId(e.target.value)}
+                    />
+                    <button
+                      onClick={() => apiCall('GET', `/teams/${selectedTeamId}`)}
+                      className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600"
+                    >
+                      Fetch Team
+                    </button>
+                  </div>
+
+                  <div className="border rounded p-4 dark:border-gray-600">
+                    <h3 className="font-bold mb-3 dark:text-white">✏️ Update Team</h3>
+                    <input
+                      className="w-full p-2 border rounded mb-2 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 dark:border-gray-600"
+                      placeholder="Team ID"
+                      value={selectedTeamId}
+                      onChange={(e) => setSelectedTeamId(e.target.value)}
+                    />
+                    <input
+                      className="w-full p-2 border rounded mb-2 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 dark:border-gray-600"
+                      placeholder="New Team Name"
+                      value={teamName}
+                      onChange={(e) => setTeamName(e.target.value)}
+                    />
+                    <textarea
+                      className="w-full p-2 border rounded mb-2 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 dark:border-gray-600"
+                      placeholder="New Description (optional)"
+                      value={teamDescription}
+                      onChange={(e) => setTeamDescription(e.target.value)}
+                      rows={2}
+                    />
+                    <button
+                      onClick={() =>
+                        apiCall('PUT', `/teams/${selectedTeamId}`, {
+                          name: teamName,
+                          description: teamDescription,
+                        })
+                      }
+                      className="w-full bg-purple-500 text-white p-2 rounded hover:bg-purple-600"
+                    >
+                      Update Team
+                    </button>
+                  </div>
+
+                  <div className="border rounded p-4 dark:border-gray-600">
+                    <h3 className="font-bold mb-3 dark:text-white">🗑️ Delete Team</h3>
+                    <input
+                      className="w-full p-2 border rounded mb-2 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 dark:border-gray-600"
+                      placeholder="Team ID"
+                      value={selectedTeamId}
+                      onChange={(e) => setSelectedTeamId(e.target.value)}
+                    />
+                    <button
+                      onClick={() => apiCall('DELETE', `/teams/${selectedTeamId}`)}
+                      className="w-full bg-red-500 text-white p-2 rounded hover:bg-red-600"
+                    >
+                      Delete Team
+                    </button>
+                  </div>
+
+                  <div className="border rounded p-4 dark:border-gray-600">
+                    <h3 className="font-bold mb-3 dark:text-white">🚪 Join Team</h3>
+                    <input
+                      className="w-full p-2 border rounded mb-2 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 dark:border-gray-600"
                       placeholder="Team ID"
                       value={selectedTeamId}
                       onChange={(e) => setSelectedTeamId(e.target.value)}
@@ -262,36 +337,156 @@ export function DebugPanel() {
                 </div>
               )}
 
-              {/* TASKS TAB */}
-              {activeTab === 'tasks' && (
+              {/* COLUMNS TAB */}
+              {activeTab === 'columns' && (
                 <div className="space-y-4">
-                  <div className="border rounded p-4">
-                    <h3 className="font-bold mb-3">➕ Create Task</h3>
+                  <div className="border rounded p-4 dark:border-gray-600">
+                    <h3 className="font-bold mb-3 dark:text-white">📊 Get Team Columns</h3>
                     <input
-                      className="w-full p-2 border rounded mb-2"
+                      className="w-full p-2 border rounded mb-2 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 dark:border-gray-600"
+                      placeholder="Team ID"
+                      value={selectedTeamId}
+                      onChange={(e) => setSelectedTeamId(e.target.value)}
+                    />
+                    <button
+                      onClick={() => apiCall('GET', `/teams/${selectedTeamId}/columns`)}
+                      className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600"
+                    >
+                      Fetch Columns
+                    </button>
+                  </div>
+
+                  <div className="border rounded p-4 dark:border-gray-600">
+                    <h3 className="font-bold mb-3 dark:text-white">➕ Create Column</h3>
+                    <input
+                      className="w-full p-2 border rounded mb-2 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 dark:border-gray-600"
                       placeholder="Team ID"
                       value={selectedTeamId}
                       onChange={(e) => setSelectedTeamId(e.target.value)}
                     />
                     <input
-                      className="w-full p-2 border rounded mb-2"
+                      className="w-full p-2 border rounded mb-2 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 dark:border-gray-600"
+                      placeholder="Column Name"
+                      value={columnName}
+                      onChange={(e) => setColumnName(e.target.value)}
+                    />
+                    <input
+                      className="w-full p-2 border rounded mb-2 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 dark:border-gray-600"
+                      placeholder="Column Color (e.g., bg-blue-100)"
+                      value={columnColor}
+                      onChange={(e) => setColumnColor(e.target.value)}
+                    />
+                    <button
+                      onClick={() =>
+                        apiCall('POST', `/teams/${selectedTeamId}/columns`, {
+                          name: columnName,
+                          color: columnColor,
+                        })
+                      }
+                      className="w-full bg-green-500 text-white p-2 rounded hover:bg-green-600"
+                    >
+                      Create Column
+                    </button>
+                  </div>
+
+                  <div className="border rounded p-4 dark:border-gray-600">
+                    <h3 className="font-bold mb-3 dark:text-white">✏️ Update Column</h3>
+                    <input
+                      className="w-full p-2 border rounded mb-2 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 dark:border-gray-600"
+                      placeholder="Column ID"
+                      value={selectedColumnId}
+                      onChange={(e) => setSelectedColumnId(e.target.value)}
+                    />
+                    <input
+                      className="w-full p-2 border rounded mb-2 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 dark:border-gray-600"
+                      placeholder="New Column Name"
+                      value={columnName}
+                      onChange={(e) => setColumnName(e.target.value)}
+                    />
+                    <button
+                      onClick={() =>
+                        apiCall('PUT', `/columns/${selectedColumnId}`, {
+                          name: columnName,
+                        })
+                      }
+                      className="w-full bg-purple-500 text-white p-2 rounded hover:bg-purple-600"
+                    >
+                      Update Column
+                    </button>
+                  </div>
+
+                  <div className="border rounded p-4 dark:border-gray-600">
+                    <h3 className="font-bold mb-3 dark:text-white">🗑️ Delete Column</h3>
+                    <input
+                      className="w-full p-2 border rounded mb-2 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 dark:border-gray-600"
+                      placeholder="Column ID to Delete"
+                      value={selectedColumnId}
+                      onChange={(e) => setSelectedColumnId(e.target.value)}
+                    />
+                    <button
+                      onClick={() => apiCall('DELETE', `/columns/${selectedColumnId}`)}
+                      className="w-full bg-red-500 text-white p-2 rounded hover:bg-red-600"
+                    >
+                      Delete Column
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* TASKS TAB */}
+              {activeTab === 'tasks' && (
+                <div className="space-y-4">
+                  <div className="border rounded p-4 dark:border-gray-600">
+                    <h3 className="font-bold mb-3 dark:text-white">➕ Create Task</h3>
+                    <input
+                      className="w-full p-2 border rounded mb-2 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 dark:border-gray-600"
+                      placeholder="Team ID"
+                      value={selectedTeamId}
+                      onChange={(e) => setSelectedTeamId(e.target.value)}
+                    />
+                    <input
+                      className="w-full p-2 border rounded mb-2 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 dark:border-gray-600"
+                      placeholder="Column ID (optional)"
+                      value={selectedColumnId}
+                      onChange={(e) => setSelectedColumnId(e.target.value)}
+                    />
+                    <input
+                      className="w-full p-2 border rounded mb-2 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 dark:border-gray-600"
                       placeholder="Task Title"
                       value={taskTitle}
                       onChange={(e) => setTaskTitle(e.target.value)}
                     />
+                    <textarea
+                      className="w-full p-2 border rounded mb-2 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 dark:border-gray-600"
+                      placeholder="Task Description"
+                      value={taskDescription}
+                      onChange={(e) => setTaskDescription(e.target.value)}
+                      rows={2}
+                    />
                     <input
-                      className="w-full p-2 border rounded mb-2"
-                      placeholder="Required Capabilities"
+                      className="w-full p-2 border rounded mb-2 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 dark:border-gray-600"
+                      placeholder="Required Capabilities (comma-separated)"
                       value={taskCapabilities}
                       onChange={(e) => setTaskCapabilities(e.target.value)}
                     />
+                    <select
+                      className="w-full p-2 border rounded mb-2 dark:bg-gray-700 dark:text-white dark:border-gray-600"
+                      value={taskPriority}
+                      onChange={(e) => setTaskPriority(e.target.value)}
+                      aria-label="Task priority"
+                    >
+                      <option value="low" className="dark:bg-gray-700 dark:text-white">Low Priority</option>
+                      <option value="medium" className="dark:bg-gray-700 dark:text-white">Medium Priority</option>
+                      <option value="high" className="dark:bg-gray-700 dark:text-white">High Priority</option>
+                    </select>
                     <button
                       onClick={() =>
                         apiCall('POST', `/teams/${selectedTeamId}/tasks`, {
                           title: taskTitle,
-                          description: 'Created via debug panel',
-                          required_capabilities: taskCapabilities.split(',').map((s) => s.trim()),
-                          priority: 'medium',
+                          description: taskDescription,
+                          required_capabilities: taskCapabilities.split(',').map((s) => s.trim()).filter(s => s),
+                          priority: taskPriority,
+                          ...(selectedColumnId && { column_id: selectedColumnId }),
                         })
                       }
                       className="w-full bg-green-500 text-white p-2 rounded hover:bg-green-600"
@@ -300,10 +495,10 @@ export function DebugPanel() {
                     </button>
                   </div>
 
-                  <div className="border rounded p-4">
-                    <h3 className="font-bold mb-3">👀 Get Team Tasks</h3>
+                  <div className="border rounded p-4 dark:border-gray-600">
+                    <h3 className="font-bold mb-3 dark:text-white">👀 Get Team Tasks</h3>
                     <input
-                      className="w-full p-2 border rounded mb-2"
+                      className="w-full p-2 border rounded mb-2 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 dark:border-gray-600"
                       placeholder="Team ID"
                       value={selectedTeamId}
                       onChange={(e) => setSelectedTeamId(e.target.value)}
@@ -316,10 +511,87 @@ export function DebugPanel() {
                     </button>
                   </div>
 
-                  <div className="border rounded p-4">
-                    <h3 className="font-bold mb-3">✋ Claim Task</h3>
+                  <div className="border rounded p-4 dark:border-gray-600">
+                    <h3 className="font-bold mb-3 dark:text-white">🔍 Get Task by ID</h3>
                     <input
-                      className="w-full p-2 border rounded mb-2"
+                      className="w-full p-2 border rounded mb-2 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 dark:border-gray-600"
+                      placeholder="Task ID"
+                      value={selectedTaskId}
+                      onChange={(e) => setSelectedTaskId(e.target.value)}
+                    />
+                    <button
+                      onClick={() => apiCall('GET', `/tasks/${selectedTaskId}`)}
+                      className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600"
+                    >
+                      Fetch Task
+                    </button>
+                  </div>
+
+                  <div className="border rounded p-4 dark:border-gray-600">
+                    <h3 className="font-bold mb-3 dark:text-white">✏️ Update Task</h3>
+                    <input
+                      className="w-full p-2 border rounded mb-2 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 dark:border-gray-600"
+                      placeholder="Task ID"
+                      value={selectedTaskId}
+                      onChange={(e) => setSelectedTaskId(e.target.value)}
+                    />
+                    <input
+                      className="w-full p-2 border rounded mb-2 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 dark:border-gray-600"
+                      placeholder="New Title"
+                      value={taskTitle}
+                      onChange={(e) => setTaskTitle(e.target.value)}
+                    />
+                    <textarea
+                      className="w-full p-2 border rounded mb-2 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 dark:border-gray-600"
+                      placeholder="New Description"
+                      value={taskDescription}
+                      onChange={(e) => setTaskDescription(e.target.value)}
+                      rows={2}
+                    />
+                    <select
+                      className="w-full p-2 border rounded mb-2 dark:bg-gray-700 dark:text-white dark:border-gray-600"
+                      value={taskPriority}
+                      onChange={(e) => setTaskPriority(e.target.value)}
+                      aria-label="Task priority"
+                    >
+                      <option value="low" className="dark:bg-gray-700 dark:text-white">Low Priority</option>
+                      <option value="medium" className="dark:bg-gray-700 dark:text-white">Medium Priority</option>
+                      <option value="high" className="dark:bg-gray-700 dark:text-white">High Priority</option>
+                    </select>
+                    <button
+                      onClick={() =>
+                        apiCall('PUT', `/tasks/${selectedTaskId}`, {
+                          title: taskTitle,
+                          description: taskDescription,
+                          priority: taskPriority,
+                        })
+                      }
+                      className="w-full bg-purple-500 text-white p-2 rounded hover:bg-purple-600"
+                    >
+                      Update Task
+                    </button>
+                  </div>
+
+                  <div className="border rounded p-4 dark:border-gray-600">
+                    <h3 className="font-bold mb-3 dark:text-white">🗑️ Delete Task</h3>
+                    <input
+                      className="w-full p-2 border rounded mb-2 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 dark:border-gray-600"
+                      placeholder="Task ID"
+                      value={selectedTaskId}
+                      onChange={(e) => setSelectedTaskId(e.target.value)}
+                    />
+                    <button
+                      onClick={() => apiCall('DELETE', `/tasks/${selectedTaskId}`)}
+                      className="w-full bg-red-500 text-white p-2 rounded hover:bg-red-600"
+                    >
+                      Delete Task
+                    </button>
+                  </div>
+
+                  <div className="border rounded p-4 dark:border-gray-600">
+                    <h3 className="font-bold mb-3 dark:text-white">✋ Claim Task</h3>
+                    <input
+                      className="w-full p-2 border rounded mb-2 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 dark:border-gray-600"
                       placeholder="Task ID"
                       value={selectedTaskId}
                       onChange={(e) => setSelectedTaskId(e.target.value)}
@@ -336,10 +608,10 @@ export function DebugPanel() {
                     </button>
                   </div>
 
-                  <div className="border rounded p-4">
-                    <h3 className="font-bold mb-3">✅ Complete Task</h3>
+                  <div className="border rounded p-4 dark:border-gray-600">
+                    <h3 className="font-bold mb-3 dark:text-white">✅ Complete Task</h3>
                     <input
-                      className="w-full p-2 border rounded mb-2"
+                      className="w-full p-2 border rounded mb-2 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 dark:border-gray-600"
                       placeholder="Task ID"
                       value={selectedTaskId}
                       onChange={(e) => setSelectedTaskId(e.target.value)}
@@ -351,19 +623,115 @@ export function DebugPanel() {
                       Complete Task
                     </button>
                   </div>
+
+                  <div className="border rounded p-4 dark:border-gray-600">
+                    <h3 className="font-bold mb-3 dark:text-white">🔓 Unclaim Task</h3>
+                    <input
+                      className="w-full p-2 border rounded mb-2 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 dark:border-gray-600"
+                      placeholder="Task ID"
+                      value={selectedTaskId}
+                      onChange={(e) => setSelectedTaskId(e.target.value)}
+                    />
+                    <button
+                      onClick={() => apiCall('POST', `/tasks/${selectedTaskId}/unclaim`, {})}
+                      className="w-full bg-orange-500 text-white p-2 rounded hover:bg-orange-600"
+                    >
+                      Unclaim Task
+                    </button>
+                  </div>
                 </div>
               )}
 
               {/* INVITATIONS TAB */}
               {activeTab === 'invitations' && (
                 <div className="space-y-4">
-                  <div className="border rounded p-4">
-                    <h3 className="font-bold mb-3">📬 Get My Invitations</h3>
+                  <div className="border rounded p-4 dark:border-gray-600">
+                    <h3 className="font-bold mb-3 dark:text-white">📬 Get My Invitations</h3>
                     <button
                       onClick={() => apiCall('GET', '/invitations')}
                       className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600"
                     >
                       Fetch Invitations
+                    </button>
+                  </div>
+
+                  <div className="border rounded p-4 dark:border-gray-600">
+                    <h3 className="font-bold mb-3 dark:text-white">✅ Accept Invitation</h3>
+                    <input
+                      className="w-full p-2 border rounded mb-2 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 dark:border-gray-600"
+                      placeholder="Invitation ID"
+                      value={selectedInvitationId}
+                      onChange={(e) => setSelectedInvitationId(e.target.value)}
+                    />
+                    <button
+                      onClick={() => apiCall('POST', `/invitations/${selectedInvitationId}/accept`, {})}
+                      className="w-full bg-green-500 text-white p-2 rounded hover:bg-green-600"
+                    >
+                      Accept Invitation
+                    </button>
+                  </div>
+
+                  <div className="border rounded p-4 dark:border-gray-600">
+                    <h3 className="font-bold mb-3 dark:text-white">❌ Decline Invitation</h3>
+                    <input
+                      className="w-full p-2 border rounded mb-2 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 dark:border-gray-600"
+                      placeholder="Invitation ID"
+                      value={selectedInvitationId}
+                      onChange={(e) => setSelectedInvitationId(e.target.value)}
+                    />
+                    <button
+                      onClick={() => apiCall('POST', `/invitations/${selectedInvitationId}/decline`, {})}
+                      className="w-full bg-red-500 text-white p-2 rounded hover:bg-red-600"
+                    >
+                      Decline Invitation
+                    </button>
+                  </div>
+
+                  <div className="border rounded p-4 dark:border-gray-600">
+                    <h3 className="font-bold mb-3 dark:text-white">📋 Get Team Join Requests</h3>
+                    <input
+                      className="w-full p-2 border rounded mb-2 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 dark:border-gray-600"
+                      placeholder="Team ID"
+                      value={selectedTeamId}
+                      onChange={(e) => setSelectedTeamId(e.target.value)}
+                    />
+                    <button
+                      onClick={() => apiCall('GET', `/teams/${selectedTeamId}/join-requests`)}
+                      className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600"
+                    >
+                      Fetch Join Requests
+                    </button>
+                  </div>
+
+                  <div className="border rounded p-4 dark:border-gray-600">
+                    <h3 className="font-bold mb-3 dark:text-white">✅ Approve Join Request</h3>
+                    <input
+                      className="w-full p-2 border rounded mb-2 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 dark:border-gray-600"
+                      placeholder="Join Request ID"
+                      value={selectedJoinRequestId}
+                      onChange={(e) => setSelectedJoinRequestId(e.target.value)}
+                    />
+                    <button
+                      onClick={() => apiCall('POST', `/join-requests/${selectedJoinRequestId}/approve`, {})}
+                      className="w-full bg-green-500 text-white p-2 rounded hover:bg-green-600"
+                    >
+                      Approve Request
+                    </button>
+                  </div>
+
+                  <div className="border rounded p-4 dark:border-gray-600">
+                    <h3 className="font-bold mb-3 dark:text-white">❌ Reject Join Request</h3>
+                    <input
+                      className="w-full p-2 border rounded mb-2 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 dark:border-gray-600"
+                      placeholder="Join Request ID"
+                      value={selectedJoinRequestId}
+                      onChange={(e) => setSelectedJoinRequestId(e.target.value)}
+                    />
+                    <button
+                      onClick={() => apiCall('POST', `/join-requests/${selectedJoinRequestId}/reject`, {})}
+                      className="w-full bg-red-500 text-white p-2 rounded hover:bg-red-600"
+                    >
+                      Reject Request
                     </button>
                   </div>
                 </div>
@@ -372,10 +740,10 @@ export function DebugPanel() {
               {/* MESSAGES TAB */}
               {activeTab === 'messages' && (
                 <div className="space-y-4">
-                  <div className="border rounded p-4">
-                    <h3 className="font-bold mb-3">💬 Get Task Messages</h3>
+                  <div className="border rounded p-4 dark:border-gray-600">
+                    <h3 className="font-bold mb-3 dark:text-white">💬 Get Task Messages</h3>
                     <input
-                      className="w-full p-2 border rounded mb-2"
+                      className="w-full p-2 border rounded mb-2 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 dark:border-gray-600"
                       placeholder="Task ID"
                       value={selectedTaskId}
                       onChange={(e) => setSelectedTaskId(e.target.value)}
@@ -388,16 +756,16 @@ export function DebugPanel() {
                     </button>
                   </div>
 
-                  <div className="border rounded p-4">
-                    <h3 className="font-bold mb-3">✍️ Send Message</h3>
+                  <div className="border rounded p-4 dark:border-gray-600">
+                    <h3 className="font-bold mb-3 dark:text-white">✍️ Send Message</h3>
                     <input
-                      className="w-full p-2 border rounded mb-2"
+                      className="w-full p-2 border rounded mb-2 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 dark:border-gray-600"
                       placeholder="Task ID"
                       value={selectedTaskId}
                       onChange={(e) => setSelectedTaskId(e.target.value)}
                     />
                     <textarea
-                      className="w-full p-2 border rounded mb-2"
+                      className="w-full p-2 border rounded mb-2 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 dark:border-gray-600"
                       placeholder="Message content"
                       rows={3}
                     />

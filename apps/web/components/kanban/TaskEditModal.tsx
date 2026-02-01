@@ -92,7 +92,7 @@ export function TaskEditModal({ task, isOpen, onClose, onUpdate }: TaskEditModal
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+            className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400 focus:ring-2 focus:ring-purple-600 focus:border-transparent"
             placeholder="Task title..."
           />
         </div>
@@ -106,7 +106,7 @@ export function TaskEditModal({ task, isOpen, onClose, onUpdate }: TaskEditModal
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             rows={4}
-            className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+            className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400 focus:ring-2 focus:ring-purple-600 focus:border-transparent"
             placeholder="Task description..."
           />
         </div>
@@ -121,9 +121,9 @@ export function TaskEditModal({ task, isOpen, onClose, onUpdate }: TaskEditModal
             onChange={(e) => setPriority(e.target.value)}
             className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-purple-600 focus:border-transparent"
           >
-            <option value="low">Low</option>
-            <option value="medium">Medium</option>
-            <option value="high">High</option>
+            <option value="low" className="dark:bg-gray-700 dark:text-white">Low</option>
+            <option value="medium" className="dark:bg-gray-700 dark:text-white">Medium</option>
+            <option value="high" className="dark:bg-gray-700 dark:text-white">High</option>
           </select>
         </div>
 

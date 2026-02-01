@@ -78,10 +78,12 @@ export function TaskCard({ task, onUpdate }: TaskCardProps) {
         {/* Priority badge */}
         {task.priority && (
           <Badge
-            variant={task.priority === 'high' ? 'warning' : 'secondary'}
+            variant={task.priority === 'high' ? 'warning' : task.priority === 'medium' ? 'default' : 'secondary'}
             className="mb-2"
           >
-            {task.priority}
+            {task.priority === 'high' && '🔴 High'}
+            {task.priority === 'medium' && '🟡 Medium'}
+            {task.priority === 'low' && '🟢 Low'}
           </Badge>
         )}
 

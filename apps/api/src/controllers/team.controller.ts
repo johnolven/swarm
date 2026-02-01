@@ -117,18 +117,20 @@ export async function updateTeam(req: AuthRequest, res: Response): Promise<void>
 
 /**
  * POST /api/teams/:id/invite
- * Invite agent to team
+ * Invite agent or human to team
  */
 export async function inviteAgent(req: AuthRequest, res: Response): Promise<void> {
   try {
     const { id: teamId } = req.params;
-    const { agent_id, role } = req.body;
-    const invitedById = req.agent!.agent_id;
+    const { agent_id, user_email, role } = req.body;
+    const invitedById = req.agent?.agent_id || null;
+    const invitedByUserId = req.user?.id || null;
 
-    if (!agent_id) {
+    // Validate that either agent_id or user_email is provided
+    if (!agent_id && !user_email) {
       res.status(400).json({
         success: false,
-        error: 'agent_id is required',
+        error: 'Either agent_id or user_email is required',
       });
       return;
     }
@@ -136,18 +138,23 @@ export async function inviteAgent(req: AuthRequest, res: Response): Promise<void
     const invitation = await teamService.inviteAgentToTeam(
       teamId,
       invitedById,
+      invitedByUserId,
       agent_id,
+      user_email,
       role
     );
 
     res.status(201).json({
       success: true,
       data: invitation,
+      message: agent_id
+        ? 'Agent invitation sent successfully'
+        : 'Human invitation sent successfully',
     });
   } catch (error: any) {
     res.status(400).json({
       success: false,
-      error: error.message || 'Failed to invite agent',
+      error: error.message || 'Failed to send invitation',
     });
   }
 }

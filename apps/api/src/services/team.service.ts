@@ -193,61 +193,112 @@ export async function updateTeam(
 }
 
 /**
- * Invite agent to team
+ * Invite agent or human to team
  */
 export async function inviteAgentToTeam(
   teamId: string,
-  invitedById: string,
-  invitedAgentId: string,
+  invitedById: string | null,
+  invitedByUserId: string | null,
+  invitedAgentId?: string,
+  invitedUserEmail?: string,
   role: string = 'member'
 ): Promise<any> {
-  // Check if inviter is admin/owner
-  const inviter = await prisma.teamMember.findFirst({
-    where: {
-      team_id: teamId,
-      agent_id: invitedById,
-      role: { in: ['owner', 'admin'] },
-    },
-  });
+  // Verify authorization (agent admin or team creator)
+  let isAuthorized = false;
 
-  if (!inviter) {
-    throw new Error('Only team admins can invite agents');
+  if (invitedById) {
+    const inviter = await prisma.teamMember.findFirst({
+      where: {
+        team_id: teamId,
+        agent_id: invitedById,
+        role: { in: ['owner', 'admin'] },
+      },
+    });
+    isAuthorized = !!inviter;
   }
 
-  // Check if agent is already a member
-  const existingMember = await prisma.teamMember.findFirst({
-    where: {
-      team_id: teamId,
-      agent_id: invitedAgentId,
-    },
-  });
-
-  if (existingMember) {
-    throw new Error('Agent is already a team member');
+  if (invitedByUserId) {
+    const team = await prisma.team.findUnique({
+      where: { id: teamId },
+    });
+    isAuthorized = team?.created_by_user === invitedByUserId;
   }
 
-  // Check for existing pending invitation
-  const existingInvitation = await prisma.teamInvitation.findFirst({
-    where: {
-      team_id: teamId,
-      agent_id: invitedAgentId,
-      status: 'pending',
-    },
-  });
-
-  if (existingInvitation) {
-    throw new Error('Invitation already sent to this agent');
+  if (!isAuthorized) {
+    throw new Error('Only team admins/creators can invite members');
   }
 
-  // Create invitation
-  return await prisma.teamInvitation.create({
-    data: {
-      team_id: teamId,
-      agent_id: invitedAgentId,
-      role: role,
-      status: 'pending',
-    },
-  });
+  // Handle agent invitation
+  if (invitedAgentId) {
+    // Check if agent is already a member
+    const existingMember = await prisma.teamMember.findFirst({
+      where: {
+        team_id: teamId,
+        agent_id: invitedAgentId,
+      },
+    });
+
+    if (existingMember) {
+      throw new Error('Agent is already a team member');
+    }
+
+    // Check for existing pending invitation
+    const existingInvitation = await prisma.teamInvitation.findFirst({
+      where: {
+        team_id: teamId,
+        agent_id: invitedAgentId,
+        status: 'pending',
+      },
+    });
+
+    if (existingInvitation) {
+      throw new Error('Invitation already sent to this agent');
+    }
+
+    // Create agent invitation
+    return await prisma.teamInvitation.create({
+      data: {
+        team_id: teamId,
+        agent_id: invitedAgentId,
+        role: role,
+        status: 'pending',
+      },
+    });
+  }
+
+  // Handle human invitation (by email)
+  if (invitedUserEmail) {
+    // Check for existing pending invitation
+    const existingInvitation = await prisma.teamInvitation.findFirst({
+      where: {
+        team_id: teamId,
+        user_email: invitedUserEmail,
+        status: 'pending',
+      },
+    });
+
+    if (existingInvitation) {
+      throw new Error('Invitation already sent to this email');
+    }
+
+    // Try to find user by email
+    const user = await prisma.user.findUnique({
+      where: { email: invitedUserEmail },
+    });
+
+    // Create human invitation
+    return await prisma.teamInvitation.create({
+      data: {
+        team_id: teamId,
+        user_email: invitedUserEmail,
+        user_id: user?.id, // Link to user if they exist
+        role: role,
+        status: 'pending',
+      },
+    });
+  }
+
+  throw new Error('Must provide either agent_id or user_email');
 }
 
 /**

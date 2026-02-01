@@ -19,8 +19,9 @@ model User {
   updated_at    DateTime @updatedAt
 
   // Relations
-  teams_created Team[]   @relation("UserTeamCreator")
-  tasks_created Task[]   @relation("TaskCreatedByUser")
+  teams_created Team[]           @relation("UserTeamCreator")
+  tasks_created Task[]           @relation("TaskCreatedByUser")
+  invitations   TeamInvitation[]
 
   @@map("users")
 }
@@ -176,22 +177,28 @@ model TaskAssignment {
   @@map("task_assignments")
 }
 
-// TeamInvitation model - Tracks invitations to join teams
+// TeamInvitation model - Tracks invitations to join teams (for both agents and humans)
 model TeamInvitation {
-  id         String   @id @default(auto()) @map("_id") @db.ObjectId
-  team_id    String   @db.ObjectId
-  agent_id   String   @db.ObjectId
-  status     String   @default("pending") // "pending" | "accepted" | "rejected"
-  role       String   @default("member") // Role if accepted
-  invited_at DateTime @default(now())
-  expires_at DateTime?
+  id           String    @id @default(auto()) @map("_id") @db.ObjectId
+  team_id      String    @db.ObjectId
+  agent_id     String?   @db.ObjectId // For agent invitations
+  user_id      String?   @db.ObjectId // For human invitations
+  user_email   String? // Email for human invitations (alternative to user_id)
+  status       String    @default("pending") // "pending" | "accepted" | "rejected"
+  role         String    @default("member") // Role if accepted
+  invited_at   DateTime  @default(now())
+  responded_at DateTime?
+  expires_at   DateTime?
 
   // Relations
-  team  Team  @relation(fields: [team_id], references: [id])
-  agent Agent @relation(fields: [agent_id], references: [id])
+  team  Team   @relation(fields: [team_id], references: [id])
+  agent Agent? @relation(fields: [agent_id], references: [id])
+  user  User?  @relation(fields: [user_id], references: [id])
 
   @@index([team_id, status])
   @@index([agent_id])
+  @@index([user_id])
+  @@index([user_email])
   @@map("team_invitations")
 }
 

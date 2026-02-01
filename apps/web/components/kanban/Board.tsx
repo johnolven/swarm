@@ -55,6 +55,7 @@ export function Board({ teamId }: BoardProps) {
   const [creatingTaskInColumn, setCreatingTaskInColumn] = useState<string | null>(null);
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [newTaskDescription, setNewTaskDescription] = useState('');
+  const [newTaskPriority, setNewTaskPriority] = useState<'low' | 'medium' | 'high'>('medium');
   const [draggedTask, setDraggedTask] = useState<Task | null>(null);
   const [draggedColumn, setDraggedColumn] = useState<Column | null>(null);
   const [dragOverColumn, setDragOverColumn] = useState<string | null>(null);
@@ -193,7 +194,7 @@ export function Board({ teamId }: BoardProps) {
           title: newTaskTitle,
           description: newTaskDescription,
           column_id: columnId,
-          priority: 'medium',
+          priority: newTaskPriority,
         }),
       });
 
@@ -201,6 +202,7 @@ export function Board({ teamId }: BoardProps) {
       setCreatingTaskInColumn(null);
       setNewTaskTitle('');
       setNewTaskDescription('');
+      setNewTaskPriority('medium');
     } catch (error) {
       console.error('Failed to create task:', error);
     }
@@ -501,7 +503,8 @@ export function Board({ teamId }: BoardProps) {
                       if (e.key === 'Enter') handleUpdateColumnName(column.id);
                       if (e.key === 'Escape') setEditingColumn(null);
                     }}
-                    className="flex-1 px-2 py-1 border rounded dark:bg-gray-600 dark:text-white"
+                    placeholder="Column name..."
+                    className="flex-1 px-2 py-1 border rounded dark:bg-gray-600 dark:text-white dark:placeholder-gray-400 dark:border-gray-500"
                     autoFocus
                   />
                 ) : (
@@ -589,16 +592,26 @@ export function Board({ teamId }: BoardProps) {
                       value={newTaskTitle}
                       onChange={(e) => setNewTaskTitle(e.target.value)}
                       placeholder="Task title..."
-                      className="w-full px-2 py-1 mb-2 border rounded dark:bg-gray-600 dark:text-white"
+                      className="w-full px-2 py-1 mb-2 border rounded dark:bg-gray-600 dark:text-white dark:placeholder-gray-400 dark:border-gray-500"
                       autoFocus
                     />
                     <textarea
                       value={newTaskDescription}
                       onChange={(e) => setNewTaskDescription(e.target.value)}
                       placeholder="Description (optional)..."
-                      className="w-full px-2 py-1 mb-2 border rounded dark:bg-gray-600 dark:text-white"
+                      className="w-full px-2 py-1 mb-2 border rounded dark:bg-gray-600 dark:text-white dark:placeholder-gray-400 dark:border-gray-500"
                       rows={2}
                     />
+                    <select
+                      value={newTaskPriority}
+                      onChange={(e) => setNewTaskPriority(e.target.value as 'low' | 'medium' | 'high')}
+                      className="w-full px-2 py-1 mb-2 border rounded dark:bg-gray-600 dark:text-white dark:border-gray-500"
+                      aria-label="Task priority"
+                    >
+                      <option value="low" className="dark:bg-gray-700 dark:text-white">🟢 Low Priority</option>
+                      <option value="medium" className="dark:bg-gray-700 dark:text-white">🟡 Medium Priority</option>
+                      <option value="high" className="dark:bg-gray-700 dark:text-white">🔴 High Priority</option>
+                    </select>
                     <div className="flex gap-2">
                       <button
                         onClick={() => handleCreateTask(column.id)}
@@ -611,8 +624,9 @@ export function Board({ teamId }: BoardProps) {
                           setCreatingTaskInColumn(null);
                           setNewTaskTitle('');
                           setNewTaskDescription('');
+                          setNewTaskPriority('medium');
                         }}
-                        className="px-3 py-1 bg-gray-300 dark:bg-gray-600 rounded hover:bg-gray-400 dark:hover:bg-gray-500"
+                        className="px-3 py-1 bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-white rounded hover:bg-gray-400 dark:hover:bg-gray-500"
                       >
                         Cancel
                       </button>
@@ -644,7 +658,7 @@ export function Board({ teamId }: BoardProps) {
                   if (e.key === 'Escape') setShowNewColumnForm(false);
                 }}
                 placeholder="Column name..."
-                className="w-full px-3 py-2 mb-3 border rounded dark:bg-gray-600 dark:text-white"
+                className="w-full px-3 py-2 mb-3 border rounded dark:bg-gray-600 dark:text-white dark:placeholder-gray-400 dark:border-gray-500"
                 autoFocus
               />
               <div className="flex gap-2">
@@ -659,7 +673,7 @@ export function Board({ teamId }: BoardProps) {
                     setShowNewColumnForm(false);
                     setNewColumnName('');
                   }}
-                  className="px-4 py-2 bg-gray-300 dark:bg-gray-600 rounded hover:bg-gray-400 dark:hover:bg-gray-500"
+                  className="px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-white rounded hover:bg-gray-400 dark:hover:bg-gray-500"
                 >
                   Cancel
                 </button>
@@ -693,13 +707,13 @@ export function Board({ teamId }: BoardProps) {
             <select
               value={migrationColumnId}
               onChange={(e) => setMigrationColumnId(e.target.value)}
-              className="w-full px-3 py-2 mb-4 border rounded dark:bg-gray-700 dark:text-white"
+              className="w-full px-3 py-2 mb-4 border rounded dark:bg-gray-700 dark:text-white dark:border-gray-500"
             >
-              <option value="">Select a column...</option>
+              <option value="" className="dark:bg-gray-700 dark:text-white">Select a column...</option>
               {columns
                 .filter((c) => c.id !== deletingColumn)
                 .map((c) => (
-                  <option key={c.id} value={c.id}>
+                  <option key={c.id} value={c.id} className="dark:bg-gray-700 dark:text-white">
                     {c.name}
                   </option>
                 ))}
@@ -710,7 +724,7 @@ export function Board({ teamId }: BoardProps) {
                   setDeletingColumn(null);
                   setMigrationColumnId('');
                 }}
-                className="px-4 py-2 bg-gray-300 dark:bg-gray-600 rounded hover:bg-gray-400"
+                className="px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-white rounded hover:bg-gray-400 dark:hover:bg-gray-500"
               >
                 Cancel
               </button>

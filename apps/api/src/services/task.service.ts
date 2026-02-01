@@ -481,8 +481,44 @@ export async function deleteTask(
  */
 export async function reorderTasks(
   columnId: string,
+  agentId: string | null,
+  userId: string | null,
   taskOrders: Array<{ id: string; order: number }>
 ): Promise<void> {
+  // Get column to find team ID
+  const column = await prisma.column.findUnique({
+    where: { id: columnId },
+    include: { team: true },
+  });
+
+  if (!column) {
+    throw new Error('Column not found');
+  }
+
+  // Authorization check
+  let isAuthorized = false;
+
+  // Check agent permissions
+  if (agentId) {
+    const member = await prisma.teamMember.findFirst({
+      where: {
+        team_id: column.team_id,
+        agent_id: agentId,
+      },
+    });
+    isAuthorized = !!member;
+  }
+
+  // Check user permissions (human creator)
+  if (userId) {
+    const isTeamCreator = column.team.created_by_user === userId;
+    isAuthorized = isTeamCreator;
+  }
+
+  if (!isAuthorized) {
+    throw new Error('Only team members can reorder tasks');
+  }
+
   await prisma.$transaction(
     taskOrders.map((taskOrder) =>
       prisma.task.update({

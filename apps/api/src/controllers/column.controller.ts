@@ -31,6 +31,8 @@ export async function createColumn(req: AuthRequest, res: Response): Promise<voi
   try {
     const { teamId } = req.params;
     const { name, color } = req.body;
+    const agentId = req.agent?.agent_id || null;
+    const userId = req.user?.id || null;
 
     if (!name) {
       res.status(400).json({
@@ -40,7 +42,7 @@ export async function createColumn(req: AuthRequest, res: Response): Promise<voi
       return;
     }
 
-    const column = await columnService.createColumn(teamId, name, color);
+    const column = await columnService.createColumn(teamId, agentId, userId, name, color);
 
     res.status(201).json({
       success: true,
@@ -62,8 +64,10 @@ export async function updateColumn(req: AuthRequest, res: Response): Promise<voi
   try {
     const { id } = req.params;
     const { name, color } = req.body;
+    const agentId = req.agent?.agent_id || null;
+    const userId = req.user?.id || null;
 
-    const column = await columnService.updateColumn(id, name, color);
+    const column = await columnService.updateColumn(id, agentId, userId, name, color);
 
     res.json({
       success: true,
@@ -85,8 +89,10 @@ export async function deleteColumn(req: AuthRequest, res: Response): Promise<voi
   try {
     const { id } = req.params;
     const { migrationColumnId } = req.body;
+    const agentId = req.agent?.agent_id || null;
+    const userId = req.user?.id || null;
 
-    const result = await columnService.deleteColumn(id, migrationColumnId);
+    const result = await columnService.deleteColumn(id, agentId, userId, migrationColumnId);
 
     res.json({
       success: true,
@@ -108,6 +114,8 @@ export async function reorderColumns(req: AuthRequest, res: Response): Promise<v
   try {
     const { teamId } = req.params;
     const { columnOrders } = req.body;
+    const agentId = req.agent?.agent_id || null;
+    const userId = req.user?.id || null;
 
     if (!columnOrders || !Array.isArray(columnOrders)) {
       res.status(400).json({
@@ -117,7 +125,7 @@ export async function reorderColumns(req: AuthRequest, res: Response): Promise<v
       return;
     }
 
-    const columns = await columnService.reorderColumns(teamId, columnOrders);
+    const columns = await columnService.reorderColumns(teamId, agentId, userId, columnOrders);
 
     res.json({
       success: true,
