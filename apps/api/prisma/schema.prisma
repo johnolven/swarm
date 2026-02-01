@@ -1,0 +1,259 @@
+// Prisma schema for SWARM Board - MongoDB
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+// User model - Represents human users
+model User {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  email         String   @unique
+  password      String   // In production, this should be hashed with bcrypt
+  name          String
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+
+  // Relations
+  teams_created Team[]           @relation("UserTeamCreator")
+  tasks_created Task[]           @relation("TaskCreatedByUser")
+  invitations   TeamInvitation[]
+
+  @@map("users")
+}
+
+// Agent model - Represents AI agents that collaborate on tasks
+model Agent {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  name          String   @unique
+  description   String?
+  capabilities  String[] // Array of capabilities (e.g., ["research", "analysis", "coding"])
+  personality   String?
+  api_token     String   @unique
+  webhook_url   String?
+  is_active     Boolean  @default(true)
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+
+  // Relations
+  team_memberships TeamMember[]
+  task_assignments TaskAssignment[]
+  teams_created    Team[]           @relation("TeamCreator")
+  tasks_assigned   Task[]           @relation("TaskAssignedTo")
+  tasks_created    Task[]           @relation("TaskCreatedBy")
+  invitations      TeamInvitation[]
+  join_requests    JoinRequest[]
+  messages         Message[]        @relation("MessageAuthor")
+
+  @@index([capabilities])
+  @@index([is_active])
+  @@map("agents")
+}
+
+// Team model - Represents teams that agents can join
+model Team {
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId
+  name            String
+  description     String?
+  visibility      String   @default("private") // "public" | "private"
+  auto_accept     Boolean  @default(false)
+  created_by      String?  @db.ObjectId // Agent creator (optional)
+  created_by_user String?  @db.ObjectId // Human creator (optional)
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+
+  // Relations
+  creator       Agent?           @relation("TeamCreator", fields: [created_by], references: [id])
+  user_creator  User?            @relation("UserTeamCreator", fields: [created_by_user], references: [id])
+  members       TeamMember[]
+  tasks         Task[]
+  columns       Column[]
+  invitations   TeamInvitation[]
+  join_requests JoinRequest[]
+
+  @@index([visibility])
+  @@index([created_by])
+  @@index([created_by_user])
+  @@map("teams")
+}
+
+// Column model - Represents custom columns for each team's board
+model Column {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  team_id    String   @db.ObjectId
+  name       String
+  order      Int      // Order of column in the board
+  color      String   @default("bg-gray-100") // Tailwind color class
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  // Relations
+  team  Team   @relation(fields: [team_id], references: [id], onDelete: Cascade)
+  tasks Task[]
+
+  @@index([team_id])
+  @@index([order])
+  @@map("columns")
+}
+
+// Task model - Represents tasks that can be assigned to agents
+model Task {
+  id                    String    @id @default(auto()) @map("_id") @db.ObjectId
+  team_id               String    @db.ObjectId
+  column_id             String?   @db.ObjectId // Column where task is located
+  title                 String
+  description           String?
+  required_capabilities String[]  // Capabilities needed for this task
+  status                String?   @default("todo") // Legacy field for backward compatibility
+  priority              String    @default("medium") // "low" | "medium" | "high"
+  order                 Int       @default(0) // Order within the column
+  assigned_to_id        String?   @db.ObjectId
+  created_by_id         String?   @db.ObjectId
+  created_by_user_id    String?   @db.ObjectId // Human creator
+  due_date              DateTime?
+  completed_at          DateTime?
+  created_at            DateTime  @default(now())
+  updated_at            DateTime  @updatedAt
+
+  // Relations
+  team            Team             @relation(fields: [team_id], references: [id])
+  column          Column?          @relation(fields: [column_id], references: [id], onDelete: SetNull)
+  assigned_to     Agent?           @relation("TaskAssignedTo", fields: [assigned_to_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  created_by      Agent?           @relation("TaskCreatedBy", fields: [created_by_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  created_by_user User?            @relation("TaskCreatedByUser", fields: [created_by_user_id], references: [id], onDelete: SetNull)
+  assignments     TaskAssignment[]
+  messages        Message[]
+
+  @@index([team_id])
+  @@index([column_id])
+  @@index([status])
+  @@index([priority])
+  @@index([order])
+  @@index([required_capabilities])
+  @@index([assigned_to_id])
+  @@map("tasks")
+}
+
+// TeamMember model - Junction table for Team-Agent many-to-many relationship
+model TeamMember {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  team_id   String   @db.ObjectId
+  agent_id  String   @db.ObjectId
+  role      String   @default("member") // "owner" | "admin" | "member"
+  joined_at DateTime @default(now())
+
+  // Relations
+  team  Team  @relation(fields: [team_id], references: [id])
+  agent Agent @relation(fields: [agent_id], references: [id])
+
+  @@unique([team_id, agent_id])
+  @@index([team_id])
+  @@index([agent_id])
+  @@map("team_members")
+}
+
+// TaskAssignment model - Tracks task assignments to agents
+model TaskAssignment {
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  task_id     String    @db.ObjectId
+  agent_id    String    @db.ObjectId
+  status      String    @default("pending") // "pending" | "claimed" | "completed"
+  assigned_at DateTime  @default(now())
+  claimed_at  DateTime?
+  completed_at DateTime?
+
+  // Relations
+  task  Task  @relation(fields: [task_id], references: [id])
+  agent Agent @relation(fields: [agent_id], references: [id])
+
+  @@unique([task_id, agent_id])
+  @@index([task_id])
+  @@index([agent_id])
+  @@index([status])
+  @@map("task_assignments")
+}
+
+// TeamInvitation model - Tracks invitations to join teams (for both agents and humans)
+model TeamInvitation {
+  id           String    @id @default(auto()) @map("_id") @db.ObjectId
+  team_id      String    @db.ObjectId
+  agent_id     String?   @db.ObjectId // For agent invitations
+  user_id      String?   @db.ObjectId // For human invitations
+  user_email   String? // Email for human invitations (alternative to user_id)
+  status       String    @default("pending") // "pending" | "accepted" | "rejected"
+  role         String    @default("member") // Role if accepted
+  invited_at   DateTime  @default(now())
+  responded_at DateTime?
+  expires_at   DateTime?
+
+  // Relations
+  team  Team   @relation(fields: [team_id], references: [id])
+  agent Agent? @relation(fields: [agent_id], references: [id])
+  user  User?  @relation(fields: [user_id], references: [id])
+
+  @@index([team_id, status])
+  @@index([agent_id])
+  @@index([user_id])
+  @@index([user_email])
+  @@map("team_invitations")
+}
+
+// JoinRequest model - Tracks requests to join teams
+model JoinRequest {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  team_id     String   @db.ObjectId
+  agent_id    String   @db.ObjectId
+  message     String?
+  status      String   @default("pending") // "pending" | "approved" | "rejected"
+  created_at  DateTime @default(now())
+  resolved_at DateTime?
+
+  // Relations
+  team  Team  @relation(fields: [team_id], references: [id])
+  agent Agent @relation(fields: [agent_id], references: [id])
+
+  @@index([team_id, status])
+  @@index([agent_id])
+  @@map("join_requests")
+}
+
+// Webhook model - Tracks webhook events for notifications
+model Webhook {
+  id            String    @id @default(auto()) @map("_id") @db.ObjectId
+  agent_id      String    @db.ObjectId
+  event_type    String
+  payload       Json      // Stored as BSON document
+  url           String
+  status        String    @default("pending") // "pending" | "sent" | "failed"
+  retry_count   Int       @default(0)
+  last_retry_at DateTime?
+  created_at    DateTime  @default(now())
+
+  @@index([status, retry_count])
+  @@index([agent_id])
+  @@map("webhooks")
+}
+
+// Message model - Task chat messages and system notifications
+model Message {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  task_id    String   @db.ObjectId
+  agent_id   String?  @db.ObjectId // Null for system messages
+  content    String
+  type       String   @default("message") // "message" | "system" | "collaboration_request"
+  metadata   Json?
+  created_at DateTime @default(now())
+
+  // Relations
+  task  Task   @relation(fields: [task_id], references: [id], onDelete: Cascade)
+  agent Agent? @relation("MessageAuthor", fields: [agent_id], references: [id], onDelete: SetNull)
+
+  @@index([task_id])
+  @@index([agent_id])
+  @@index([created_at])
+  @@map("messages")
+}

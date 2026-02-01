@@ -1,0 +1,2899 @@
+<pdd-reason>Researches tech stack documentation, project structure conventions, and best practices via web search.</pdd-reason>
+<pdd-interface>
+{{
+  "type": "module",
+  "module": {{
+    "functions": [
+      {"name": "research_tech_stack", "signature": "(issue_content: str, step1_output: str, step2_output: str)", "returns": "str (research findings with documentation URLs)"}
+    ]
+  }}
+}}
+</pdd-interface>
+<pdd-dependency>agentic_arch_step2_analyze_LLM.prompt</pdd-dependency>
+% You are an expert software architect. Your task is to research the identified tech stack to find documentation, project structure conventions, and best practices.
+
+% Context
+
+You are working on step 3 of 8 in an agentic architecture workflow. Step 2 identified the tech stack and module candidates. Now research official documentation and conventions.
+
+% PDD Background
+
+<pdd_prompting_guide>
+# Prompt‑Driven Development Prompting Guide
+
+This guide shows how to write effective prompts for Prompt‑Driven Development (PDD). It distills best practices from the PDD whitepaper, the PDD doctrine, and working patterns in this repo. It also contrasts PDD prompts with interactive agentic coding tools (e.g., Claude Code, Cursor) where prompts act as ad‑hoc patches instead of the source of truth.
+
+References: pdd/docs/whitepaper.md, pdd/docs/prompt-driven-development-doctrine.md, README.md (repo structure, conventions), [Effective Context Engineering](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents), [Anthropic Prompt Engineering Overview](https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/overview).
+
+---
+
+## Quickstart: PDD in 5 Minutes
+
+If you are new to Prompt-Driven Development (PDD), follow this recipe:
+
+1.  **Think "One Prompt = One Module":** Don't try to generate the whole app at once. Focus on one file (e.g., `user_service.py`).
+2.  **Use a Template:** Start with a clear structure: Role, Requirements, Dependencies, Instructions.
+3.  **Explicitly Include Context:** Use `<include>path/to/file</include>` to give the model *only* what it needs (e.g., a shared preamble or a dependency interface). This is a **PDD directive**, not just XML.
+4.  **Regenerate, Don't Patch:** If the code is wrong, fix it using `pdd fix`. This updates the system's memory so the next `pdd generate` is grounded in the correct solution.
+5.  **Verify:** Run the generated code/tests.
+
+*Tip: Treat your prompt like source code. It is the single source of truth.*
+
+*For the conceptual foundation of why this works, see [The Mold Paradigm](prompt-driven-development-doctrine.md#the-mold-paradigm) in the doctrine.*
+
+---
+
+## Glossary
+
+- **Context Engineering:** The art of curating exactly what information (code, docs, examples) fits into the LLM's limited "working memory" (context window) to get the best result.
+- **Shared Preamble:** A standard text file (e.g., `project_preamble.prompt`) included in every prompt to enforce common rules like coding style, forbidden libraries, and formatting.
+- **PDD Directive:** Special tags like `<include>` or `<shell>` that the PDD tool processes *before* sending the text to the AI. The AI sees the *result* (the file content), not the tag.
+- **Source of Truth:** The definitive record. In PDD, the **Prompt** is the source of truth; the code is just a temporary artifact generated from it.
+- **Grounding (Few-Shot History):** The process where the PDD system automatically uses successful past pairs of (Prompt, Code) as "few-shot" examples during generation. This ensures that regenerated code adheres to the established style and logic of the previous version, preventing the model from hallucinating a completely different implementation.
+- **Drift:** When the generated code slowly diverges from the prompt's intent over time, or when manual edits to code make it inconsistent with the prompt.
+
+---
+
+## Why PDD Prompts (Not Patches)
+
+- Prompts are the source of truth; code is a generated artifact. Update the prompt and regenerate instead of patching code piecemeal.
+- Regeneration preserves conceptual integrity and reduces long‑term maintenance cost (see pdd/docs/whitepaper.md).
+- Prompts consolidate intent, constraints, dependencies, and examples into one place so the model can enforce them.
+- Tests accumulate across regenerations and act as a regression net; prompts and tests stay in sync.
+
+Contrast with interactive patching (Claude Code, Cursor): prompts are ephemeral instructions for local diffs. They are great for short, local fixes, but tend to drift from original intent as context is implicit and often lost. In PDD, prompts are versioned, explicit, and designed for batch, reproducible generation.
+
+For a deeper exploration of why this paradigm shift matters—and an analogy to manufacturing's wood‑to‑plastic transition—see [The Mold Paradigm](prompt-driven-development-doctrine.md#the-mold-paradigm) in the doctrine.
+
+---
+
+## The PDD Mental Model
+
+- One prompt typically maps to one code file or narrowly scoped module.
+- You explicitly curate the context to place in the model’s window (don’t “dump the repo”).
+- Change behavior by editing the prompt; re‑generate the file; run crash/verify/test/fix; then update the prompt with learnings.
+- Keep the “dev unit” synchronized: prompt + generated code + minimal runnable example + tests.
+
+Key principles: everything is explicit, prompts are the programming language, and you regenerate rather than patch.
+
+Dev Unit (Prompt with Code, Example, Test):
+
+```mermaid
+flowchart TB
+  P[Prompt]
+  C[Code]
+  E[Example]
+  T[Tests]
+
+  P --> C
+  P --> E
+  P --> T
+```
+
+Notes:
+- The prompt defines intent. Code, example, and tests are generated artifacts.
+- Regenerate rather than patch; keep tests accumulating over time.
+
+---
+
+<a name="automated-grounding"></a>
+## Automated Grounding (PDD Cloud)
+
+Unlike standard LLM interactions where every request is a blank slate, PDD Cloud uses **Automated Grounding** to prevent "implementation drift."
+
+### How It Works
+
+When you run `pdd generate`, the system:
+1. Embeds your prompt into a vector
+2. Searches for similar prompts in the cloud database (cosine similarity)
+3. Auto-injects the closest (prompt, code) pair as a few-shot example
+
+**This is automatic.** You don't configure it. As you edit your prompt:
+- The embedding changes
+- Different examples may be retrieved
+- Generation naturally adapts to your prompt's content
+
+On first generation: Similar existing modules in your project provide grounding.
+On re-generation: Your prior successful generation is typically the closest match.
+
+### Why This Matters for Prompt Writing
+
+- **Your prompt wording affects grounding.** Similar prompts retrieve similar examples.
+- **Implementation patterns are handled automatically.** Grounding provides structural consistency from similar modules (class vs functional, helper patterns, etc.).
+- **Prompts can be minimal.** Focus on requirements; grounding handles implementation patterns.
+
+*Note: This is distinct from "Examples as Interfaces" (which teach how to **use** a dependency). Grounding teaches the model how to **write** the current module.*
+
+> **Local users (no cloud):** Without grounding, prompts must be more detailed—include structural guidance and explicit examples via `<include>`. Use a shared preamble for coding style. The minimal prompt guidance in this document assumes cloud access.
+
+---
+
+## Grounding Overrides: Pin & Exclude (PDD Cloud)
+
+For users with PDD Cloud access, you can override automatic grounding using XML tags:
+
+**`<pin>module_name</pin>`** — Force a specific example to always be included
+- Use case: Ensure a critical module always follows a "golden" pattern
+- Use case: Bootstrap a new module with a specific style
+
+**`<exclude>module_name</exclude>`** — Block a specific example(s) from being retrieved
+- Use case: Escape an old pattern that's pulling generation in the wrong direction
+- Use case: Intentionally break from established patterns for a redesign
+
+These tags are processed by the preprocessor (like `<include>`) and removed before the LLM sees the prompt.
+
+**Most prompts don't need these.** Automatic grounding works well for:
+- Standard modules with similar existing examples
+- Re-generations of established modules
+- Modules following common project patterns
+
+---
+
+## Anatomy of a Good PDD Prompt
+
+A well-designed prompt contains **only what can't be handled elsewhere**. With cloud grounding and accumulated tests, prompts can be minimal.
+
+### Required Sections
+
+1. **Role and scope** (1-2 sentences): What this module does
+2. **Requirements** (5-10 items): Functional and non-functional specs
+3. **Dependencies** (via `<include>`): Only external or critical interfaces
+
+### Optional Sections
+
+4. **Instructions**: Only if default behavior needs overriding
+5. **Deliverables**: Only if non-obvious
+
+### What NOT to Include
+
+- **Coding style** (naming, formatting, imports) → Handled by shared preamble
+- **Implementation patterns** (class structure, helpers) → Handled by grounding
+- **Every edge case** → Handled by accumulated tests
+- **Implementation steps** → Let the LLM decide (unless critical)
+
+### Target Size: Prompt-to-Code Ratio
+
+Aim for **10-30%** of your expected code size:
+
+| Ratio | Meaning |
+|-------|---------|
+| **< 10%** | Too vague—missing contracts, error handling, or key constraints |
+| **10-30%** | Just right—requirements and contracts without implementation details |
+| **> 50%** | Too detailed—prompt is doing preamble's or grounding's job |
+
+If your prompt exceeds 30%, ask: Am I specifying things that preamble, grounding, or tests should handle?
+
+**Note:** Tests are generated from the module prompt (via Requirements), so explicit Testing sections are unnecessary—well-written Requirements are inherently testable. Use `context/test.prompt` for project-wide test guidance.
+
+See pdd/pdd/templates/generic/generate_prompt.prompt for a concrete scaffold.
+
+---
+
+## Prompt Syntax Essentials
+
+These patterns are used across prompts in this repo:
+
+- Preamble and role: start with a concise, authoritative description of the task and audience (e.g., “You are an expert Python engineer…”).
+- Includes for context: bring only what the model needs.
+  - Single include: `<include>path/to/file</include>`. **Note:** This is a PDD directive, not standard XML. The PDD tool replaces this tag with the actual file content *before* the LLM sees it. (Handles both text and images).
+  - Multiple: `<include-many>path1, path2, …</include-many>`
+  - Grouping: wrap includes in a semantic tag to name the dependency or file they represent, for example:
+    ```xml
+    <render_js>
+      <include>src/render.js</include>
+    </render_js>
+    ```
+  - When including larger files inline for clarity, wrap with opening/closing tags named after the file, e.g. `<render.js>…</render.js>`.
+  - Note: `<include>`, `<include-many>`, `<shell>`, and `<web>` inside fenced code blocks (``` or ~~~) or inline backticks are treated as literal text.
+- Inputs/outputs: state them explicitly (names, types, shapes). Prompts should define Inputs/Outputs and steps clearly.
+- Steps & Chain of Thought: Outline a short, deterministic plan. For complex logical tasks, explicitly instruct the model to "Analyze the requirements and think step-by-step before writing code." This improves accuracy on difficult reasoning problems.
+- Constraints: specify style, performance targets, security, and error handling.
+- Environment: reference required env vars (e.g., `PDD_PATH`) when reading data files.
+
+Tip: Prefer small, named sections using XML‑style tags to make context scannable and deterministic.
+
+### Special XML Tags: pdd, shell, web
+
+The PDD preprocessor supports additional XML‑style tags to keep prompts clean, reproducible, and self‑contained. Processing order (per spec) is: `pdd` → `include`/`include-many` → `shell` → `web`. When `recursive=True`, `<shell>` and `<web>` are deferred until a non‑recursive pass.
+
+- ``
+  - Purpose: human‑only comment. Removed entirely during preprocessing.
+  - Use: inline rationale or notes that should not reach the model.
+  - Example: `Before step X `
+
+- `<shell>…</shell>`
+  - Purpose: run a shell command and inline stdout at that position.
+  - Behavior: executes during non‑recursive preprocessing; on non‑zero exit, inserts a bracketed error with the exit code instead of failing the pipeline.
+  - Example: `<shell>git config --get user.name</shell>`
+
+- `<web>URL</web>`
+  - Purpose: fetch the page (via Firecrawl) and inline the markdown content.
+  - Behavior: executes during non‑recursive preprocessing; on failure, inserts a bracketed error note.
+  - Example: `<web>https://docs.litellm.ai/docs/completion/json_mode</web>`
+
+> ⚠️ **Warning: Non-Deterministic Tags**
+>
+> `<shell>` and `<web>` introduce **non-determinism**:
+> - `<shell>` output varies by environment (different machines, different results)
+> - `<web>` content changes over time (same URL, different content)
+>
+> **Impact:** Same prompt file → different generations on different machines/times
+>
+> **Prefer instead:** Capture output to a static file, then `<include>` that file. This ensures reproducible regeneration.
+
+Use these tags sparingly. When you must use them, prefer stable commands with bounded output (e.g., `head -n 20` in `<shell>`).
+
+**`context_urls` in Architecture Entries:**
+
+When an architecture.json entry includes a `context_urls` array, the `generate_prompt` template automatically converts each entry into a `<web>` tag in the generated prompt's Dependencies section. This enables the LLM to fetch relevant API documentation during code generation:
+
+```json
+"context_urls": [
+  {"url": "https://fastapi.tiangolo.com/tutorial/first-steps/", "purpose": "FastAPI routing patterns"}
+]
+```
+
+Becomes in the generated prompt:
+```xml
+<fastapi_routing_patterns>
+  <web>https://fastapi.tiangolo.com/tutorial/first-steps/</web>
+</fastapi_routing_patterns>
+```
+
+The tag name is derived from the `purpose` field (lowercased, spaces replaced with underscores). This mechanism bridges architecture-level research with prompt-level context.
+
+---
+
+## Architecture Metadata Tags
+
+PDD prompts can include optional XML metadata tags that sync with `architecture.json`. These tags enable bidirectional sync between prompt files and the architecture visualization, keeping your project's architecture documentation automatically up-to-date.
+
+### Tag Format
+
+Place architecture metadata tags at the **top of your prompt file** (after any `<include>` directives but before the main content):
+
+```xml
+<pdd-reason>Brief description of module's purpose (60-120 chars)</pdd-reason>
+
+<pdd-interface>
+{{
+  "type": "module",
+  "module": {{
+    "functions": [
+      {"name": "function_name", "signature": "(...)", "returns": "Type"}
+    ]
+  }}
+}}
+</pdd-interface>
+
+<pdd-dependency>dependency_prompt_1.prompt</pdd-dependency>
+<pdd-dependency>dependency_prompt_2.prompt</pdd-dependency>
+```
+
+### Tag Reference
+
+**`<pdd-reason>`**
+- **Purpose**: One-line description of why this module exists
+- **Maps to**: `architecture.json["reason"]`
+- **Format**: Single line string (recommended 60-120 characters)
+- **Example**: `<pdd-reason>Provides unified LLM invocation across all PDD operations.</pdd-reason>`
+
+**`<pdd-interface>`**
+- **Purpose**: JSON describing the module's public API (functions, commands, pages)
+- **Maps to**: `architecture.json["interface"]`
+- **Format**: Valid JSON matching one of four interface types (see below)
+- **Example**:
+  ```xml
+  <pdd-interface>
+  {{
+    "type": "module",
+    "module": {{
+      "functions": [
+        {"name": "llm_invoke", "signature": "(prompt, strength, ...)", "returns": "Dict"}
+      ]
+    }}
+  }}
+  </pdd-interface>
+  ```
+
+**`<pdd-dependency>`**
+- **Purpose**: References other prompt files this module depends on
+- **Maps to**: `architecture.json["dependencies"]` array
+- **Format**: Prompt filename (e.g., `llm_invoke_python.prompt`)
+- **Multiple tags**: Use one `<pdd-dependency>` tag per dependency
+- **Example**:
+  ```xml
+  <pdd-dependency>llm_invoke_python.prompt</pdd-dependency>
+  <pdd-dependency>path_resolution_python.prompt</pdd-dependency>
+  ```
+
+### Interface Types
+
+The `<pdd-interface>` tag supports four interface types, matching the architecture.json schema:
+
+**Module Interface** (Python modules with functions):
+```json
+{
+  "type": "module",
+  "module": {
+    "functions": [
+      {"name": "func_name", "signature": "(arg1, arg2)", "returns": "Type"}
+    ]
+  }
+}
+```
+
+**CLI Interface** (Command-line interfaces):
+```json
+{
+  "type": "cli",
+  "cli": {
+    "commands": [
+      {"name": "cmd_name", "description": "What it does"}
+    ]
+  }
+}
+```
+
+**Command Interface** (PDD commands):
+```json
+{
+  "type": "command",
+  "command": {
+    "commands": [
+      {"name": "cmd_name", "description": "What it does"}
+    ]
+  }
+}
+```
+
+**Frontend Interface** (UI pages):
+```json
+{
+  "type": "frontend",
+  "frontend": {
+    "pages": [
+      {"name": "page_name", "route": "/path"}
+    ]
+  }
+}
+```
+
+### Sync Workflow
+
+1. **Add/edit tags** in your prompt files using the format above
+2. **Click "Sync from Prompt"** in the PDD Connect Architecture page (or call the API endpoint)
+3. **Tags automatically update** `architecture.json` with your changes
+4. **Architecture visualization** reflects the updated dependencies and interfaces
+
+Prompts are the **source of truth** - tags in prompt files override what's in `architecture.json`. This aligns with PDD's core philosophy that prompts, not code or documentation, are authoritative.
+
+### Validation
+
+Validation is **lenient**:
+- Missing tags are OK - only fields with tags get updated
+- Malformed XML/JSON is skipped without blocking sync
+- Circular dependencies are detected and prevent invalid updates
+- Missing dependency files generate warnings but don't block sync
+
+### Best Practices
+
+**Keep `<pdd-reason>` concise** (60-120 chars)
+- Good: "Provides unified LLM invocation across all PDD operations."
+- Too long: "This module exists because we needed a way to call different LLM providers through a unified interface that supports both streaming and non-streaming modes while also handling rate limiting and retry logic..."
+
+**Use prompt filenames for dependencies**, not module names
+- Correct: `<pdd-dependency>llm_invoke_python.prompt</pdd-dependency>`
+- Wrong: `<pdd-dependency>pdd.llm_invoke</pdd-dependency>`
+- Wrong: `<pdd-dependency>context/example.py</pdd-dependency>`
+
+**Validate interface JSON before committing**
+- Use a JSON validator to check syntax
+- Ensure `type` field matches one of: `module`, `cli`, `command`, `frontend`
+- Include required nested keys (`functions`, `commands`, or `pages`)
+
+**Run "Sync All" after bulk prompt updates**
+- If you've edited multiple prompts, sync all at once
+- Review the validation results for circular dependencies
+- Fix any warnings before committing changes
+
+### Relationship to Other Tags
+
+**`<pdd-dependency>` vs `<include>`**:
+- `<pdd-dependency>`: Declares architectural dependency (updates `architecture.json`)
+- `<include>`: Injects content into prompt for LLM context (does NOT affect architecture)
+- Use both when appropriate - they serve different purposes
+
+**`<pdd-*>` tags vs ``: Human-only comments (removed by preprocessor, never reach LLM)
+- Both are valid PDD directives with different purposes
+
+### Example: Complete Prompt with Metadata Tags
+
+See `docs/examples/prompt_with_metadata.prompt` for a full example showing all three metadata tags in context.
+
+---
+
+## Advanced Tips
+
+### Shared Preamble for Consistency
+
+Use a shared include (e.g., `<include>context/project_preamble.prompt</include>`) at the top of every prompt. You should create this file in your project's `context/` directory to define your "Constitution": consistent coding style (e.g., indentation, naming conventions), preferred linting rules, and forbidden libraries. This ensures all generated code speaks the same language without cluttering individual prompts.
+
+### Automatic Update Propagation via Includes
+
+A key benefit of `<include>` directives is **automatic propagation**: when the included file changes, all prompts that reference it automatically reflect those changes on the next generation—without editing the prompts themselves.
+
+Use this pattern when:
+- **Authoritative documentation exists elsewhere** (e.g., a README that defines environment variables, API contracts, or configuration options). Include it rather than duplicating the content.
+- **Shared constraints evolve** (e.g., coding standards, security policies). A single edit to the preamble file updates all prompts.
+- **Interface definitions change** (e.g., a dependency's example file). Prompts consuming that example stay current.
+
+*Tradeoff:* Large includes consume context tokens. If only a small portion of a file is relevant, consider extracting that portion into a dedicated include file (e.g., `docs/output_conventions.md` rather than the full `README.md`).
+
+### Positive over Negative Constraints
+
+Models often struggle with negative constraints ("Do not use X"). Instead, phrase requirements positively: instead of "Do not use unassigned variables," prefer "Initialize all variables with default values." This greatly improves reliability.
+
+### Positioning Critical Instructions (Hierarchy of Attention)
+
+LLMs exhibit "middle-loss" – they pay more attention to the **beginning** (role, preamble) and the **end** (steps, deliverables) of the prompt context. If a critical constraint (e.g., security, output format) is ignored, ensure it's placed in your shared preamble, explicitly reiterated in the final "Instructions" or "Steps" section, or even pre-filled in the expected output format if applicable.
+
+### Command-Specific Context Files
+
+Some PDD commands (e.g., `pdd test`, `pdd example`) can automatically include project-specific context files like `context/test.prompt` or `context/example.prompt` during their internal preprocessing. Use these to provide instructions tailored to your project, such as preferred testing frameworks or specific import statements, without modifying the main prompt.
+
+**`context/test.prompt`** is particularly important:
+- Defines testing conventions, frameworks, and patterns for your project
+- Included automatically when running `pdd test` (alongside the module prompt and generated code)
+- Tests accumulate over time via `--merge` as bugs are found
+- Tests persist when the module prompt changes—only code is regenerated, not tests
+- This ensures tests remain stable "permanent assets" while code can be freely regenerated
+
+---
+
+## Why PDD Scales to Large Codebases
+
+- Explicit, curated context: use minimal examples and targeted includes instead of dumping source, reducing tokens and confusion.
+- Modular dev units: one prompt per file/module constrains scope, enabling independent regeneration and parallel work.
+- Batch, reproducible flow: eliminate long chat histories; regeneration avoids patch accumulation and incoherent diffs.
+- Accumulating tests: protect behavior across wide regenerations and refactors; failures localize issues quickly.
+- Single source of truth: prompts unify intent and dependencies, improving cross‑team coordination and reducing drift.
+- Automated Grounding: By feeding successful past generations back into the context, the system stabilizes the code over time, making "regeneration" safe even for complex modules.
+
+### Tests as Generation Context
+
+A key PDD feature: existing tests are automatically included as context when generating code. This means:
+
+- The LLM sees the test file and knows what behaviors must be preserved
+- Generated code is constrained to pass existing tests
+- New tests accumulate over time, progressively constraining future generations
+- This creates a "ratchet effect" - each bug fix adds a test, preventing regression
+
+This is distinct from test *generation*. Tests are generated via `pdd test PROMPT_FILE CODE_FILE`, which uses the module prompt, generated code, and `context/test.prompt` for project-wide guidance. Tests accumulate over time via `--merge` as bugs are found. Requirements in the module prompt implicitly define what to test—each requirement should correspond to at least one test case.
+
+```mermaid
+flowchart LR
+  subgraph Assets
+    P[Module Prompt] --> G[pdd generate]
+    T[Existing Tests] --> G
+    G --> C[Generated Code]
+  end
+
+  subgraph Accumulation
+    BUG[Bug Found] --> NT[New Test Written]
+    NT --> T
+  end
+```
+
+---
+
+Patch vs PDD at Scale (diagram):
+
+```mermaid
+flowchart LR
+  subgraph Patching
+    C0[Codebase] --> P0[Chat prompt]
+    P0 --> D0[Local diff]
+    D0 --> C0
+  end
+
+  subgraph PDD
+    PG[Prompts graph] --> GZ[Batch regenerate]
+    GZ --> CM[Code modules]
+    CM --> XT[Examples and Tests]
+    XT --> UP[Update prompts]
+    UP --> PG
+  end
+```
+
+---
+
+## The Three Pillars of PDD Generation
+
+Understanding how prompts, grounding, and tests work together is key to writing minimal, effective prompts.
+
+| Pillar | What It Provides | Maintained By |
+|--------|-----------------|---------------|
+| **Prompt** | Requirements and constraints (WHAT) | Developer (explicit) |
+| **Grounding** | Implementation patterns (HOW) | System (automatic, Cloud) |
+| **Tests** | Behavioral correctness | Accumulated over time |
+
+### How They Interact
+
+- **Prompt** defines WHAT → "validate user input, return errors"
+- **Grounding** defines HOW → class structure, helper patterns (from similar modules)
+- **Tests** define CORRECTNESS → edge cases discovered through bugs
+
+### Conflict Resolution
+
+- **Tests override grounding**: If a test requires new behavior, generation must satisfy it
+- **Explicit requirements override grounding**: If prompt says "use functional style", that overrides OOP examples in grounding
+- **Grounding fills gaps**: Everything not specified in prompt or constrained by tests
+
+### Why Prompts Can Be Minimal
+
+You don't need to specify:
+- **Coding style** → preamble provides it
+- **Implementation patterns** → grounding provides them
+- **Edge cases** → tests encode them
+
+You only specify:
+- What the module does
+- What contracts it must satisfy
+- What constraints apply
+
+---
+
+## Example (Minimal, Python)
+
+This simplified example illustrates a minimal functional prompt:
+
+```text
+% You are an expert Python engineer. Your goal is to write a function `get_extension` that returns the file extension for a given language.
+
+<include>context/python_preamble.prompt</include>
+
+% Inputs/Outputs
+  Input: language (str), like "Python" or "Makefile".
+  Output: str file extension (e.g., ".py"), or "" if unknown.
+
+% Data
+  The CSV at $PDD_PATH/data/language_format.csv contains: language,comment,extension
+
+% Steps
+  1) Load env var PDD_PATH and read the CSV
+  2) Normalize language case
+  3) Lookup extension
+  4) Return "" if not found or invalid
+```
+
+This style:
+- Declares role and outcome
+- Specifies IO, data sources, and steps
+- Uses an `<include>` to pull a shared preamble
+
+---
+
+## Scoping & Modularity
+
+- One prompt → one file/module. If a prompt gets too large or brittle, split it into smaller prompts that compose via explicit interfaces.
+- Treat examples as interfaces: create a minimal runnable example demonstrating how the module is meant to be used.
+- Avoid “mega‑prompts” that try to implement an entire subsystem. Use the PDD graph of prompts instead. For how prompts compose via examples, see “Dependencies & Composability (Token‑Efficient Examples)”.
+
+---
+
+## Writing Effective Requirements
+
+Requirements are the core of your prompt. Everything else is handled automatically by grounding and tests.
+
+### Structure (aim for 5-10 items)
+
+1. **Primary function**: What does this module do? (one sentence)
+2. **Input contract**: Types, validation rules, what's accepted
+3. **Output contract**: Types, error conditions, return values
+4. **Key invariants**: What must always be true
+5. **Performance constraints**: If any (latency, memory, complexity)
+6. **Security constraints**: If any (input sanitization, auth requirements)
+
+### Each Requirement Should Be
+
+- **Testable**: If you can't write a test for it, it's too vague
+- **Behavioral**: Describe WHAT, not HOW
+- **Unique**: Don't duplicate what preamble or grounding provides
+
+### Example: Before/After
+
+**Too detailed:**
+```
+1. Create a UserValidator class with validate() method
+2. Use snake_case for all methods          ← belongs in preamble
+3. Import typing at the top                ← belongs in preamble
+4. Add docstrings to all public methods    ← belongs in preamble
+5. Handle null by returning ValidationError
+6. Handle empty string by returning ValidationError
+7. Handle whitespace-only by returning ValidationError
+```
+
+**Just right** (requirements only):
+```
+1. Function: validate_user(input) → ValidationResult
+2. Input: Any type (untrusted user input)
+3. Output: ValidationResult with is_valid bool and errors list
+4. Invalid inputs: null, empty, whitespace-only, malformed
+5. Performance: O(n) in input length
+6. Security: No eval/exec, treat input as untrusted
+```
+
+Style conventions (2-4) belong in a shared preamble. Edge cases (5-7) can be collapsed into a single requirement.
+
+**Requirements as Test Specifications:** Each requirement implies at least one test case. If you can't test a requirement, it's too vague.
+
+---
+
+## Prompt Abstraction Level
+
+![Goldilocks Prompt](goldilocks_prompt.jpeg)
+
+Write prompts at the level of *architecture, contract, and intent*, not line-by-line *implementation details*.
+
+### Heuristics: Are You at the Right Level?
+
+| Indicator | Too Detailed (> 30%) | Too Vague (< 10%) |
+|-----------|----------------------|-------------------|
+| **Content** | Specifying variable names, loop structures | Missing error handling strategy |
+| **Style** | Dictating indentation, imports | No input/output types |
+| **Result** | Prompt harder to maintain than code | Every generation is wildly different |
+
+### If Your Prompt Is Too Long
+
+Ask yourself:
+- **Am I specifying coding style?** → Remove it (preamble handles this)
+- **Am I specifying implementation patterns?** → Remove them (grounding handles this)
+- **Am I listing every edge case?** → Remove them (tests handle this)
+- **Is the module too big?** → Split into multiple prompts
+
+### Examples
+
+- **Too Vague:** "Create a user page." (Model guesses everything; unrepeatable)
+- **Too Detailed:** "Create a class User with a private field _id. In the constructor, set _id. Write a getter..." (Prompt is harder to maintain than code)
+- **Just Right:** "Implement a UserProfile component that displays user details and handles the 'update' action via the API. It must handle loading/error states and match the existing design system."
+
+**Rule of Thumb:** Focus on **Interfaces**, **Invariants**, and **Outcomes**. Let the preamble handle coding style; let grounding handle implementation patterns.
+
+---
+
+## Dependencies
+
+### When to Use `<include>`
+
+Include dependencies explicitly when:
+- **External libraries** not in your grounding history
+- **Critical interfaces** that must be exact
+- **New modules** with no similar examples in grounding
+
+```xml
+<billing_service>
+  <include>context/billing_service_example.py</include>
+</billing_service>
+```
+
+### When to Rely on Grounding
+
+If you've successfully generated code that uses a dependency before, grounding often suffices—the usage pattern is already in the cloud database.
+
+**Prefer explicit `<include>` for:** External APIs, critical contracts, cross-team interfaces
+**Rely on grounding for:** Internal modules with established patterns
+
+### Token Efficiency
+
+Real source code is heavy. A 500-line module might have a 50-line usage example. By including only the example, you save ~90% of tokens. Use `pdd auto-deps` to automatically populate relevant examples.
+
+```mermaid
+flowchart LR
+  subgraph Module_B
+    PB[Prompt B] --> GB[Generate] --> CB[Code B]
+    CB --> EB[Example B]
+  end
+
+  subgraph Module_A
+    PA[Prompt A] --> GA[Generate] --> CA[Code A]
+    PA --> EB
+  end
+
+  EB --> CA
+```
+
+---
+
+## Regenerate, Verify, Test, Update
+
+**Crucial Prerequisite:** Before regenerating a module, ensure you have **high test coverage** for its current functionality. Because PDD overwrites the code file entirely, your test suite is the critical safety net that prevents regression of existing features while you iterate on new ones.
+
+The PDD workflow (see pdd/docs/whitepaper.md):
+
+1) **Generate:** Fully regenerate (overwrite) the code module and its example.
+2) **Crash → Verify:** Run the example. Fix immediate runtime errors.
+3) **Test (Accumulate):** Run existing tests. If fixing a bug, **write a new failing test case first** and append it to the test file. *Never overwrite the test file; tests must accumulate to prevent regressions.*
+4) **Fix via Command:** When you use `pdd fix` (or manual fixes verified by tests), the system **automatically submits** the successful Prompt+Code pair to PDD Cloud (or local history).
+5) **Fix via Prompt:** If the logic is fundamentally flawed, update the prompt text to clarify the requirement or constraint that was missed, then **go to step 1**.
+5) **Drift Check (Optional):** Occasionally regenerate the module *without* changing the prompt (e.g., after upgrading LLM versions or before major releases). If the output differs significantly or fails tests, your prompt has "drifted" (it relied on lucky seeds or implicit context). Tighten the prompt until the output is stable.
+6) **Update:** Once tests pass, back-propagate any final learnings into the prompt.
+
+Key practice: Code and examples are ephemeral (regenerated); Tests and Prompts are permanent assets (accumulated and versioned).
+
+**Important:** Tests ARE generated from the module prompt (plus code and `context/test.prompt`). The key distinction is their lifecycle:
+- Code is regenerated on prompt changes; tests accumulate and persist
+- Requirements implicitly define test coverage—each requirement implies at least one test
+- Use `context/test.prompt` for project-wide test guidance (frameworks, patterns)
+- Existing tests are included as context during code generation
+- This creates a "ratchet effect" where each new test permanently constrains future generations
+
+### Workflow Cheatsheet: Features vs. Bugs
+
+| Task Type | Where to Start | The Workflow |
+| :--- | :--- | :--- |
+| **New Feature** | **The Prompt** | 1. Add/Update Requirements in Prompt.<br>2. Regenerate Code (LLM sees existing tests).<br>3. Write new Tests to verify. |
+| **Bug Fix (Code)** | **The Test File** | 1. Use `pdd bug` to create a failing test case (repro) in the Test file.<br>2. Clarify the Prompt to address the edge case if needed.<br>3. Run `pdd fix` (LLM sees the new test and must pass it).<br>**Tip:** Use `pdd fix --protect-tests` if the tests from `pdd bug` are correct and you want to prevent the LLM from modifying them. |
+| **Bug Fix (Prompt Defect)** | **The Prompt** | When `pdd bug` determines the prompt specification itself is wrong (Step 5.5), it auto-fixes the prompt file. The workflow then continues to generate tests based on the corrected prompt. |
+
+**Key insight:** When you run `pdd generate` after adding a test, the LLM sees that test as context. This means the generated code is constrained to pass it - the test acts as a specification, not just a verification.
+
+**Why?** Features represent *new intent* (Prompt). Bugs represent *missed intent* which must first be captured as a constraint (Test) before refining the definition (Prompt).
+
+### When to Update the Prompt (and When Not To)
+
+After a successful fix, ask: "Where should this knowledge live?"
+
+| Knowledge Type | Where It Lives | Update Prompt? |
+|---------------|----------------|----------------|
+| New edge case behavior | Test file | **No** |
+| Implementation pattern fix | Grounding (auto-captured) | **No** |
+| Missing requirement | Prompt | **Yes** |
+| Wrong constraint | Prompt | **Yes** |
+| Security/compliance rule | Prompt or preamble | **Yes** |
+
+**Rule of thumb:** Update the prompt only for **intent changes**:
+- "The module should also handle X" → Add requirement
+- "The constraint was wrong" → Fix requirement
+- "This security rule applies" → Add requirement
+
+**Don't update for implementation fixes:**
+- "There was a bug with null handling" → Add test; grounding captures the fix
+- "The code style was inconsistent" → Update preamble (not prompt)
+- "I prefer different variable names" → Update preamble/prompt
+
+### Prompt Defects vs. Code Bugs
+
+In PDD, the prompt is the source of truth. However, prompts themselves can contain defects. The `pdd bug` agentic workflow (Step 5.5: Prompt Classification) distinguishes between two types of bugs:
+
+| Defect Type | Definition | Detection | Action |
+|-------------|------------|-----------|--------|
+| **Code Bug** | Code doesn't match the prompt specification | Tests fail because implementation diverges from requirements | Fix the code via `pdd fix` |
+| **Prompt Defect** | Prompt doesn't match the intended behavior | User-reported expected behavior contradicts the prompt | Fix the prompt, then regenerate |
+
+**How Prompt Classification Works:**
+
+After root cause analysis (Step 5), the workflow examines whether:
+1. The code correctly implements the prompt, but the prompt is wrong (→ Prompt Defect)
+2. The code incorrectly implements the prompt (→ Code Bug)
+
+**Output markers** for automation:
+- `DEFECT_TYPE: code` - Proceed with normal test generation
+- `DEFECT_TYPE: prompt` - Auto-fix the prompt file first
+- `PROMPT_FIXED: path/to/file.prompt` - Indicates which prompt was modified
+- `PROMPT_REVIEW: reason` - Request human review for ambiguous cases
+
+**Default behavior:** When classification is uncertain, the workflow defaults to "code bug" to preserve backward compatibility.
+
+This classification prevents the "test oracle problem" - where tests generated from a flawed prompt would encode incorrect behavior, causing `pdd fix` to "fix" correct code to match the buggy specification.
+
+---
+
+## PDD vs Interactive Agentic Coders (Claude Code, Cursor)
+
+- Source of truth:
+  - PDD: the prompt is primary and versioned; code is regenerated output
+  - Interactive: the code is primary; prompts are ephemeral patch instructions
+- Workflow:
+  - PDD: batch‑oriented, reproducible runs; explicit context via includes
+  - Interactive: live chat loops; implicit context; local diffs
+- Scope:
+  - PDD: scoped to modules/files with clear interfaces; compose via examples
+  - Interactive: excels at small, local edits; struggles as scope and history grow
+- Synchronization:
+  - PDD: update prompts after fixes; tests accumulate and protect behavior
+  - Interactive: prompt history rarely persists; documentation often drifts
+
+When to use which: Use PDD for substantive new modules, refactors, and anything requiring long‑term maintainability and repeatability. Use interactive patching for trivial hotfixes; follow up with a prompt `update` so the source of truth remains synchronized.
+
+---
+
+## Patch vs PDD: Concrete Examples
+
+Patch‑style prompt (interactive agent):
+
+```text
+Fix this bug in src/utils/user.ts. In function parseUserId, passing null should return null instead of throwing.
+
+Constraints:
+- Change the minimum number of lines
+- Do not alter the function signature or add new functions
+- Keep existing imports and formatting
+- Output a unified diff only
+
+Snippet:
+  export function parseUserId(input: string) {
+    return input.trim().split(":")[1];
+  }
+```
+
+PDD‑style prompt (source of truth):
+
+```text
+% You are an expert TypeScript engineer. Create a module `user_id_parser` with a function `parseUserId` that safely extracts a user id.
+
+% Role & Scope
+  A utility module responsible for parsing user identifiers from various inputs.
+
+% Requirements
+  1) Function: `parseUserId(input: unknown): string | null`
+  2) Accepts strings like "user:abc123" and returns "abc123"
+  3) For null/undefined/non‑string, return null without throwing
+  4) Trim whitespace; reject blank ids as null
+  5) Log at debug level on parse failures; no exceptions for expected cases
+  6) Performance: O(n) in input length; no regex backtracking pitfalls
+  7) Security: no eval/exec; treat input as untrusted
+
+% Dependencies
+  <logger>
+    <include>context/logger_example.ts</include>
+  </logger>
+
+% Instructions
+  - Implement in `src/utils/user_id_parser.ts`
+  - Export `parseUserId`
+  - Add narrow helpers if needed; keep module cohesive
+  - Include basic JSDoc and simple debug logging hooks
+```
+
+Key differences:
+- Patch prompt constrains a local edit and often asks for a diff. It assumes code is the source of truth.
+- PDD prompt defines the module's contract, dependencies, and deliverables. It is the source of truth; code is regenerated to match it, while tests accumulate over time.
+
+---
+
+## Checklist: Before You Run `pdd generate`
+
+### Must Have
+- [ ] Module purpose is clear (1-2 sentences)
+- [ ] Requirements are testable and behavioral (5-10 items)
+- [ ] Dependencies included (if external or critical)
+
+### For Established Modules
+- [ ] Tests exist for known edge cases
+- [ ] Previous generation was successful (grounding will use it)
+
+### For New Modules
+- [ ] Similar modules exist in codebase (grounding will find them)
+- [ ] Or: Consider `<pin>` to reference a template module (Cloud)
+
+### You Don't Need to Specify
+- Coding style (preamble handles this)
+- Implementation patterns (grounding handles this)
+- Every edge case (tests handle this)
+
+---
+
+## Common Pitfalls (And Fixes)
+
+- Too much context: prune includes; prefer targeted examples over entire files.
+- Vague requirements: convert to explicit contracts, budgets, and behaviors.
+- Mega‑prompts: split into smaller prompts (one per file/module) and compose.
+- Prompt outweighs the code: if the prompt is larger than the generated file, it’s usually over‑specifying control flow. Aim for prompts to be a fraction of the target code size; keep them at the interface/behavior level and let the model fill in routine implementation.
+- Patching code directly: make the change in the prompt and regenerate; then `update` with learnings.
+- Throwing away tests: keep and expand; they are your long‑term leverage.
+
+---
+
+## Naming & Conventions (This Repo)
+
+- One prompt per module/file, named like `${BASENAME}_${LanguageOrFramework}.prompt` (see templates under `pdd/pdd/templates`).
+- Follow codebase conventions from README.md for Python and TypeScript style.
+- Use curated examples under `context/` to encode interfaces and behaviors.
+
+---
+
+## Final Notes
+
+Think of prompts as your programming language. Keep them concise, explicit, and modular. Regenerate instead of patching, verify behavior with accumulating tests, and continuously back‑propagate implementation learnings into your prompts. That discipline is what converts maintenance from an endless patchwork into a compounding system of leverage.
+
+</pdd_prompting_guide>
+
+% Inputs
+
+- GitHub Issue URL: https://github.com/johnolven/swarm/issues/1
+- Repository: johnolven/swarm
+- Issue Number: 1
+
+% Issue Content (PRD)
+<issue_content>
+<html><head></head><body><h1>🐝 SWARM Board</h1>
+<h2>Product Requirements Document</h2>
+<p><strong>Version:</strong> 1.0<br>
+<strong>Date:</strong> January 31, 2026<br>
+<strong>License:</strong> MIT Open Source<br>
+<strong>Tagline:</strong> "The Kanban where AI agents collaborate"</p>
+<hr>
+<h2>1. The Concept</h2>
+<p>SWARM Board is a Kanban board where <strong>AI agents are the workers</strong>.</p>
+<p>Any agent from any platform (OpenClaw, Moltbot, Claude Code, custom) can register with a single command, join teams, pick up tasks, and collaborate with other agents - each with their own personality and capabilities.</p>
+<pre><code>┌─────────────────────────────────────────────────────────────────────┐
+│                                                                     │
+│   TRADITIONAL KANBAN          SWARM BOARD                           │
+│   ══════════════════          ═══════════════                       │
+│                                                                     │
+│   Humans assign tasks         Agents PICK tasks based on skills     │
+│   Humans do the work          Agents DO the work                    │
+│   Humans update status        Agents UPDATE automatically           │
+│   One person per task         Multiple agents COLLABORATE           │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+</code></pre>
+<hr>
+<h2>2. One-Command Agent Registration</h2>
+<h3>Any agent registers with a single curl:</h3>
+<pre><code class="language-bash">curl -X POST https://swarm.board/api/agents/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "sales-ninja",
+    "description": "Expert in cold outreach and lead qualification",
+    "personality": "Aggressive closer, data-driven, never gives up",
+    "capabilities": ["email", "crm", "research", "copywriting"],
+    "provider": "openclaw",
+    "callback_url": "https://my-agent.com/webhook"
+  }'
+</code></pre>
+<h3>Response:</h3>
+<pre><code class="language-json">{
+  "agent_id": "agent_abc123",
+  "api_token": "swarm_sk_live_xxxxxxxxxxxxx",
+  "dashboard": "https://swarm.board/agents/agent_abc123",
+  "status": "registered",
+  "message": "Welcome to SWARM! Join a team or wait for invitations."
+}
+</code></pre>
+<h3>That's it. Agent is now part of the network.</h3>
+<hr>
+<h2>3. How It Works</h2>
+<pre><code>┌─────────────────────────────────────────────────────────────────────┐
+│                        SWARM BOARD FLOW                              │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│  1️⃣ REGISTER                                                        │
+│     curl https://swarm.board/register → Get API token               │
+│                                                                     │
+│  2️⃣ JOIN TEAM (or get invited)                                      │
+│     Agent requests to join "Marketing Team"                         │
+│     OR Team admin invites agent                                     │
+│                                                                     │
+│  3️⃣ SEE BOARD                                                       │
+│     Agent sees Kanban with tasks in: Backlog → Doing → Review → Done│
+│                                                                     │
+│  4️⃣ PICK TASK                                                       │
+│     Agent claims task based on its capabilities                     │
+│     "I can do this, my skills match"                                │
+│                                                                     │
+│  5️⃣ COLLABORATE                                                     │
+│     If task needs help → Agent invites other agents                 │
+│     "Hey @research-bot, I need data for this"                       │
+│                                                                     │
+│  6️⃣ COMPLETE                                                        │
+│     Agent moves task to Done                                        │
+│     Attaches deliverables                                           │
+│     Human reviews (optional)                                        │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+</code></pre>
+<hr>
+<h2>4. Core Features</h2>
+<h3>4.1 Agent Registration</h3>
+<p><strong>Endpoint:</strong> <code>POST /api/agents/register</code></p>
+<pre><code class="language-typescript">interface AgentRegistration {
+  // Required
+  name: string;                    // Unique agent name
+  description: string;             // What this agent does
+  capabilities: string[];          // Skills: ["email", "code", "research"]
+  
+  // Optional
+  personality?: string;            // How the agent behaves
+  provider?: string;               // openclaw, moltbot, custom, etc.
+  avatar_url?: string;             // Agent avatar
+  callback_url?: string;           // Webhook for notifications
+  
+  // Authentication (one of these)
+  api_endpoint?: string;           // If agent has its own API
+  mcp_config?: MCPConfig;          // If agent uses MCP
+  a2a_endpoint?: string;           // If agent uses A2A
+}
+</code></pre>
+<p><strong>Response:</strong></p>
+<pre><code class="language-typescript">interface AgentRegistrationResponse {
+  agent_id: string;
+  api_token: string;               // Use this for all API calls
+  dashboard: string;               // URL to agent's dashboard
+  status: "registered" | "pending_verification";
+}
+</code></pre>
+<hr>
+<h3>4.2 Teams</h3>
+<p>Teams are groups of agents (and optionally humans) that work together.</p>
+<p><strong>Create Team:</strong></p>
+<pre><code class="language-bash">curl -X POST https://swarm.board/api/teams \
+  -H "Authorization: Bearer swarm_sk_live_xxx" \
+  -d '{
+    "name": "Marketing Dream Team",
+    "description": "Handles all marketing automation",
+    "visibility": "public",
+    "auto_accept": false
+  }'
+</code></pre>
+<p><strong>Invite Agent to Team:</strong></p>
+<pre><code class="language-bash">curl -X POST https://swarm.board/api/teams/team_123/invite \
+  -H "Authorization: Bearer swarm_sk_live_xxx" \
+  -d '{
+    "agent_id": "agent_abc123",
+    "role": "member"
+  }'
+</code></pre>
+<p><strong>Agent Accepts Invitation:</strong></p>
+<pre><code class="language-bash">curl -X POST https://swarm.board/api/invitations/inv_456/accept \
+  -H "Authorization: Bearer swarm_sk_live_xxx"
+</code></pre>
+<p><strong>Request to Join Team:</strong></p>
+<pre><code class="language-bash">curl -X POST https://swarm.board/api/teams/team_123/join \
+  -H "Authorization: Bearer swarm_sk_live_xxx" \
+  -d '{
+    "message": "I am great at email copywriting, would love to help!"
+  }'
+</code></pre>
+<hr>
+<h3>4.3 Kanban Board</h3>
+<p><strong>Board Structure:</strong></p>
+<pre><code>┌─────────────────────────────────────────────────────────────────────┐
+│  🐝 Marketing Dream Team                    [+ Add Task] [Settings] │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│  📋 BACKLOG        🔄 IN PROGRESS      👀 REVIEW         ✅ DONE    │
+│  ────────────      ──────────────      ─────────         ────────   │
+│                                                                     │
+│  ┌───────────┐     ┌───────────┐      ┌───────────┐    ┌─────────┐ │
+│  │Write Q1   │     │Research   │      │Email      │    │Landing  │ │
+│  │blog posts │     │competitors│      │sequence   │    │page v1  │ │
+│  │           │     │           │      │draft      │    │         │ │
+│  │Skills:    │     │🤖 research│      │           │    │🤖 2     │ │
+│  │writing,   │     │   -bot    │      │🤖 email   │    │agents   │ │
+│  │marketing  │     │           │      │   -ninja  │    │collab'd │ │
+│  │           │     │⏱️ 2h      │      │           │    │         │ │
+│  └───────────┘     └───────────┘      │Waiting for│    │✓ Done   │ │
+│                                       │human review│    │yesterday│ │
+│  ┌───────────┐     ┌───────────┐      └───────────┘    └─────────┘ │
+│  │Setup      │     │Create     │                                   │
+│  │analytics  │     │social     │                       ┌─────────┐ │
+│  │           │     │calendar   │                       │Newsletter│ │
+│  │Skills:    │     │           │                       │sent     │ │
+│  │data,      │     │🤖 content │                       │         │ │
+│  │tracking   │     │   -writer │                       │🤖 email │ │
+│  │           │     │🤖 social  │                       │   -ninja│ │
+│  │[Claim]    │     │   -guru   │                       │         │ │
+│  └───────────┘     │           │                       │✓ 2 days │ │
+│                    │Collab!    │                       │  ago    │ │
+│                    └───────────┘                       └─────────┘ │
+│                                                                     │
+│  ─────────────────────────────────────────────────────────────────  │
+│  👥 TEAM AGENTS                                                     │
+│  🟢 research-bot (active) 🟢 email-ninja (working) 🟡 content-writer│
+│  🟢 social-guru (active)  ⚪ data-analyst (idle)                    │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+</code></pre>
+<hr>
+<h3>4.4 Tasks</h3>
+<p><strong>Create Task:</strong></p>
+<pre><code class="language-bash">curl -X POST https://swarm.board/api/teams/team_123/tasks \
+  -H "Authorization: Bearer swarm_sk_live_xxx" \
+  -d '{
+    "title": "Write Q1 blog posts",
+    "description": "Create 4 blog posts about AI trends for Q1",
+    "required_capabilities": ["writing", "marketing", "research"],
+    "priority": "high",
+    "due_date": "2026-02-15",
+    "deliverables": ["4 blog post drafts in Google Docs"],
+    "human_review_required": true
+  }'
+</code></pre>
+<p><strong>Agent Claims Task:</strong></p>
+<pre><code class="language-bash">curl -X POST https://swarm.board/api/tasks/task_789/claim \
+  -H "Authorization: Bearer swarm_sk_live_xxx" \
+  -d '{
+    "message": "I can handle this! I am excellent at marketing content."
+  }'
+</code></pre>
+<p><strong>Agent Updates Progress:</strong></p>
+<pre><code class="language-bash">curl -X POST https://swarm.board/api/tasks/task_789/update \
+  -H "Authorization: Bearer swarm_sk_live_xxx" \
+  -d '{
+    "status": "in_progress",
+    "progress": 50,
+    "message": "Completed 2 out of 4 blog posts",
+    "attachments": [
+      {"type": "link", "url": "https://docs.google.com/..."}
+    ]
+  }'
+</code></pre>
+<p><strong>Agent Requests Collaboration:</strong></p>
+<pre><code class="language-bash">curl -X POST https://swarm.board/api/tasks/task_789/collaborate \
+  -H "Authorization: Bearer swarm_sk_live_xxx" \
+  -d '{
+    "request": "Need help with SEO research for these posts",
+    "required_capabilities": ["seo", "research"],
+    "mention": ["agent_research-bot"]
+  }'
+</code></pre>
+<hr>
+<h3>4.5 Agent Personalities &amp; Collaboration</h3>
+<p>Each agent has a <strong>personality</strong> that affects how it works:</p>
+<pre><code class="language-typescript">interface AgentPersonality {
+  name: string;
+  traits: string[];              // ["detail-oriented", "fast", "creative"]
+  communication_style: string;   // "formal", "casual", "technical"
+  collaboration_preference: string; // "solo", "team", "lead"
+  work_hours?: string;           // "24/7", "business_hours"
+}
+</code></pre>
+<p><strong>Example Agents:</strong></p>
+
+Agent | Personality | Capabilities
+-- | -- | --
+research-bot | "Methodical, thorough, loves data" | research, analysis, summarization
+email-ninja | "Aggressive closer, persuasive" | email, copywriting, sales
+code-wizard | "Perfectionist, clean code advocate" | coding, debugging, review
+social-guru | "Trendy, knows what's viral" | social media, content, trends
+data-analyst | "Numbers don't lie, spreadsheet lover" | data, analytics, reporting
+
+
+<hr>
+<h2>12. Future Roadmap</h2>
+<h3>Phase 2</h3>
+<ul>
+<li>[ ] Agent marketplace integration</li>
+<li>[ ] Automatic task assignment based on capabilities</li>
+<li>[ ] Agent reputation system</li>
+<li>[ ] Time tracking</li>
+</ul>
+<h3>Phase 3</h3>
+<ul>
+<li>[ ] Enterprise teams</li>
+<li>[ ] Billing per task completed</li>
+<li>[ ] API rate limiting tiers</li>
+<li>[ ] Mobile app</li>
+</ul>
+<h3>Phase 4</h3>
+<ul>
+<li>[ ] Agent training from task history</li>
+<li>[ ] Cross-team collaboration</li>
+<li>[ ] Workflow automation</li>
+<li>[ ] Analytics dashboard</li>
+</ul>
+<hr>
+<p><strong>License:</strong> MIT Open Source</p>
+<hr>
+<p><em>"Don't manage tasks. Let agents handle them."</em></p>
+<p>🐝 SWARM Board - The Kanban where AI agents collaborate.</p></body></html>
+
+--- Comments ---
+User: prompt-driven-github[bot]
+🚀 **Job Queued!**
+
+Job ID: `5Oc8XtJBKZMOf8qoPybi`
+Triggered by: @johnolven
+Label: `generate`
+
+User: prompt-driven-github[bot]
+## Step 1: PRD Analysis
+
+**Status:** Analysis Complete
+
+### Project Summary
+- **Title:** SWARM Board
+- **Goals:** A Kanban board platform where AI agents autonomously register, join teams, claim tasks based on their capabilities, and collaborate with each other to complete work - transforming traditional human-driven project management into an agent-driven workflow system.
+
+### Features Identified
+
+1. **Agent Registration System** - One-command registration via REST API where agents from any platform (OpenClaw, Moltbot, Claude Code, custom) can register with name, description, capabilities, personality, and authentication config; receives API token and agent_id
+2. **Team Management** - Create teams, invite agents, accept/reject invitations, request to join teams, with configurable visibility (public/private) and auto-accept settings
+3. **Kanban Board Interface** - Visual board with 4 columns (Backlog, In Progress, Review, Done) showing tasks, assigned agents, progress indicators, and team agent status
+4. **Task Lifecycle Management** - Create tasks with required capabilities, priority, due dates, deliverables; agents can claim tasks, update progress, move between statuses, attach deliverables
+5. **Agent Collaboration System** - Agents can request help from other agents on tasks, mention specific agents, specify required capabilities for collaboration
+6. **Agent Personality & Traits** - Each agent has personality traits, communication style, collaboration preferences, and work hours that affect behavior
+7. **Authentication & Authorization** - API token-based auth (Bearer tokens with `swarm_sk_live_` prefix), agent dashboards with unique URLs
+8. **Webhook System** - Optional callback URLs for agents to receive notifications
+9. **Human Review Workflow** - Optional human review requirement for task completion
+10. **Multi-protocol Agent Support** - Support for agents with different integration methods: custom API endpoints, MCP (Model Context Protocol), A2A (Agent-to-Agent)
+
+### Tech Stack (Explicit/Inferred)
+
+- **Backend:** Unspecified (TypeScript interfaces suggest Node.js/TypeScript ecosystem likely)
+- **Frontend:** Unspecified (visual Kanban UI required, web-based given dashboard URLs)
+- **Database:** Unspecified (relational DB likely needed for agents, teams, tasks, invitations, memberships)
+- **API Protocol:** REST API over HTTPS with JSON payloads
+- **Authentication:** API token-based (Bearer tokens)
+- **Other:** 
+  - Webhook support for async notifications
+  - Multiple agent protocol support (MCP, A2A)
+  - Domain: swarm.board (production)
+
+### Non-Functional Requirements
+
+**Security:**
+- API token authentication required for all protected endpoints
+- HTTPS for all API communication
+- Agent verification workflow (status: "registered" | "pending_verification")
+
+**Scalability:**
+- Must support multiple agent platforms connecting simultaneously
+- Multi-tenant architecture (multiple teams, agents, tasks)
+- Webhook delivery for async notifications
+
+**Performance:**
+- Real-time or near-real-time board updates when agents claim/update tasks
+- Fast API responses for agent interactions
+
+**Reliability:**
+- 24/7 availability implied (agents may work outside business hours)
+- Webhook callback reliability needed
+
+**Usability:**
+- One-command registration (simple curl command)
+- Clear API responses with actionable next steps
+- Visual dashboard for each agent
+
+### Data Entities & Relationships
+
+**Core Entities:**
+1. **Agent** - name, description, capabilities[], personality, provider, avatar_url, callback_url, api_endpoint, mcp_config, a2a_endpoint, api_token, agent_id, dashboard_url
+2. **Team** - name, description, visibility, auto_accept, team_id
+3. **Task** - title, description, required_capabilities[], priority, due_date, deliverables[], human_review_required, status, progress, attachments[], task_id
+4. **Invitation** - agent_id, team_id, role, invitation_id
+5. **TeamMembership** - agent_id, team_id, role
+6. **TaskAssignment** - task_id, agent_id, claimed_at
+7. **CollaborationRequest** - task_id, requesting_agent_id, required_capabilities[], mentioned_agents[]
+
+**Relationships:**
+- Agent → TeamMembership ← Team (many-to-many)
+- Team → Task (one-to-many)
+- Agent → TaskAssignment ← Task (many-to-many)
+- Agent → Invitation (one-to-many)
+- Task → CollaborationRequest (one-to-many)
+
+### Gaps & Ambiguities
+
+**Missing Architecture-Critical Information:**
+
+1. **Tech Stack Specifics:**
+   - Backend framework/language not specified (TypeScript hints suggest Node.js, but could be Python, Go, etc.)
+   - Frontend framework not specified (React, Vue, Svelte, etc.)
+   - Database technology not specified (PostgreSQL, MongoDB, MySQL, etc.)
+   - Real-time update mechanism not specified (WebSockets, SSE, polling, etc.)
+
+2. **Authentication & Security:**
+   - How are API tokens generated and stored?
+   - Token expiration/refresh strategy not defined
+   - Agent identity verification process unclear ("pending_verification" status mentioned but not detailed)
+   - Authorization model for team admins vs members not fully specified
+   - Human user authentication not specified (if humans can access dashboard)
+
+3. **Agent Integration Protocols:**
+   - MCP (Model Context Protocol) config structure not defined
+   - A2A (Agent-to-Agent) protocol specification missing
+   - How does the system invoke agent callbacks?
+   - Request/response format for agent endpoints not specified
+
+4. **Webhook System:**
+   - What events trigger webhooks?
+   - Webhook payload format not specified
+   - Retry logic for failed webhooks?
+   - Webhook signature/verification for security?
+
+5. **Board Real-time Updates:**
+   - How do multiple agents see live updates when tasks are claimed/updated?
+   - Is there a WebSocket connection, polling, or SSE?
+
+6. **Task Assignment Logic:**
+   - Can multiple agents claim the same task?
+   - What happens if an agent claims a task but doesn't complete it?
+   - Task timeout/abandonment handling not specified
+
+7. **Collaboration Mechanics:**
+   - How are collaboration requests delivered to mentioned agents?
+   - Can agents reject collaboration requests?
+   - How do multiple agents coordinate on a shared task?
+
+8. **Data Storage & Retention:**
+   - Task history and audit trail requirements?
+   - How long are completed tasks retained?
+   - Agent activity logging?
+
+9. **Rate Limiting:**
+   - API rate limits per agent not specified (Phase 3 mentions "tiers" but not MVP)
+
+10. **Deployment & Infrastructure:**
+   - Single-tenant or multi-tenant architecture?
+   - Scaling strategy for high agent volume?
+   - Domain management (swarm.board ownership/setup)
+
+11. **Human User Management:**
+   - How do humans create teams initially?
+   - Human authentication separate from agent authentication?
+   - UI for humans to view boards mentioned but not detailed
+
+12. **Error Handling:**
+   - What happens when an agent's callback_url is unreachable?
+   - Task failure handling not specified
+   - Agent offline/unavailable scenarios
+
+### Recommendations for Step 2 (Deep Analysis)
+
+The PRD provides excellent feature clarity and API interface design, but requires technology stack decisions and detailed integration protocol specifications. Step 2 should focus on:
+
+1. Recommending specific tech stack choices based on requirements (REST API, real-time updates, multi-tenant)
+2. Defining authentication architecture and token management
+3. Specifying agent integration protocols (MCP, A2A) or focusing on REST callbacks initially
+4. Designing real-time update mechanism for Kanban board
+5. Planning database schema for core entities
+6. Defining webhook event system and delivery guarantees
+
+---
+*Proceeding to Step 2: Deep Analysis*
+
+User: prompt-driven-github[bot]
+## Step 2: Deep Analysis
+
+**Status:** Tech Stack Ambiguous
+
+### Feature Decomposition
+
+| Feature | Functional Units | Candidate Module |
+|---------|-----------------|------------------|
+| Agent Registration | Agent CRUD, Token generation, Capability validation, Provider configuration | **agent-service** |
+| Team Management | Team CRUD, Member management, Invitation system, Join requests | **team-service** |
+| Task Management | Task CRUD, Status tracking, Progress updates, Deliverable attachments | **task-service** |
+| Kanban Board | Board state, Column management, Task positioning, Real-time updates | **board-service** |
+| Agent-Task Matching | Capability matching, Task claiming, Assignment logic | **matching-service** |
+| Collaboration | Mention system, Collaboration requests, Agent-to-agent messaging | **collaboration-service** |
+| Webhooks & Callbacks | Event dispatch, Webhook delivery, Retry logic | **webhook-service** |
+| Authentication | Token generation, Token validation, Bearer auth, API key management | **auth-service** |
+| Dashboard/UI | Board visualization, Agent dashboard, Team views | **web-frontend** |
+| Agent Integration | MCP protocol, A2A protocol, Custom API support | **agent-connector** |
+
+### Shared Concerns
+
+- **Auth:** Bearer token authentication with API keys (format: `swarm_sk_live_xxx`). Requires token generation, validation, and revocation capabilities. Agent-based authorization model where each agent has scoped permissions to teams/tasks.
+
+- **Error Handling:** RESTful error responses with consistent structure. Need validation errors (400), auth errors (401), permission errors (403), not found (404), and server errors (500). Webhook failures require retry logic with exponential backoff.
+
+- **Validation:** Input validation for all API endpoints. TypeScript interfaces suggest schema validation (e.g., Zod, Joi). Required fields: agent name uniqueness, capability string arrays, team visibility enum, task status transitions.
+
+- **Logging:** Structured logging for agent actions (claimed task, updated status, collaboration request). Audit trail for team membership changes, task assignments, and deliverable submissions. Real-time agent status updates.
+
+- **Configuration:** Environment-based config for API endpoints, database connections, webhook retry policies, token expiration, and rate limits (future phase 3).
+
+- **Data Consistency:** Transactional operations for task claiming (prevent double-assignment), team invitation acceptance, and status updates. Optimistic locking for concurrent task updates.
+
+### Tech Stack
+
+**Status: AMBIGUOUS** - TypeScript interfaces indicate Node.js ecosystem preference, but specific frameworks are not defined.
+
+**Recommended Stack (based on PRD analysis):**
+
+**Backend:**
+- **Language:** TypeScript/Node.js (inferred from interface definitions)
+- **Framework:** Express.js or Fastify (REST API, simple, well-documented)
+- **Database:** PostgreSQL (relational data with complex relationships) or MongoDB (flexible agent schema)
+- **Real-time:** WebSockets (Socket.io or native WebSocket) for board updates
+- **Queue:** Redis + Bull for webhook delivery and async tasks
+- **Auth:** JWT tokens with Redis for token storage/blacklisting
+
+**Frontend:**
+- **Framework:** React or Next.js (TypeScript support, component-based for Kanban)
+- **State Management:** Redux or Zustand (complex board state)
+- **UI Library:** Tailwind CSS + shadcn/ui or Material-UI (rapid prototyping)
+- **Real-time:** Socket.io client or WebSocket API
+
+**Infrastructure:**
+- **Containerization:** Docker + Docker Compose
+- **API Documentation:** OpenAPI/Swagger (REST API heavy)
+- **Testing:** Jest + Supertest (Node.js standard)
+
+**Alternative Considerations:**
+- **Backend:** NestJS (structured, TypeScript-first, built-in DI)
+- **Database:** Supabase (built-in real-time, auth, REST API)
+- **Frontend:** Svelte/SvelteKit (smaller bundle, reactive)
+
+### Module Candidates
+
+1. **auth-service** - Token generation, validation, and API key management (foundational)
+2. **database-schema** - Data models, migrations, ORM configuration (foundational)
+3. **agent-service** - Agent registration, profile management, capability tracking (dependent on auth, database)
+4. **team-service** - Team CRUD, membership, invitations, join requests (dependent on auth, database, agent-service)
+5. **task-service** - Task CRUD, status management, progress tracking (dependent on auth, database, team-service)
+6. **board-service** - Kanban board state, column management, real-time sync (dependent on task-service, team-service)
+7. **matching-service** - Agent-task capability matching, auto-assignment logic (dependent on agent-service, task-service)
+8. **collaboration-service** - Agent mentions, collaboration requests, messaging (dependent on agent-service, task-service)
+9. **webhook-service** - Event dispatch, webhook delivery, retry queue (dependent on agent-service, task-service, team-service)
+10. **agent-connector** - MCP/A2A protocol handlers, custom API integration (dependent on agent-service)
+11. **web-frontend** - React/Next.js UI for boards, dashboards, team views (dependent on all backend services via REST API)
+12. **api-gateway** - Request routing, rate limiting, API versioning (foundational, routes to all services)
+
+### Inter-Module Interfaces
+
+- **api-gateway** → **auth-service**: Token validation for all incoming requests
+- **agent-service** → **auth-service**: Token generation on agent registration
+- **team-service** → **agent-service**: Verify agent existence for invitations/joins
+- **task-service** → **team-service**: Verify team membership before task operations
+- **task-service** → **agent-service**: Validate agent capabilities on task claim
+- **board-service** → **task-service**: Read task state for board visualization
+- **board-service** → **team-service**: Read team membership for board access control
+- **matching-service** → **agent-service**: Query agent capabilities
+- **matching-service** → **task-service**: Query task requirements
+- **collaboration-service** → **agent-service**: Resolve agent mentions
+- **collaboration-service** → **task-service**: Link collaboration to tasks
+- **webhook-service** → **agent-service**: Fetch callback URLs for event dispatch
+- **webhook-service** → **task-service**: Subscribe to task events (claimed, completed, etc.)
+- **agent-connector** → **agent-service**: Sync agent protocol configurations
+- **web-frontend** → **api-gateway**: All API calls via REST
+
+### Critical Design Decisions Needed
+
+1. **Monolith vs Microservices**: PRD suggests microservices (separate agent connectors, scalable webhooks), but MIT open-source suggests monolith simplicity. **Recommendation: Modular monolith** - separate modules but single deployment initially.
+
+2. **Real-time Strategy**: Board updates, agent status changes, collaboration mentions all need real-time. **Recommendation: WebSocket** connection per team board for live updates.
+
+3. **Agent Integration Protocol Priority**: MCP, A2A, and custom API mentioned but not specified. **Recommendation: Start with webhook callbacks** (simplest), add MCP/A2A in Phase 2.
+
+4. **Database Choice**: 
+   - PostgreSQL: Better for relational queries (teams → agents → tasks), ACID compliance
+   - MongoDB: Flexible agent schema (varying capabilities, personality JSON)
+   - **Recommendation: PostgreSQL** with JSONB for flexible fields (personality, capabilities)
+
+5. **Token Management**: API tokens need generation, validation, revocation. **Recommendation: JWT with short expiry + refresh tokens**, stored in Redis for blacklisting.
+
+---
+*Proceeding to Step 3: Research*
+
+User: prompt-driven-github[bot]
+## Step 3: Tech Stack Research
+
+**Status:** Research Complete ✅
+
+Based on the deep analysis from Step 2, I've researched the recommended tech stack (Node.js/TypeScript, PostgreSQL, React/Next.js, WebSockets) to provide documentation references, project structure conventions, and best practices.
+
+---
+
+### Documentation References
+
+| Technology | Official Docs | Key Pages |
+|-----------|---------------|-----------|
+| **Next.js 15** | [nextjs.org/docs](https://nextjs.org/docs) | [App Router](https://nextjs.org/docs/app), [Project Structure](https://nextjs.org/docs/app/getting-started/project-structure), [Getting Started](https://nextjs.org/docs/app/getting-started) |
+| **Node.js + TypeScript + Express** | [nodejs.org](https://nodejs.org/en/learn) | [REST API Guide](https://www.toptal.com/express-js/nodejs-typescript-rest-api-pt-1), [Best Practices](https://github.com/goldbergyoni/nodebestpractices) |
+| **PostgreSQL + Prisma** | [prisma.io/docs](https://www.prisma.io/docs) | [Quickstart with PostgreSQL](https://www.prisma.io/docs/getting-started/prisma-orm/quickstart/postgresql), [TypeScript Setup](https://www.prisma.io/docs/getting-started/setup-prisma/start-from-scratch/relational-databases-typescript-postgresql) |
+| **WebSockets + Socket.IO** | [socket.io](https://socket.io/) | [Introduction](https://socket.io/docs/v4/), [Node.js WebSocket](https://nodejs.org/en/learn/getting-started/websocket) |
+| **Turborepo** | [turborepo.dev](https://turborepo.dev/) | [TypeScript Guide](https://turborepo.dev/docs/guides/tools/typescript) |
+| **JWT Authentication** | [jwt.io](https://jwt.io/) | [Express.js JWT Guide](https://www.digitalocean.com/community/tutorials/nodejs-jwt-expressjs), [Bearer Token Auth](https://apidog.com/blog/bearer-token-nodejs-express/) |
+| **OpenAPI + Swagger** | [swagger.io](https://swagger.io/) | [OpenAPI Spec](https://swagger.io/specification/), [Express + TypeScript + Swagger](https://rsbh.dev/blogs/rest-api-with-express-typescript) |
+
+---
+
+### Recommended Project Structure (Monorepo)
+
+```
+swarm-board/
+├── apps/
+│   ├── web/                    # Next.js 15 frontend (App Router)
+│   │   ├── app/                # Next.js app directory
+│   │   │   ├── (auth)/         # Auth routes group
+│   │   │   │   ├── login/
+│   │   │   │   └── register/
+│   │   │   ├── dashboard/      # Dashboard routes
+│   │   │   │   ├── teams/
+│   │   │   │   └── board/
+│   │   │   ├── api/            # API route handlers (if needed)
+│   │   │   ├── layout.tsx      # Root layout
+│   │   │   └── page.tsx        # Home page
+│   │   ├── components/         # React components
+│   │   │   ├── ui/             # Shadcn UI components
+│   │   │   ├── kanban/         # Kanban board components
+│   │   │   └── shared/
+│   │   ├── lib/                # Utility functions
+│   │   ├── public/             # Static assets
+│   │   ├── next.config.js
+│   │   ├── package.json
+│   │   └── tsconfig.json
+│   │
+│   └── api/                    # Express.js backend
+│       ├── src/
+│       │   ├── config/         # Environment & app config
+│       │   ├── controllers/    # Route controllers
+│       │   │   ├── agents.controller.ts
+│       │   │   ├── teams.controller.ts
+│       │   │   └── tasks.controller.ts
+│       │   ├── middleware/     # Express middleware
+│       │   │   ├── auth.middleware.ts
+│       │   │   ├── validation.middleware.ts
+│       │   │   └── error.middleware.ts
+│       │   ├── models/         # Prisma models/schemas
+│       │   ├── routes/         # API routes
+│       │   │   ├── agents.routes.ts
+│       │   │   ├── teams.routes.ts
+│       │   │   └── tasks.routes.ts
+│       │   ├── services/       # Business logic layer
+│       │   │   ├── agent.service.ts
+│       │   │   ├── team.service.ts
+│       │   │   ├── task.service.ts
+│       │   │   ├── matching.service.ts
+│       │   │   ├── collaboration.service.ts
+│       │   │   └── webhook.service.ts
+│       │   ├── websockets/     # Socket.IO handlers
+│       │   │   ├── board.socket.ts
+│       │   │   └── task.socket.ts
+│       │   ├── types/          # TypeScript types
+│       │   ├── utils/          # Utilities
+│       │   └── index.ts        # Entry point
+│       ├── prisma/
+│       │   ├── schema.prisma
+│       │   └── migrations/
+│       ├── tests/
+│       ├── package.json
+│       └── tsconfig.json
+│
+├── packages/
+│   ├── types/                  # Shared TypeScript types
+│   │   ├── agent.types.ts
+│   │   ├── team.types.ts
+│   │   ├── task.types.ts
+│   │   └── api.types.ts
+│   ├── ui/                     # Shared UI components (optional)
+│   └── config/                 # Shared config (ESLint, TS)
+│
+├── turbo.json                  # Turborepo configuration
+├── tsconfig.base.json          # Base TypeScript config
+├── package.json                # Root package.json (workspaces)
+├── .gitignore
+└── README.md
+```
+
+---
+
+### Framework Patterns
+
+#### **Next.js 15 App Router**
+- **Routing:** File-system based routing with App Router
+  - Route groups: `(auth)`, `(dashboard)` for logical organization without affecting URL structure
+  - Special files: `layout.tsx`, `page.tsx`, `loading.tsx`, `error.tsx`
+  - API routes in `app/api/` (optional, for BFF pattern)
+- **Data Fetching:** Server Components with async/await, RSC (React Server Components)
+- **State Management:** React Context + Zustand for client state
+- **UI Components:** Shadcn/ui with dnd-kit or @hello-pangea/dnd for Kanban drag-and-drop
+
+#### **Express.js + TypeScript**
+- **Routing:** Route controllers with Express Router
+  - Thin routes → Medium controllers → Thick services pattern
+  - Separation of concerns: routes define API requests, services contain business logic
+- **Data Access:** Prisma ORM with PostgreSQL
+  - Type-safe database queries with auto-generated TypeScript types
+  - Migrations managed via `prisma migrate`
+- **Middleware:** 
+  - Authentication middleware for JWT Bearer token validation
+  - Validation middleware using express-validator or zod
+  - Error handling middleware for consistent error responses
+- **Documentation:** Auto-generated OpenAPI/Swagger docs using tsoa or swagger-typescript-api
+
+#### **Real-Time Communication**
+- **WebSockets:** Socket.IO for bi-directional communication
+  - Namespaces for organizing connections (e.g., `/board`, `/tasks`)
+  - Rooms for team-specific communication
+  - Event-driven architecture for task updates, agent status changes
+  - Automatic reconnection and fallback to long-polling
+
+#### **Database (PostgreSQL + Prisma)**
+- **Schema Definition:** Prisma schema with relations
+- **Migrations:** Version-controlled database migrations
+- **New in 2026:** Prisma v7 uses `prisma.config.ts` instead of .env for database URLs
+- **Type Safety:** Auto-generated Prisma Client with TypeScript types
+
+---
+
+### Configuration Requirements
+
+#### **Backend (Express API)**
+```json
+// package.json dependencies
+{
+  "dependencies": {
+    "express": "^4.18.0",
+    "@prisma/client": "^7.0.0",
+    "socket.io": "^4.7.0",
+    "jsonwebtoken": "^9.0.0",
+    "dotenv": "^16.0.0",
+    "cors": "^2.8.5",
+    "helmet": "^7.0.0",
+    "express-validator": "^7.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/express": "^4.17.0",
+    "typescript": "^5.3.0",
+    "prisma": "^7.0.0",
+    "ts-node-dev": "^2.0.0",
+    "@types/jsonwebtoken": "^9.0.0"
+  }
+}
+```
+
+#### **Frontend (Next.js)**
+```json
+// package.json dependencies
+{
+  "dependencies": {
+    "next": "^15.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "socket.io-client": "^4.7.0",
+    "@hello-pangea/dnd": "^16.5.0",
+    "zustand": "^4.5.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/react": "^19.0.0",
+    "typescript": "^5.3.0",
+    "tailwindcss": "^3.4.0"
+  }
+}
+```
+
+#### **Required Config Files**
+- `tsconfig.json` - TypeScript configuration (target: ES2023, module: ESNext)
+- `turbo.json` - Turborepo pipeline configuration
+- `prisma.config.ts` - Prisma v7 configuration (new in 2026)
+- `next.config.js` - Next.js configuration
+- `.env` - Environment variables (DATABASE_URL, JWT_SECRET, etc.)
+- `docker-compose.yml` - PostgreSQL + Redis (optional) setup
+
+---
+
+### Best Practices
+
+#### **1. Authentication & Authorization**
+- Store refresh tokens in HttpOnly Secure cookies (not localStorage)
+- Use short-lived access tokens (15 minutes) and longer refresh tokens (7 days)
+- Implement Bearer token validation middleware: `Authorization: Bearer swarm_sk_live_xxx`
+- Never include sensitive data in JWT payloads (they're readable)
+- Use helmet middleware for secure HTTP headers
+
+#### **2. API Design**
+- Follow RESTful conventions with consistent HTTP status codes
+- Use OpenAPI/Swagger for API documentation (auto-generated from code)
+- Validate all inputs using express-validator or zod schemas
+- Implement rate limiting for public endpoints
+- Version API endpoints (`/api/v1/...`)
+
+#### **3. Database**
+- Use Prisma migrations for schema changes
+- Implement transactional operations for concurrent task claims
+- Create indexes on frequently queried fields (agent capabilities, team membership)
+- Use soft deletes for audit trail preservation
+
+#### **4. Real-Time Updates**
+- Authenticate Socket.IO connections using JWT
+- Organize connections with namespaces and rooms by team
+- Implement optimistic UI updates on the frontend
+- Handle reconnection gracefully with state reconciliation
+
+#### **5. Code Organization**
+- **Monorepo structure** with Turborepo for caching and parallel builds
+- **Separation of concerns:** Routes → Controllers → Services → Models
+- **Shared types package** for API contracts between frontend and backend
+- **Component-based organization** for logically independent features
+
+#### **6. TypeScript**
+- Enable strict mode for maximum type safety
+- Use interface over type for object shapes (better error messages)
+- Leverage Prisma-generated types for database entities
+- Create dedicated types package for shared contracts
+
+#### **7. Testing**
+- Unit tests for services with Jest
+- Integration tests for API endpoints
+- E2E tests for critical user flows (agent registration, task claiming)
+
+#### **8. Security**
+- Validate and sanitize all user inputs
+- Use prepared statements (Prisma handles this)
+- Implement CORS with whitelist of allowed origins
+- Log all authentication events for audit trail
+- Use environment variables for secrets (never hardcode)
+
+#### **9. Kanban Board (Frontend)**
+- Use Shadcn UI components with dnd-kit for drag-and-drop
+- Implement optimistic updates for instant UI feedback
+- Sync state with backend via Socket.IO for real-time collaboration
+- Handle collision detection and auto-scrolling
+- Recent tutorial (Jan 15, 2026): [Build a Kanban Board With Drag-and-Drop](https://marmelab.com/blog/2026/01/15/building-a-kanban-board-with-shadcn.html)
+
+#### **10. Scaling Considerations**
+- WebSocket connections are resource-intensive; plan for horizontal scaling with Redis adapter
+- Use connection pooling for PostgreSQL
+- Implement caching layer (Redis) for frequently accessed data
+- Consider message queue (Bull/BullMQ) for async operations (webhooks, notifications)
+
+---
+
+### Key Context URLs for Architecture.json
+
+These URLs will be added as `context_urls` in the architecture.json for relevant modules:
+
+**Backend Services:**
+- Express + TypeScript REST API: https://www.toptal.com/express-js/nodejs-typescript-rest-api-pt-1
+- JWT Authentication: https://medium.com/@gigi.shalamberidze2022/implementing-secure-authentication-authorization-in-express-js-with-jwt-typescript-and-prisma-087c90596889
+- Prisma PostgreSQL Setup: https://www.prisma.io/docs/getting-started/setup-prisma/start-from-scratch/relational-databases-typescript-postgresql
+- Socket.IO Documentation: https://socket.io/docs/v4/
+- OpenAPI + Swagger: https://rsbh.dev/blogs/rest-api-with-express-typescript
+
+**Frontend Components:**
+- Next.js App Router: https://nextjs.org/docs/app
+- Next.js Project Structure: https://nextjs.org/docs/app/getting-started/project-structure
+- Kanban Drag-and-Drop: https://marmelab.com/blog/2026/01/15/building-a-kanban-board-with-shadcn.html
+- Shadcn Kanban Component: https://www.shadcn.io/components/data/kanban
+
+**Architecture:**
+- Node.js Best Practices: https://github.com/goldbergyoni/nodebestpractices
+- Turborepo Guide: https://dev.to/araldhafeeri/complete-guide-to-turborepo-from-zero-to-production-3ehb
+- TypeScript Monorepo: https://medium.com/@hadiyolworld007/typescript-project-references-turborepo-monorepos-without-the-drag-05ae09d3683a
+
+---
+
+**Next Step:** Proceeding to Step 4: Design
+
+The research phase is complete. All documentation references, project structure conventions, and best practices have been compiled. The next step will use this research to design the detailed architecture and module specifications.
+
+---
+
+### Sources
+
+- [Next.js Official Documentation](https://nextjs.org/docs)
+- [Next.js App Router Project Structure](https://nextjs.org/docs/app/getting-started/project-structure)
+- [Node.js REST API Tutorial with TypeScript](https://www.toptal.com/express-js/nodejs-typescript-rest-api-pt-1)
+- [Node.js Best Practices](https://github.com/goldbergyoni/nodebestpractices)
+- [Bulletproof Node.js Architecture](https://softwareontheroad.com/ideal-nodejs-project-structure)
+- [Prisma PostgreSQL Quickstart](https://www.prisma.io/docs/getting-started/prisma-orm/quickstart/postgresql)
+- [Prisma TypeScript Setup Guide](https://www.prisma.io/docs/getting-started/setup-prisma/start-from-scratch/relational-databases-typescript-postgresql)
+- [Socket.IO Documentation](https://socket.io/docs/v4/)
+- [Node.js WebSocket Guide](https://nodejs.org/en/learn/getting-started/websocket)
+- [WebSockets Server with Socket.io TypeScript Tutorial](https://medium.com/@Mobisoft.Infotech/websockets-server-in-node-js-with-socket-io-a-complete-tutorial-using-typescript-f8140fb4ec75)
+- [Turborepo Complete Guide](https://dev.to/araldhafeeri/complete-guide-to-turborepo-from-zero-to-production-3ehb)
+- [TypeScript Monorepo with Turborepo](https://medium.com/@hadiyolworld007/typescript-project-references-turborepo-monorepos-without-the-drag-05ae09d3683a)
+- [JWT Authentication in Express.js](https://www.digitalocean.com/community/tutorials/nodejs-jwt-expressjs)
+- [Secure JWT Authentication with Prisma](https://medium.com/@gigi.shalamberidze2022/implementing-secure-authentication-authorization-in-express-js-with-jwt-typescript-and-prisma-087c90596889)
+- [Bearer Token Authentication in Node.js](https://apidog.com/blog/bearer-token-nodejs-express/)
+- [RESTful API with Express TypeScript Swagger](https://rsbh.dev/blogs/rest-api-with-express-typescript)
+- [OpenAPI and Swagger Documentation](https://medium.com/swlh/restful-api-documentation-made-easy-with-swagger-and-openapi-6df7f26dcad)
+- [Build a Kanban Board with Shadcn (Jan 2026)](https://marmelab.com/blog/2026/01/15/building-a-kanban-board-with-shadcn.html)
+- [Shadcn Kanban Component](https://www.shadcn.io/components/data/kanban)
+- [Top 5 Drag-and-Drop Libraries for React 2026](https://puckeditor.com/blog/top-5-drag-and-drop-libraries-for-react)
+
+User: prompt-driven-github[bot]
+## Step 4: Module Design
+
+**Status:** Design Complete
+
+Based on the PRD analysis, deep analysis, and tech stack research, I've designed a comprehensive module breakdown following PDD principles (one prompt = one module = one file).
+
+### Architecture Overview
+
+**Approach:** Turborepo monorepo with:
+- **Backend:** Express.js + TypeScript + Prisma + PostgreSQL
+- **Frontend:** Next.js 15 (App Router) + Shadcn UI + dnd-kit
+- **Real-time:** Socket.IO for live updates
+- **Shared:** TypeScript types and utilities
+
+### Module List
+
+| Priority | Module (filename) | Filepath | Dependencies | Interface Type |
+|----------|-------------------|----------|--------------|----------------|
+| 1 | turborepo_config_TypeScript.prompt | turbo.json | [] | config |
+| 1 | package_root_TypeScript.prompt | package.json | [] | config |
+| 1 | tsconfig_base_TypeScript.prompt | packages/tsconfig/base.json | [] | config |
+| 2 | shared_types_TypeScript.prompt | packages/types/src/index.ts | [tsconfig_base] | module |
+| 2 | prisma_schema_Prisma.prompt | packages/database/prisma/schema.prisma | [] | schema |
+| 3 | prisma_config_TypeScript.prompt | packages/database/prisma.config.ts | [prisma_schema] | config |
+| 3 | env_config_TypeScript.prompt | packages/config/src/env.ts | [shared_types] | module |
+| 4 | auth_middleware_Express.prompt | apps/api/src/middleware/auth.ts | [shared_types, env_config] | middleware |
+| 4 | error_handler_Express.prompt | apps/api/src/middleware/error.ts | [shared_types] | middleware |
+| 4 | validation_middleware_Express.prompt | apps/api/src/middleware/validation.ts | [shared_types] | middleware |
+| 5 | database_client_Prisma.prompt | apps/api/src/lib/db.ts | [prisma_config, env_config] | module |
+| 5 | token_service_TypeScript.prompt | apps/api/src/services/token.service.ts | [shared_types, env_config] | service |
+| 6 | agent_service_TypeScript.prompt | apps/api/src/services/agent.service.ts | [shared_types, database_client, token_service] | service |
+| 6 | team_service_TypeScript.prompt | apps/api/src/services/team.service.ts | [shared_types, database_client] | service |
+| 6 | task_service_TypeScript.prompt | apps/api/src/services/task.service.ts | [shared_types, database_client] | service |
+| 7 | matching_service_TypeScript.prompt | apps/api/src/services/matching.service.ts | [shared_types, agent_service, task_service] | service |
+| 7 | collaboration_service_TypeScript.prompt | apps/api/src/services/collaboration.service.ts | [shared_types, database_client, agent_service, task_service] | service |
+| 7 | webhook_service_TypeScript.prompt | apps/api/src/services/webhook.service.ts | [shared_types, database_client] | service |
+| 8 | agent_controller_Express.prompt | apps/api/src/controllers/agent.controller.ts | [agent_service, validation_middleware] | controller |
+| 8 | team_controller_Express.prompt | apps/api/src/controllers/team.controller.ts | [team_service, validation_middleware] | controller |
+| 8 | task_controller_Express.prompt | apps/api/src/controllers/task.controller.ts | [task_service, collaboration_service, validation_middleware] | controller |
+| 9 | agent_routes_Express.prompt | apps/api/src/routes/agent.routes.ts | [agent_controller, auth_middleware] | routes |
+| 9 | team_routes_Express.prompt | apps/api/src/routes/team.routes.ts | [team_controller, auth_middleware] | routes |
+| 9 | task_routes_Express.prompt | apps/api/src/routes/task.routes.ts | [task_controller, auth_middleware] | routes |
+| 10 | socketio_server_SocketIO.prompt | apps/api/src/lib/socket.ts | [auth_middleware, shared_types] | module |
+| 10 | api_server_Express.prompt | apps/api/src/index.ts | [agent_routes, team_routes, task_routes, error_handler, socketio_server] | app |
+| 11 | api_package_TypeScript.prompt | apps/api/package.json | [] | config |
+| 11 | web_package_TypeScript.prompt | apps/web/package.json | [] | config |
+| 12 | api_client_TypeScript.prompt | apps/web/lib/api-client.ts | [shared_types] | module |
+| 12 | socket_client_SocketIO.prompt | apps/web/lib/socket-client.ts | [shared_types] | module |
+| 13 | kanban_board_component_React.prompt | apps/web/components/kanban-board.tsx | [api_client, socket_client, shared_types] | component |
+| 13 | agent_card_component_React.prompt | apps/web/components/agent-card.tsx | [shared_types] | component |
+| 13 | task_card_component_React.prompt | apps/web/components/task-card.tsx | [shared_types] | component |
+| 14 | team_dashboard_page_NextJS.prompt | apps/web/app/teams/[teamId]/page.tsx | [kanban_board_component, api_client] | page |
+| 14 | agent_dashboard_page_NextJS.prompt | apps/web/app/agents/[agentId]/page.tsx | [agent_card_component, api_client] | page |
+| 15 | home_page_NextJS.prompt | apps/web/app/page.tsx | [api_client] | page |
+| 15 | layout_root_NextJS.prompt | apps/web/app/layout.tsx | [] | layout |
+
+### Dependency Graph
+
+```
+Layer 1 (Config Foundation):
+  turborepo_config ─┐
+  package_root ─────┤
+  tsconfig_base ────┴─> [Foundation]
+
+Layer 2 (Shared & Schema):
+  shared_types ──────┐
+  prisma_schema ─────┴─> [Types & Data Model]
+
+Layer 3 (Infrastructure):
+  prisma_config ─────┐
+  env_config ────────┴─> [Configuration]
+
+Layer 4 (Middleware):
+  auth_middleware ───┐
+  error_handler ─────┤
+  validation ────────┴─> [Request Processing]
+
+Layer 5 (Core Services):
+  database_client ───┐
+  token_service ─────┴─> [Foundation Services]
+
+Layer 6 (Business Services):
+  agent_service ─────┐
+  team_service ──────┤
+  task_service ──────┴─> [Core Business Logic]
+
+Layer 7 (Advanced Services):
+  matching_service ──┐
+  collaboration ─────┤
+  webhook_service ───┴─> [Complex Business Logic]
+
+Layer 8 (Controllers):
+  agent_controller ──┐
+  team_controller ───┤
+  task_controller ───┴─> [HTTP Handlers]
+
+Layer 9 (Routes):
+  agent_routes ──────┐
+  team_routes ───────┤
+  task_routes ───────┴─> [API Endpoints]
+
+Layer 10 (Server):
+  socketio_server ───┐
+  api_server ────────┴─> [Application Entry]
+
+Layer 11 (Package Config):
+  api_package ───────┐
+  web_package ───────┴─> [App Dependencies]
+
+Layer 12 (Frontend Core):
+  api_client ────────┐
+  socket_client ─────┴─> [Frontend Communication]
+
+Layer 13 (UI Components):
+  kanban_board ──────┐
+  agent_card ────────┤
+  task_card ─────────┴─> [Reusable UI]
+
+Layer 14 (Pages):
+  team_dashboard ────┐
+  agent_dashboard ───┴─> [Main Views]
+
+Layer 15 (App Shell):
+  home_page ─────────┐
+  layout_root ───────┴─> [App Entry]
+```
+
+### Interface Sketches
+
+#### Layer 1-3: Configuration & Foundation
+
+**turborepo_config** (turbo.json)
+- Type: config
+- Defines: Pipeline tasks (build, dev, lint, test), caching strategy
+
+**shared_types** (packages/types/src/index.ts)
+- Type: module
+- Exports: 
+  - `Agent`, `AgentRegistration`, `AgentCapability`
+  - `Team`, `TeamMember`, `TeamInvitation`
+  - `Task`, `TaskStatus`, `TaskCollaboration`
+  - `APIResponse<T>`, `PaginatedResponse<T>`
+  - Socket event types
+
+**prisma_schema** (schema.prisma)
+- Type: schema
+- Models: Agent, Team, TeamMember, Task, TaskAssignment, Collaboration, Webhook, AuditLog
+- Relations: Agent ↔ Team (many-to-many), Task ↔ Agent (many-to-many), Task → Team
+
+#### Layer 4-5: Middleware & Core Services
+
+**auth_middleware** (middleware/auth.ts)
+- Type: middleware
+- Functions: `authenticateToken()`, `requireAgent()`, `requireTeamMember()`
+- Validates: Bearer token format `swarm_sk_live_xxx`, extracts agent_id
+
+**database_client** (lib/db.ts)
+- Type: module
+- Exports: `prisma` singleton, `connectDB()`, `disconnectDB()`
+
+**token_service** (services/token.service.ts)
+- Type: service
+- Functions: 
+  - `generateAgentToken(agentId: string): string`
+  - `verifyToken(token: string): { agentId: string } | null`
+  - `hashToken(token: string): string`
+
+#### Layer 6-7: Business Services
+
+**agent_service** (services/agent.service.ts)
+- Type: service
+- Functions:
+  - `registerAgent(data: AgentRegistration): Promise<Agent>`
+  - `getAgentById(id: string): Promise<Agent | null>`
+  - `updateAgent(id: string, data: Partial<Agent>): Promise<Agent>`
+  - `findByCapabilities(capabilities: string[]): Promise<Agent[]>`
+
+**task_service** (services/task.service.ts)
+- Type: service
+- Functions:
+  - `createTask(teamId: string, data: TaskCreate): Promise<Task>`
+  - `claimTask(taskId: string, agentId: string): Promise<Task>`
+  - `updateTaskStatus(taskId: string, status: TaskStatus): Promise<Task>`
+  - `getTasksByTeam(teamId: string): Promise<Task[]>`
+
+**matching_service** (services/matching.service.ts)
+- Type: service
+- Functions:
+  - `findMatchingAgents(task: Task): Promise<Agent[]>`
+  - `scoreAgentForTask(agent: Agent, task: Task): number`
+  - `recommendTasks(agentId: string): Promise<Task[]>`
+
+**collaboration_service** (services/collaboration.service.ts)
+- Type: service
+- Functions:
+  - `requestCollaboration(taskId: string, request: CollabRequest): Promise<Collaboration>`
+  - `inviteAgentToTask(taskId: string, agentId: string): Promise<void>`
+  - `getTaskCollaborators(taskId: string): Promise<Agent[]>`
+
+**webhook_service** (services/webhook.service.ts)
+- Type: service
+- Functions:
+  - `sendWebhook(agentId: string, event: string, payload: any): Promise<void>`
+  - `retryFailedWebhooks(): Promise<void>`
+  - `registerWebhookURL(agentId: string, url: string): Promise<void>`
+
+#### Layer 8-9: Controllers & Routes
+
+**agent_controller** (controllers/agent.controller.ts)
+- Type: controller
+- Endpoints (via routes):
+  - `POST /api/agents/register` → `register()`
+  - `GET /api/agents/:id` → `getAgent()`
+  - `PATCH /api/agents/:id` → `updateAgent()`
+
+**task_controller** (controllers/task.controller.ts)
+- Type: controller
+- Endpoints (via routes):
+  - `POST /api/teams/:teamId/tasks` → `createTask()`
+  - `POST /api/tasks/:id/claim` → `claimTask()`
+  - `POST /api/tasks/:id/update` → `updateTask()`
+  - `POST /api/tasks/:id/collaborate` → `requestCollaboration()`
+
+**agent_routes** (routes/agent.routes.ts)
+- Type: routes
+- Configures: Express router with validation, auth middleware, controller bindings
+
+#### Layer 10: Server
+
+**socketio_server** (lib/socket.ts)
+- Type: module
+- Exports: `initializeSocket(server)`, event handlers
+- Namespaces: `/teams/:teamId` for team-scoped events
+- Events: `task:created`, `task:claimed`, `task:updated`, `agent:joined`, `collaboration:requested`
+
+**api_server** (index.ts)
+- Type: app
+- Sets up: Express app, middleware stack, routes, Socket.IO, error handling
+- Starts: HTTP server on port 3001
+
+#### Layer 12-15: Frontend
+
+**api_client** (web/lib/api-client.ts)
+- Type: module
+- Functions: Typed fetch wrappers for all API endpoints
+- Exports: `agentAPI`, `teamAPI`, `taskAPI`
+
+**socket_client** (web/lib/socket-client.ts)
+- Type: module
+- Exports: `useSocket()` hook, typed event emitters/listeners
+
+**kanban_board_component** (components/kanban-board.tsx)
+- Type: component
+- Props: `teamId: string`
+- Features: Drag-and-drop with dnd-kit, real-time updates via Socket.IO
+- Columns: Backlog, In Progress, Review, Done
+
+**team_dashboard_page** (app/teams/[teamId]/page.tsx)
+- Type: page
+- Route: `/teams/:teamId`
+- Renders: KanbanBoard, team info, agent list
+- Data: Server-side fetch team data, client-side real-time updates
+
+### Module Count Summary
+- **Total Modules:** 37
+- **Backend:** 24 (config: 5, middleware: 3, services: 7, controllers: 3, routes: 3, server: 2, db: 1)
+- **Frontend:** 9 (components: 3, pages: 3, lib: 2, config: 1)
+- **Shared:** 4 (types, tsconfig, root config, database schema)
+
+### Design Principles Applied
+1. **One module = one file** - Each prompt generates exactly one code file
+2. **Clear dependencies** - No circular dependencies, strict topological ordering
+3. **Layer separation** - Config → Types → Middleware → Services → Controllers → Routes → Server → Frontend
+4. **Single responsibility** - Each module has one clear purpose
+5. **Framework conventions** - Follows Next.js 15 App Router and Express best practices
+
+---
+*Proceeding to Step 5: Research Dependencies*
+
+User: prompt-driven-github[bot]
+## Step 5: Dependency Research
+
+**Status:** Research Complete
+
+I've researched relevant API documentation and code examples for each module identified in Step 4. Below are the context URLs organized by module.
+
+### Module Context URLs
+
+#### **turborepo_config_TypeScript** (turbo.json)
+| URL | Purpose |
+|-----|---------|
+| https://turborepo.dev/docs/reference/configuration | turbo-json-reference |
+| https://dev.to/araldhafeeri/complete-guide-to-turborepo-from-zero-to-production-3ehb | turborepo-tutorial |
+
+#### **tsconfig_base_TypeScript** (packages/tsconfig/base.json)
+| URL | Purpose |
+|-----|---------|
+| https://turborepo.dev/docs/guides/tools/typescript | typescript-monorepo-guide |
+| https://cryogenicplanet.tech/posts/typescript-monorepo | typescript-monorepo-complete-guide |
+
+#### **shared_types_TypeScript** (packages/types/src/index.ts)
+| URL | Purpose |
+|-----|---------|
+| https://turborepo.dev/docs/guides/tools/typescript | typescript-shared-packages |
+
+#### **prisma_schema_Prisma** (packages/database/prisma/schema.prisma)
+| URL | Purpose |
+|-----|---------|
+| https://www.prisma.io/docs/orm/prisma-schema/overview | prisma-schema-overview |
+| https://www.prisma.io/docs/orm/overview/databases/postgresql | postgresql-connector |
+| https://www.prisma.io/docs/orm/reference/prisma-schema-reference | prisma-schema-api |
+
+#### **prisma_config_TypeScript** (packages/database/prisma.config.ts)
+| URL | Purpose |
+|-----|---------|
+| https://www.prisma.io/docs/orm/reference/prisma-config-reference | prisma-config-reference |
+| https://www.prisma.io/docs/orm/more/upgrade-guides/upgrading-versions/upgrading-to-prisma-7 | prisma-7-upgrade-guide |
+| https://medium.com/@gargdev010300/how-i-configured-prisma-7-new-changes-issues-and-how-i-solved-them-d5ca728c5b9f | prisma-7-config-example |
+
+#### **auth_middleware_Express** (apps/api/src/middleware/auth.ts)
+| URL | Purpose |
+|-----|---------|
+| https://medium.com/@gigi.shalamberidze2022/implementing-secure-authentication-authorization-in-express-js-with-jwt-typescript-and-prisma-087c90596889 | jwt-auth-tutorial |
+| https://auth0.com/blog/node-js-and-typescript-tutorial-secure-an-express-api/ | secure-express-api |
+| https://virangaj.medium.com/comprehensive-guide-production-ready-middleware-in-node-js-typescript-2026-edition-f1c29184aacd | production-middleware-2026 |
+
+#### **error_handler_Express** (apps/api/src/middleware/error.ts)
+| URL | Purpose |
+|-----|---------|
+| https://expressjs.com/en/guide/error-handling.html | express-error-handling-official |
+| https://medium.com/@xiaominghu19922/proper-error-handling-in-express-server-with-typescript-8cd4ffb67188 | typescript-error-handling |
+| https://betterstack.com/community/guides/scaling-nodejs/error-handling-express/ | error-handling-patterns |
+
+#### **validation_middleware_Express** (apps/api/src/middleware/validation.ts)
+| URL | Purpose |
+|-----|---------|
+| https://dev.to/osalumense/validating-request-data-in-expressjs-using-zod-a-comprehensive-guide-3a0j | zod-validation-guide |
+| https://zod.dev/ | zod-documentation |
+| https://github.com/AngaBlue/express-zod-safe | express-zod-safe |
+
+#### **token_service_TypeScript** (apps/api/src/services/token.service.ts)
+| URL | Purpose |
+|-----|---------|
+| https://github.com/auth0/node-jsonwebtoken | jsonwebtoken-github |
+| https://www.npmjs.com/package/jsonwebtoken | jsonwebtoken-npm |
+| https://nozzlegear.com/blog/implementing-a-jwt-auth-system-with-typescript-and-node | jwt-implementation-guide |
+
+#### **agent_service_TypeScript** (apps/api/src/services/agent.service.ts)
+| URL | Purpose |
+|-----|---------|
+| https://www.toptal.com/express-js/nodejs-typescript-rest-api-pt-2 | service-layer-architecture |
+| https://medium.com/@kishore-17/building-a-rest-api-with-typescript-express-js-and-with-dependency-injection-pattern-2e5994998493 | service-pattern-typescript |
+
+#### **team_service_TypeScript** (apps/api/src/services/team.service.ts)
+| URL | Purpose |
+|-----|---------|
+| https://www.toptal.com/express-js/nodejs-typescript-rest-api-pt-2 | service-layer-architecture |
+
+#### **task_service_TypeScript** (apps/api/src/services/task.service.ts)
+| URL | Purpose |
+|-----|---------|
+| https://www.toptal.com/express-js/nodejs-typescript-rest-api-pt-2 | service-layer-architecture |
+
+#### **matching_service_TypeScript** (apps/api/src/services/matching.service.ts)
+| URL | Purpose |
+|-----|---------|
+| https://www.toptal.com/express-js/nodejs-typescript-rest-api-pt-2 | service-layer-architecture |
+
+#### **collaboration_service_TypeScript** (apps/api/src/services/collaboration.service.ts)
+| URL | Purpose |
+|-----|---------|
+| https://www.toptal.com/express-js/nodejs-typescript-rest-api-pt-2 | service-layer-architecture |
+
+#### **webhook_service_TypeScript** (apps/api/src/services/webhook.service.ts)
+| URL | Purpose |
+|-----|---------|
+| https://www.toptal.com/express-js/nodejs-typescript-rest-api-pt-2 | service-layer-architecture |
+
+#### **agent_controller_Express** (apps/api/src/controllers/agent.controller.ts)
+| URL | Purpose |
+|-----|---------|
+| https://www.toptal.com/express-js/nodejs-typescript-rest-api-pt-1 | controller-pattern-tutorial |
+| https://auth0.com/blog/node-js-and-typescript-tutorial-build-a-crud-api/ | crud-controller-example |
+
+#### **team_controller_Express** (apps/api/src/controllers/team.controller.ts)
+| URL | Purpose |
+|-----|---------|
+| https://www.toptal.com/express-js/nodejs-typescript-rest-api-pt-1 | controller-pattern-tutorial |
+
+#### **task_controller_Express** (apps/api/src/controllers/task.controller.ts)
+| URL | Purpose |
+|-----|---------|
+| https://www.toptal.com/express-js/nodejs-typescript-rest-api-pt-1 | controller-pattern-tutorial |
+
+#### **agent_routes_Express** (apps/api/src/routes/agent.routes.ts)
+| URL | Purpose |
+|-----|---------|
+| https://expressjs.com/en/guide/routing.html | express-routing-official |
+| https://dev.to/sulistef/how-to-set-up-routing-in-an-expressjs-project-using-typescript-51ib | typescript-routing-guide |
+| https://dev.to/justwonder/mastering-routing-in-express-with-typescript-4el7 | routing-best-practices |
+
+#### **team_routes_Express** (apps/api/src/routes/team.routes.ts)
+| URL | Purpose |
+|-----|---------|
+| https://expressjs.com/en/guide/routing.html | express-routing-official |
+
+#### **task_routes_Express** (apps/api/src/routes/task.routes.ts)
+| URL | Purpose |
+|-----|---------|
+| https://expressjs.com/en/guide/routing.html | express-routing-official |
+
+#### **socketio_server_SocketIO** (apps/api/src/lib/socket.ts)
+| URL | Purpose |
+|-----|---------|
+| https://socket.io/docs/v4/typescript/ | socketio-typescript-official |
+| https://socket.io/docs/v4/server-initialization/ | socketio-server-init |
+| https://medium.com/@ahsan.aasim/building-a-secured-socket-server-with-express-and-socket-io-in-typescript-eaa8eac54889 | socketio-auth-tutorial |
+
+#### **api_server_Express** (apps/api/src/index.ts)
+| URL | Purpose |
+|-----|---------|
+| https://www.toptal.com/express-js/nodejs-typescript-rest-api-pt-1 | express-server-setup |
+| https://auth0.com/blog/node-js-and-typescript-tutorial-secure-an-express-api/ | express-typescript-tutorial |
+
+#### **api_client_TypeScript** (apps/web/lib/api-client.ts)
+| URL | Purpose |
+|-----|---------|
+| https://nextjs.org/docs/app/api-reference | nextjs-api-reference |
+| https://encore.dev/articles/build-rest-api-typescript-2026 | typescript-api-client-2026 |
+
+#### **socket_client_SocketIO** (apps/web/lib/socket-client.ts)
+| URL | Purpose |
+|-----|---------|
+| https://socket.io/how-to/use-with-nextjs | socketio-nextjs-official |
+| https://github.com/mahmodghnaj/wrapping-socket-with-nextJs | socketio-react-hook-example |
+
+#### **kanban_board_component_React** (apps/web/components/kanban-board.tsx)
+| URL | Purpose |
+|-----|---------|
+| https://marmelab.com/blog/2026/01/15/building-a-kanban-board-with-shadcn.html | kanban-shadcn-tutorial-2026 |
+| https://www.shadcn.io/components/data/kanban | shadcn-kanban-component |
+| https://github.com/Georgegriff/react-dnd-kit-tailwind-shadcn-ui/ | dnd-kit-kanban-example |
+| https://blog.logrocket.com/build-kanban-board-dnd-kit-react/ | dnd-kit-tutorial |
+
+#### **agent_card_component_React** (apps/web/components/agent-card.tsx)
+| URL | Purpose |
+|-----|---------|
+| https://www.shadcn.io/components/data/kanban | shadcn-components |
+
+#### **task_card_component_React** (apps/web/components/task-card.tsx)
+| URL | Purpose |
+|-----|---------|
+| https://www.shadcn.io/components/data/kanban | shadcn-components |
+
+#### **team_dashboard_page_NextJS** (apps/web/app/teams/[teamId]/page.tsx)
+| URL | Purpose |
+|-----|---------|
+| https://nextjs.org/docs/app/getting-started/layouts-and-pages | nextjs-pages-layouts-official |
+| https://medium.com/@livenapps/next-js-15-app-router-a-complete-senior-level-guide-0554a2b820f7 | nextjs-15-app-router-guide |
+
+#### **agent_dashboard_page_NextJS** (apps/web/app/agents/[agentId]/page.tsx)
+| URL | Purpose |
+|-----|---------|
+| https://nextjs.org/docs/app/getting-started/layouts-and-pages | nextjs-pages-layouts-official |
+
+#### **home_page_NextJS** (apps/web/app/page.tsx)
+| URL | Purpose |
+|-----|---------|
+| https://nextjs.org/docs/app/getting-started/layouts-and-pages | nextjs-pages-layouts-official |
+
+#### **layout_root_NextJS** (apps/web/app/layout.tsx)
+| URL | Purpose |
+|-----|---------|
+| https://nextjs.org/docs/app/getting-started/layouts-and-pages | nextjs-pages-layouts-official |
+| https://nextjs.org/docs/app/api-reference/config/typescript | nextjs-typescript-config |
+
+### Summary
+- **Total modules:** 37
+- **Total context URLs found:** 75
+- **Modules with no relevant docs:** None (all modules have applicable documentation)
+
+### Key Findings
+- **Prisma v7** (2026) uses `prisma.config.ts` instead of .env for configuration
+- **Next.js 15** changed default caching behavior for fetch requests
+- **Shadcn UI + dnd-kit** is the current best practice for Kanban boards (Jan 2026 tutorial)
+- **Zod** is preferred over express-validator for TypeScript validation
+- **Socket.IO v4** has first-class TypeScript support
+
+---
+*Proceeding to Step 6: Generate*
+
+User: prompt-driven-github[bot]
+## Step 6: Architecture & Scaffolding Generated
+
+**Status:** Generation Complete ✅
+
+### Architecture Summary
+- **Total modules:** 37
+- **Priority range:** 1-37
+- **Technologies:** Turborepo, Next.js 15, Express.js, Prisma, PostgreSQL, Socket.IO, TypeScript
+
+### Architecture Overview
+
+The architecture consists of 37 modules organized into a strict dependency hierarchy across 5 layers:
+
+**Layer 1: Configuration (Priority 1)**
+- Turborepo monorepo configuration
+
+**Layer 2-4: Foundation (Priorities 2-8)**
+- Shared TypeScript types
+- Prisma database schema and client
+- JWT utilities
+- Authentication, validation, and error handling middleware
+
+**Layer 5-7: Business Services (Priorities 9-14)**
+- Agent service (registration, capabilities)
+- Team service (creation, invitations, membership)
+- Task service (CRUD, claiming, collaboration)
+- Matching service (capability-based matching)
+- Webhook service (notifications with retry)
+- Socket.IO server (real-time updates)
+
+**Layer 8-10: API Layer (Priorities 15-23)**
+- Controllers for agents, teams, tasks, board
+- Express routes
+- Main API server
+
+**Layer 11-15: Frontend (Priorities 24-37)**
+- Next.js layouts and pages
+- React components (Kanban board, task cards, forms, dialogs)
+- Custom hooks (Socket.IO, API client)
+- Configuration files (Next.js, Tailwind)
+
+### Module Overview (First 10 of 37)
+
+| Priority | Filename | Filepath | Dependencies |
+|----------|----------|----------|--------------|
+| 1 | turbo_config_JSON.prompt | turbo.json | [] |
+| 2 | shared_types_TypeScript.prompt | packages/types/src/index.ts | [] |
+| 3 | prisma_schema_Prisma.prompt | apps/api/prisma/schema.prisma | [] |
+| 4 | prisma_client_TypeScript.prompt | apps/api/src/lib/prisma.ts | [prisma_schema_Prisma.prompt] |
+| 5 | jwt_utils_TypeScript.prompt | apps/api/src/lib/jwt.ts | [] |
+| 6 | auth_middleware_TypeScript.prompt | apps/api/src/middleware/auth.ts | [jwt_utils_TypeScript.prompt, shared_types_TypeScript.prompt] |
+| 7 | validation_middleware_TypeScript.prompt | apps/api/src/middleware/validation.ts | [shared_types_TypeScript.prompt] |
+| 8 | error_handler_TypeScript.prompt | apps/api/src/middleware/error-handler.ts | [] |
+| 9 | agent_service_TypeScript.prompt | apps/api/src/services/agent.service.ts | [prisma_client_TypeScript.prompt, shared_types_TypeScript.prompt, jwt_utils_TypeScript.prompt] |
+| 10 | team_service_TypeScript.prompt | apps/api/src/services/team.service.ts | [prisma_client_TypeScript.prompt, shared_types_TypeScript.prompt] |
+
+*See architecture.json for complete 37-module specification*
+
+### Scaffolding Files Created
+
+| File | Purpose |
+|------|---------|
+| **Root Configuration** | |
+| package.json | Root workspace configuration with Turborepo scripts |
+| turbo.json | (Generated via prompt) Turborepo pipeline configuration |
+| .gitignore | Node.js, Next.js, Prisma ignore patterns |
+| README.md | Project documentation with setup instructions |
+| .prettierrc | Code formatting configuration |
+| .eslintrc.json | Linting rules for TypeScript |
+| **Backend (apps/api)** | |
+| apps/api/package.json | Express.js API dependencies |
+| apps/api/tsconfig.json | TypeScript configuration for backend |
+| apps/api/.env.example | Environment variable template |
+| **Frontend (apps/web)** | |
+| apps/web/package.json | Next.js 15 dependencies |
+| apps/web/tsconfig.json | TypeScript configuration for frontend |
+| apps/web/.env.example | Frontend environment variables |
+| apps/web/postcss.config.js | PostCSS for Tailwind CSS |
+| **Shared Packages** | |
+| packages/types/package.json | Shared types package |
+| packages/types/tsconfig.json | TypeScript for shared types |
+| **Containerization** | |
+| Dockerfile | Multi-stage build for API and Web |
+| docker-compose.yml | PostgreSQL, API, and Web services |
+| **CI/CD** | |
+| .github/workflows/ci.yml | GitHub Actions workflow for lint, test, build |
+
+### Key Architecture Decisions
+
+1. **Monorepo Structure:** Turborepo with npm workspaces for optimal build caching
+2. **Zero Circular Dependencies:** Clean layered architecture with topological ordering
+3. **Framework Compliance:** Next.js 15 App Router with strict file naming (route.ts, page.tsx, layout.tsx)
+4. **Language Suffixes:** Using correct PascalCase suffixes (TypeScript, TypeScriptReact, Prisma, JSON)
+5. **Flat Prompt Structure:** All prompts will be in prompts/ directory with descriptive filenames
+
+### Context URLs
+
+All 37 modules include relevant context URLs from Step 5 research:
+- Official documentation (Next.js, Prisma, Socket.IO, dnd-kit)
+- Best practice guides (JWT, Express middleware, React hooks)
+- Current tutorials (Kanban with dnd-kit from Jan 2026)
+
+### Next Steps
+
+The project is now ready for:
+1. **Step 7: Validate** - Verify architecture.json schema compliance
+2. **Step 8: Generate Prompts** - Create 37 .prompt files from architecture.json
+3. **Step 9: Generate Code** - Execute prompts to generate all source files
+4. **Step 10: Test & Iterate** - Run tests and refine implementation
+
+### Quick Start
+
+Once code generation is complete:
+
+```bash
+# Install dependencies
+npm install
+
+# Set up database
+cp apps/api/.env.example apps/api/.env
+# Edit apps/api/.env with your DATABASE_URL
+npm run db:push
+
+# Start development servers
+npm run dev
+```
+
+Frontend: http://localhost:3000  
+Backend API: http://localhost:3001
+
+---
+*Proceeding to Step 7: Validate*
+
+User: prompt-driven-github[bot]
+## Step 7: .pddrc Configuration Generated ✅
+
+The `.pddrc` configuration file has been successfully generated based on the architecture.json from Step 6.
+
+### Summary
+
+- **File Created**: `.pddrc` (7.8KB)
+- **Total Contexts**: 37 module-specific contexts + 1 default context
+- **YAML Validation**: ✅ Passed
+
+### Configuration Structure
+
+The `.pddrc` file maps each prompt file to its exact output path:
+
+#### Monorepo Configuration
+- `turbo_config` → `turbo.json`
+
+#### Shared Packages
+- `shared_types` → `packages/types/src/index.ts`
+
+#### Backend API (apps/api)
+- **Database**: Prisma schema and client
+- **Auth & Security**: JWT utils, auth middleware
+- **Middleware**: Validation, error handling
+- **Services**: Agent, Team, Task, Matching, Webhook
+- **Real-time**: Socket.IO server
+- **Controllers**: Agent, Team, Task, Board
+- **Routes**: Agent, Team, Task, Board routes
+- **Server**: Main Express server entry point
+
+#### Frontend Web (apps/web)
+- **Layouts & Pages**: Root layout, home, teams, team board, task detail
+- **Components**: Kanban board, task card, task form, create team dialog, agent presence
+- **Hooks**: useSocket, useApi
+- **Configuration**: Next.js config, Tailwind config
+
+### Key Features
+
+1. **One context per module** - Each module has its own dedicated context
+2. **Exact filepath mapping** - Each context maps to the exact filepath from architecture.json
+3. **Pattern matching** - Uses `["*{basename}*"]` pattern for reliable matching
+4. **Single prompts_dir** - Configured only in the default context (no duplication)
+
+### Next Steps
+
+With the `.pddrc` configuration in place, the PDD system can now:
+
+1. **Generate prompts** from the architecture
+2. **Sync code** to the correct file paths
+3. **Maintain consistency** between prompts and implementation
+
+### Verification
+
+To verify individual module mappings:
+
+```bash
+pdd sync turbo_config --dry-run
+pdd sync shared_types --dry-run
+pdd sync web_home_page --dry-run
+```
+
+---
+
+**Status**: `PDDRC_STATUS: COMPLETE`  
+**Files Created**: `.pddrc`
+
+
+User: prompt-driven-github[bot]
+# Prompt Generation Complete ✅
+
+Successfully generated **37 prompt files** for the SWARM Board project based on `architecture.json`.
+
+## Summary
+
+- **Total Prompts Generated:** 37
+- **Location:** `prompts/` (flat directory structure)
+- **Verification:** All filenames match `architecture.json` exactly
+
+## Prompt Files by Category
+
+### Monorepo Configuration (1)
+1. `turbo_config_JSON.prompt` - Turborepo workspace configuration
+
+### Shared Types (1)
+2. `shared_types_TypeScript.prompt` - TypeScript type definitions for agents, teams, tasks
+
+### Database / Prisma (2)
+3. `prisma_schema_Prisma.prompt` - Database schema with Agent, Team, Task models
+4. `prisma_client_TypeScript.prompt` - Prisma client singleton
+
+### Auth & Security (1)
+5. `jwt_utils_TypeScript.prompt` - JWT token generation and verification
+
+### Middleware (3)
+6. `auth_middleware_TypeScript.prompt` - JWT authentication middleware
+7. `validation_middleware_TypeScript.prompt` - Zod validation middleware
+8. `error_handler_TypeScript.prompt` - Centralized error handling
+
+### Services (5)
+9. `agent_service_TypeScript.prompt` - Agent registration and capabilities
+10. `team_service_TypeScript.prompt` - Team management and invitations
+11. `task_service_TypeScript.prompt` - Task lifecycle and claiming
+12. `matching_service_TypeScript.prompt` - Agent-task capability matching
+13. `webhook_service_TypeScript.prompt` - Webhook delivery with retry logic
+
+### Real-time (1)
+14. `socketio_server_TypeScript.prompt` - Socket.IO server for real-time updates
+
+### Controllers (4)
+15. `agent_controller_TypeScript.prompt` - Agent HTTP endpoints
+16. `team_controller_TypeScript.prompt` - Team HTTP endpoints
+17. `task_controller_TypeScript.prompt` - Task CRUD endpoints
+18. `board_controller_TypeScript.prompt` - Kanban board data endpoint
+
+### Routes (4)
+19. `agent_routes_TypeScript.prompt` - Agent route registration
+20. `team_routes_TypeScript.prompt` - Team route registration
+21. `task_routes_TypeScript.prompt` - Task route registration
+22. `board_routes_TypeScript.prompt` - Board route registration
+
+### API Server (1)
+23. `api_server_TypeScript.prompt` - Express app entry point
+
+### Frontend - Layouts & Pages (5)
+24. `web_root_layout_TypeScriptReact.prompt` - Next.js root layout
+25. `web_home_page_TypeScriptReact.prompt` - Landing page
+26. `web_teams_page_TypeScriptReact.prompt` - Teams list page
+27. `web_team_board_page_TypeScriptReact.prompt` - Team Kanban board page
+28. `web_task_detail_page_TypeScriptReact.prompt` - Task detail page
+
+### Frontend - Components (5)
+29. `web_kanban_board_component_TypeScriptReact.prompt` - Drag-and-drop Kanban board
+30. `web_task_card_component_TypeScriptReact.prompt` - Task preview card
+31. `web_task_form_component_TypeScriptReact.prompt` - Task creation/editing form
+32. `web_create_team_dialog_TypeScriptReact.prompt` - Team creation modal
+33. `web_agent_presence_component_TypeScriptReact.prompt` - Real-time presence indicator
+
+### Frontend - Hooks (2)
+34. `web_use_socket_hook_TypeScript.prompt` - Socket.IO React hook
+35. `web_use_api_hook_TypeScript.prompt` - API client hook
+
+### Frontend - Configuration (2)
+36. `web_next_config_TypeScript.prompt` - Next.js configuration
+37. `web_tailwind_config_TypeScript.prompt` - Tailwind CSS configuration
+
+## Next Steps
+
+1. Run `pdd sync` to validate prompt-to-code path mappings
+2. Use `pdd generate <module_name>` to generate code from prompts
+3. Review generated code and iterate on prompts as needed
+
+## Files Created
+
+All prompt files are located in the `prompts/` directory with the exact filenames specified in `architecture.json`.
+
+User: prompt-driven-github[bot]
+## Step 9: Architecture Completeness Validation
+
+**Status:** ❌ INVALID
+
+### PRD Coverage
+- Requirements found: 10
+- Requirements covered: 10/10
+- Missing: None (all major features covered)
+
+### Layer Completeness
+- ✅ Entry points: Yes (apps/api/src/index.ts, apps/web/app/page.tsx)
+- ✅ Root layout: Yes (apps/web/app/layout.tsx)
+- ✅ API routes: Yes (all CRUD operations for agents, teams, tasks, board)
+- ✅ Type definitions: Yes (packages/types/src/index.ts, apps/api/prisma/schema.prisma)
+- ✅ State management: N/A (using React hooks and Socket.IO for real-time state)
+
+### Dependency Graph
+- ✅ Circular dependencies: None
+- ⚠️ Orphan modules: 7 valid orphans (hooks, services, components not yet integrated)
+- ✅ Missing references: None
+
+---
+
+### 🔴 Errors
+
+#### CRITICAL: Missing Essential Files
+
+1. **❌ GET /teams endpoint missing** 
+   - web_teams_page needs to fetch all public teams
+   - team_controller only has GET /teams/:id (single team)
+   - Need: GET /teams (list all public teams)
+
+2. **❌ Missing package.json files**
+   - Root package.json
+   - apps/api/package.json  
+   - apps/web/package.json
+   - packages/types/package.json
+
+3. **❌ Missing tsconfig.json files**
+   - Root tsconfig.json
+   - apps/api/tsconfig.json
+   - apps/web/tsconfig.json
+   - packages/types/tsconfig.json
+
+4. **❌ Missing .env.example**
+   - Need environment variable documentation
+   - DATABASE_URL, JWT_SECRET, CORS_ORIGIN, etc.
+
+5. **❌ Missing globals.css**
+   - apps/web/app/globals.css (referenced by layout)
+   - Required for Tailwind CSS to load
+
+#### MODERATE: Incomplete CRUD Operations
+
+6. **⚠️ Team operations incomplete**
+   - Missing: GET /teams (list all teams)
+   - Missing: POST /invitations/:id/reject
+   - Missing: DELETE /teams/:id/members/:agentId
+   - Missing: PATCH /teams/:id/settings
+
+7. **⚠️ Task operations incomplete**
+   - Missing: DELETE /tasks/:id
+   - Missing: POST /tasks/:id/assign (manual assignment)
+   - Missing: POST /tasks/:id/unclaim
+
+8. **⚠️ Agent operations incomplete**
+   - Missing: PATCH /agents/:id/capabilities
+   - Missing: PATCH /agents/:id/webhook
+
+#### MINOR: Orphan Modules
+
+9. **ℹ️ Unused services/components**
+   - matching_service_TypeScript.prompt (capability matching)
+   - webhook_service_TypeScript.prompt (webhook delivery)
+   - web_use_api_hook_TypeScript.prompt
+   - web_use_socket_hook_TypeScript.prompt
+   - web_task_form_component_TypeScriptReact.prompt
+   - web_create_team_dialog_TypeScriptReact.prompt
+   - web_agent_presence_component_TypeScriptReact.prompt
+   
+   *These may be intentionally unused or need integration into existing pages*
+
+---
+
+### 📊 Summary
+
+The architecture **covers all 10 PRD requirements** with comprehensive implementations:
+- ✅ Agent Registration
+- ✅ Team Management  
+- ✅ Task Management
+- ✅ Collaboration Features
+- ✅ Webhook System
+- ✅ Real-time Updates
+- ✅ Kanban Board UI
+- ✅ Authentication
+- ✅ Database Persistence
+- ✅ Capability Matching
+
+**However**, it is **INVALID** as a complete, compilable, runnable project due to missing configuration files and incomplete API endpoints.
+
+### What's Working ✅
+- Complete database schema with all entities and relationships
+- Full backend API with authentication, validation, error handling
+- Complete frontend UI with pages, components, and hooks  
+- Real-time features via Socket.IO
+- Capability-based matching system
+- Webhook notification system
+
+### What's Blocking Compilation/Execution ❌
+1. No package.json → Cannot install dependencies or run build
+2. No tsconfig.json → TypeScript won't compile
+3. No .env.example → Developers don't know required environment variables
+4. Missing GET /teams → Teams page will fail at runtime
+5. No globals.css → Tailwind CSS won't load
+
+---
+
+### 🔄 Next Steps
+
+**Returning to Step 8** to add missing files:
+1. Add package.json files (root + 3 workspaces)
+2. Add tsconfig.json files (root + 3 workspaces)  
+3. Add .env.example with all required variables
+4. Add apps/web/app/globals.css with Tailwind directives
+5. Update team_controller to include GET /teams endpoint
+6. Consider adding missing CRUD operations for completeness
+
+Once these files are added, the architecture will be **VALID** and ready for Step 10 (prompt generation).
+
+User: prompt-driven-github[bot]
+### PDD Execution Successful
+
+**Command:** `generate`
+**Duration:** 48.4 min
+**Cost:** $6.2705 (infra: $0.4843 + LLM: $5.7862)
+**Pull Request:** https://github.com/johnolven/swarm/pull/2
+
+</issue_content>
+
+% Previous Step Outputs
+<step1_output>
+Perfect! I've successfully analyzed the PRD from GitHub issue #1 and posted my findings as a comment. 
+
+## Summary
+
+**Status:** Analysis Complete ✅
+
+The PRD analysis has been posted to https://github.com/johnolven/swarm/issues/1#issuecomment-3830066162
+
+### Key Findings:
+
+**Strengths:**
+- Comprehensive feature set with 10 major features identified
+- Clear API design with detailed endpoint specifications
+- Well-defined data entities and relationships
+- Strong non-functional requirements (security, scalability, reliability)
+
+**Identified Gaps:**
+- Tech stack specifics need clarification (though TypeScript/Node.js is strongly inferred)
+- Authentication details (token generation, expiration, refresh)
+- Agent integration protocol specifications (MCP, A2A)
+- Webhook system details (events, payloads, retry logic)
+- Real-time update mechanism (WebSockets vs SSE vs polling)
+- Task assignment collision handling
+- Human user management for team creation
+
+The PRD is **sufficiently detailed** to proceed to Step 2 (Deep Analysis), where these gaps can be addressed through architectural decisions and technology recommendations.
+</step1_output>
+
+<step2_output>
+Perfect! I've successfully posted the Step 2 Deep Analysis to GitHub issue #1. The analysis includes:
+
+## Summary of Posted Analysis
+
+**Status:** Analysis Complete ✅
+
+I've posted a comprehensive deep analysis that includes:
+
+### 1. **Feature Decomposition Table**
+Breaking down the 10 major features into discrete functional units and mapping them to 10 candidate modules:
+- agent-service
+- team-service  
+- task-service
+- board-service
+- matching-service
+- collaboration-service
+- webhook-service
+- auth-service
+- web-frontend
+- agent-connector
+
+### 2. **Shared Concerns Analysis**
+Detailed examination of cross-cutting concerns:
+- **Authentication**: Bearer token with JWT
+- **Error Handling**: RESTful responses with consistent structure
+- **Validation**: Schema validation using Zod/Joi
+- **Logging**: Structured logging and audit trails
+- **Configuration**: Environment-based configuration
+- **Data Consistency**: Transactional operations for critical flows
+
+### 3. **Tech Stack Recommendation**
+Recommended a modern TypeScript-based stack:
+- **Backend**: Node.js + TypeScript + Express.js + PostgreSQL + Socket.IO
+- **Frontend**: Next.js + React + Tailwind CSS + shadcn/ui
+- **Infrastructure**: Docker + Swagger + Jest
+
+With alternatives considered (NestJS, Supabase, Svelte)
+
+### 4. **Module Candidates**
+Identified 12 modules with clear dependencies:
+- Foundational: auth-service, database-schema, api-gateway
+- Business Logic: agent-service, team-service, task-service
+- Advanced Features: matching-service, collaboration-service, webhook-service, board-service
+- Integration: agent-connector
+- Frontend: web-frontend
+
+### 5. **Inter-Module Interfaces**
+Documented 14 key interfaces showing how modules communicate, ensuring no circular dependencies
+
+### 6. **Critical Design Decisions**
+Provided recommendations for 5 key architectural decisions:
+1. Modular monolith (vs microservices)
+2. WebSocket for real-time updates
+3. Start with webhook callbacks (defer MCP/A2A to Phase 2)
+4. PostgreSQL with JSONB for flexible fields
+5. JWT with refresh tokens stored in Redis
+
+The analysis is now posted at: https://github.com/johnolven/swarm/issues/1#issuecomment-3830068929
+
+This completes Step 2 of the PDD workflow and sets the foundation for Step 3 (Research) to proceed.
+</step2_output>
+
+% Your Task
+
+1. **Research each technology in the stack:**
+   - Search for official documentation URLs
+   - Find recommended project structure conventions (e.g., Next.js app router, FastAPI project layout)
+   - Look for best practices specific to the tech stack combination
+
+2. **Find relevant code patterns:**
+   - Search for common patterns in the framework (routing, middleware, data access)
+   - Identify framework-specific conventions (file naming, directory structure)
+   - Note any boilerplate or configuration requirements
+
+3. **Identify project structure:**
+   - Standard directory layout for the framework
+   - Configuration files needed (package.json, pyproject.toml, etc.)
+   - Entry points and main files
+
+4. **Collect documentation URLs:**
+   - Official docs for each framework/library
+   - Relevant tutorial pages
+   - API reference pages that would help during code generation
+
+% Output
+
+After completing your research, use `gh issue comment` to post your findings to issue #1:
+
+```
+gh issue comment 1 --repo johnolven/swarm --body "..."
+```
+
+Your comment should follow this format:
+
+```markdown
+## Step 3: Tech Stack Research
+
+**Status:** Research Complete
+
+### Documentation References
+| Technology | Official Docs | Key Pages |
+|-----------|---------------|-----------|
+| [tech] | [url] | [relevant pages] |
+
+### Project Structure Conventions
+```
+[recommended directory layout]
+```
+
+### Framework Patterns
+- **Routing:** [pattern]
+- **Data Access:** [pattern]
+- **Middleware:** [pattern]
+
+### Configuration Requirements
+- [config files needed]
+
+### Best Practices
+1. [practice relevant to this project]
+2. [practice relevant to this project]
+
+---
+*Proceeding to Step 4: Design*
+```
+
+% Important
+
+- Use web search to find current documentation
+- Focus on documentation relevant to the specific modules being built
+- Collect URLs that will be useful as context_urls in architecture.json
+- Always post your findings as a GitHub comment before completing
+
+
+Read the file .agentic_prompt_d1dc71b3.txt for instructions. You have full file access to explore and modify files as needed.

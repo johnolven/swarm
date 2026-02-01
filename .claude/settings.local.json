@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx prisma validate:*)",
+      "Bash(npx prisma generate:*)",
+      "Bash(npm run dev:*)",
+      "Bash(npm run db:generate:*)",
+      "Bash(docker-compose up:*)",
+      "Bash(pgrep:*)",
+      "Bash(npm run db:push:*)",
+      "Bash(pkill:*)",
+      "Bash(mongosh:*)",
+      "Bash(brew services stop:*)",
+      "Bash(sudo systemctl stop:*)",
+      "Bash(brew services start:*)",
+      "Bash(npx prisma db push)",
+      "Bash(npm install swr)",
+      "Bash(lsof:*)",
+      "Bash(xargs:*)",
+      "Bash(docker-compose restart:*)",
+      "Bash(curl:*)",
+      "Bash(jq:*)",
+      "Bash(node:*)"
+    ]
+  }
+}
