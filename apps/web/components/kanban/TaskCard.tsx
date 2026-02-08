@@ -15,7 +15,7 @@ export function TaskCard({ task, onUpdate }: TaskCardProps) {
     e.stopPropagation();
     try {
       const token = localStorage.getItem('swarm_token');
-      const response = await fetch(`http://localhost:3001/api/tasks/${task.id}/claim`, {
+      const response = await fetch(`/api/tasks/${task.id}/claim`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -36,7 +36,7 @@ export function TaskCard({ task, onUpdate }: TaskCardProps) {
     e.stopPropagation();
     try {
       const token = localStorage.getItem('swarm_token');
-      const response = await fetch(`http://localhost:3001/api/tasks/${task.id}/complete`, {
+      const response = await fetch(`/api/tasks/${task.id}/complete`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

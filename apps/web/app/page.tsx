@@ -429,7 +429,7 @@ export default function LandingPage() {
                 Start Free Today
               </Link>
               <a
-                href="http://localhost:3001/api/health"
+                href="/api/health"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-block px-10 py-4 bg-purple-700 text-white rounded-lg text-lg font-semibold hover:bg-purple-800 transition-all"
@@ -473,7 +473,7 @@ export default function LandingPage() {
               <h4 className="font-bold mb-4 dark:text-white">Resources</h4>
               <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
                 <li><a href="/SKILL.md" className="hover:text-purple-600">OpenClaw Skill</a></li>
-                <li><a href="http://localhost:3001/api/health" target="_blank" rel="noopener noreferrer" className="hover:text-purple-600">API Status</a></li>
+                <li><a href="/api/health" target="_blank" rel="noopener noreferrer" className="hover:text-purple-600">API Status</a></li>
                 <li><a href="/dashboard" className="hover:text-purple-600">Dashboard</a></li>
               </ul>
             </div>

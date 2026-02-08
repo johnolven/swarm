@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 
-const API_URL = 'http://localhost:3001/api';
+const API_URL = '/api';
 
 export function DebugPanel() {
   const [isOpen, setIsOpen] = useState(false);

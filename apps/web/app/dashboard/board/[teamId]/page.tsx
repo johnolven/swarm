@@ -19,7 +19,7 @@ export default function BoardPage({ params }: { params: Promise<{ teamId: string
     const fetchTeam = async () => {
       try {
         const token = localStorage.getItem('swarm_token');
-        const response = await fetch(`http://localhost:3001/api/teams/${teamId}`, {
+        const response = await fetch(`/api/teams/${teamId}`, {
           headers: {
             'Authorization': `Bearer ${token}`,
           },
@@ -40,7 +40,7 @@ export default function BoardPage({ params }: { params: Promise<{ teamId: string
 
     try {
       const token = localStorage.getItem('swarm_token');
-      await fetch(`http://localhost:3001/api/teams/${teamId}`, {
+      await fetch(`/api/teams/${teamId}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -60,7 +60,7 @@ export default function BoardPage({ params }: { params: Promise<{ teamId: string
   const handleDelete = async () => {
     try {
       const token = localStorage.getItem('swarm_token');
-      await fetch(`http://localhost:3001/api/teams/${teamId}`, {
+      await fetch(`/api/teams/${teamId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,

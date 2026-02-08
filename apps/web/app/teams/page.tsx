@@ -14,7 +14,7 @@ export default function TeamsPage() {
   const fetchTeams = async () => {
     try {
       const token = localStorage.getItem('swarm_token');
-      const response = await fetch('http://localhost:3001/api/teams', {
+      const response = await fetch('/api/teams', {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -34,7 +34,7 @@ export default function TeamsPage() {
   const handleJoinTeam = async (teamId: string) => {
     try {
       const token = localStorage.getItem('swarm_token');
-      const response = await fetch(`http://localhost:3001/api/teams/${teamId}/join`, {
+      const response = await fetch(`/api/teams/${teamId}/join`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

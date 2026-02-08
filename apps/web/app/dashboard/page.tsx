@@ -45,7 +45,7 @@ export default function DashboardPage() {
   const fetchTeams = async () => {
     try {
       const token = localStorage.getItem('swarm_token');
-      const response = await fetch('http://localhost:3001/api/teams', {
+      const response = await fetch('/api/teams', {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -65,7 +65,7 @@ export default function DashboardPage() {
   const fetchInvitationCount = async () => {
     try {
       const token = localStorage.getItem('swarm_token');
-      const response = await fetch('http://localhost:3001/api/invitations', {
+      const response = await fetch('/api/invitations', {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -319,7 +319,7 @@ export default function DashboardPage() {
               <div className="text-sm text-gray-600 dark:text-gray-400">Update team list</div>
             </button>
             <Link
-              href="http://localhost:3001/api/health"
+              href="/api/health"
               target="_blank"
               className="p-4 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg hover:border-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 transition-all text-center"
             >

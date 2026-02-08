@@ -35,7 +35,13 @@
       "Bash(node_modules/.bin/tsc:*)",
       "Bash(/Users/johnolven/Code/swarm/node_modules/.bin/tsc:*)",
       "Bash(npx turbo run build:*)",
-      "Bash(export PATH:*)"
+      "Bash(export PATH:*)",
+      "Bash(export PATH=\"$HOME/.nvm/versions/node/v22.8.0/bin:/usr/bin:/bin:$PATH\")",
+      "Bash($HOME/.nvm/versions/node/v22.8.0/bin/npm install --prefix /Users/johnolven/Code/swarm)",
+      "Bash(/Users/johnolven/.nvm/versions/node/v22.8.0/bin/npm install --prefix /Users/johnolven/Code/swarm)",
+      "Bash(/Users/johnolven/.nvm/versions/node/v22.8.0/bin/npx prisma generate)",
+      "Bash(/Users/johnolven/.nvm/versions/node/v22.8.0/bin/npx next build)",
+      "Bash(npx next build:*)"
     ]
   }
 }

@@ -79,7 +79,7 @@ export default function InvitationsPage() {
   const fetchInvitations = async () => {
     try {
       const token = localStorage.getItem('swarm_token');
-      const response = await fetch('http://localhost:3001/api/invitations', {
+      const response = await fetch('/api/invitations', {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -99,7 +99,7 @@ export default function InvitationsPage() {
   const fetchTeams = async () => {
     try {
       const token = localStorage.getItem('swarm_token');
-      const response = await fetch('http://localhost:3001/api/teams', {
+      const response = await fetch('/api/teams', {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -121,7 +121,7 @@ export default function InvitationsPage() {
   const fetchJoinRequests = async (teamId: string) => {
     try {
       const token = localStorage.getItem('swarm_token');
-      const response = await fetch(`http://localhost:3001/api/teams/${teamId}/join-requests`, {
+      const response = await fetch(`/api/teams/${teamId}/join-requests`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -139,7 +139,7 @@ export default function InvitationsPage() {
   const handleAcceptInvitation = async (invitationId: string) => {
     try {
       const token = localStorage.getItem('swarm_token');
-      const response = await fetch(`http://localhost:3001/api/invitations/${invitationId}/accept`, {
+      const response = await fetch(`/api/invitations/${invitationId}/accept`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -161,7 +161,7 @@ export default function InvitationsPage() {
   const handleDeclineInvitation = async (invitationId: string) => {
     try {
       const token = localStorage.getItem('swarm_token');
-      const response = await fetch(`http://localhost:3001/api/invitations/${invitationId}/decline`, {
+      const response = await fetch(`/api/invitations/${invitationId}/decline`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -183,7 +183,7 @@ export default function InvitationsPage() {
   const handleApproveRequest = async (requestId: string) => {
     try {
       const token = localStorage.getItem('swarm_token');
-      const response = await fetch(`http://localhost:3001/api/join-requests/${requestId}/approve`, {
+      const response = await fetch(`/api/join-requests/${requestId}/approve`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -205,7 +205,7 @@ export default function InvitationsPage() {
   const handleRejectRequest = async (requestId: string) => {
     try {
       const token = localStorage.getItem('swarm_token');
-      const response = await fetch(`http://localhost:3001/api/join-requests/${requestId}/reject`, {
+      const response = await fetch(`/api/join-requests/${requestId}/reject`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -246,7 +246,7 @@ export default function InvitationsPage() {
         ? { agent_id: agentIdToInvite, role: inviteRole }
         : { user_email: humanEmailToInvite, role: inviteRole };
 
-      const response = await fetch(`http://localhost:3001/api/teams/${selectedTeamId}/invite`, {
+      const response = await fetch(`/api/teams/${selectedTeamId}/invite`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

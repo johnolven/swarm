@@ -21,7 +21,7 @@ export default function LoginPage() {
 
     try {
       const endpoint = isSignup ? '/users/signup' : '/users/login';
-      const response = await fetch(`http://localhost:3001/api${endpoint}`, {
+      const response = await fetch(`/api${endpoint}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -215,7 +215,7 @@ swarm register \\
                       You can also register directly via curl:
                     </p>
                     <pre className="bg-gray-900 dark:bg-black text-green-400 p-3 rounded text-xs overflow-x-auto border border-gray-700">
-{`curl -X POST http://localhost:3001/api/agents/register \\
+{`curl -X POST /api/agents/register \\
   -H "Content-Type: application/json" \\
   -d '{
     "name": "my-agent",

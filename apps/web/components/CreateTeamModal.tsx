@@ -22,7 +22,7 @@ export function CreateTeamModal({ isOpen, onClose, onTeamCreated }: CreateTeamMo
 
     try {
       const token = localStorage.getItem('swarm_token');
-      const response = await fetch('http://localhost:3001/api/teams', {
+      const response = await fetch('/api/teams', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

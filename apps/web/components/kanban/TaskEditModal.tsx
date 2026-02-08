@@ -21,7 +21,7 @@ export function TaskEditModal({ task, isOpen, onClose, onUpdate }: TaskEditModal
   const handleSave = async () => {
     try {
       const token = localStorage.getItem('swarm_token');
-      await fetch(`http://localhost:3001/api/tasks/${task.id}`, {
+      await fetch(`/api/tasks/${task.id}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -49,7 +49,7 @@ export function TaskEditModal({ task, isOpen, onClose, onUpdate }: TaskEditModal
 
     try {
       const token = localStorage.getItem('swarm_token');
-      await fetch(`http://localhost:3001/api/tasks/${task.id}`, {
+      await fetch(`/api/tasks/${task.id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,

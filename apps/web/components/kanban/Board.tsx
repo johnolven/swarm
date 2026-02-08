@@ -35,13 +35,13 @@ const fetcher = async (url: string) => {
 
 export function Board({ teamId }: BoardProps) {
   const { data: tasks, error: tasksError, mutate: mutateTasks, isLoading: tasksLoading } = useSWR<Task[]>(
-    `http://localhost:3001/api/teams/${teamId}/tasks`,
+    `/api/teams/${teamId}/tasks`,
     fetcher,
     { revalidateOnFocus: true }
   );
 
   const { data: columns, error: columnsError, mutate: mutateColumns, isLoading: columnsLoading } = useSWR<Column[]>(
-    `http://localhost:3001/api/teams/${teamId}/columns`,
+    `/api/teams/${teamId}/columns`,
     fetcher,
     { revalidateOnFocus: true }
   );
@@ -85,7 +85,7 @@ export function Board({ teamId }: BoardProps) {
 
     try {
       const token = localStorage.getItem('swarm_token');
-      await fetch(`http://localhost:3001/api/columns/${columnId}`, {
+      await fetch(`/api/columns/${columnId}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -107,7 +107,7 @@ export function Board({ teamId }: BoardProps) {
 
     try {
       const token = localStorage.getItem('swarm_token');
-      await fetch(`http://localhost:3001/api/teams/${teamId}/columns`, {
+      await fetch(`/api/teams/${teamId}/columns`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -142,7 +142,7 @@ export function Board({ teamId }: BoardProps) {
 
     try {
       const token = localStorage.getItem('swarm_token');
-      await fetch(`http://localhost:3001/api/columns/${columnId}`, {
+      await fetch(`/api/columns/${columnId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -161,7 +161,7 @@ export function Board({ teamId }: BoardProps) {
 
     try {
       const token = localStorage.getItem('swarm_token');
-      await fetch(`http://localhost:3001/api/columns/${deletingColumn}`, {
+      await fetch(`/api/columns/${deletingColumn}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -184,7 +184,7 @@ export function Board({ teamId }: BoardProps) {
 
     try {
       const token = localStorage.getItem('swarm_token');
-      await fetch(`http://localhost:3001/api/teams/${teamId}/tasks`, {
+      await fetch(`/api/teams/${teamId}/tasks`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -221,7 +221,7 @@ export function Board({ teamId }: BoardProps) {
     setTaskDropIndicator(null);
   };
 
-  const handleTaskMouseDown = (e: React.MouseEvent, task: Task) => {
+  const handleTaskMouseDown = (e: React.MouseEvent, _task: Task) => {
     setMouseDownPos({ x: e.clientX, y: e.clientY });
   };
 
@@ -270,7 +270,7 @@ export function Board({ teamId }: BoardProps) {
 
       // If moving to a different column
       if (draggedColumnId !== targetColumnId) {
-        await fetch(`http://localhost:3001/api/tasks/${draggedTask.id}`, {
+        await fetch(`/api/tasks/${draggedTask.id}`, {
           method: 'PUT',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -284,8 +284,6 @@ export function Board({ teamId }: BoardProps) {
         // Reordering within the same column
         const columnTasks = getTasksByColumn(targetColumnId);
         const draggedIndex = columnTasks.findIndex(t => t.id === draggedTask.id);
-        const targetIndex = columnTasks.findIndex(t => t.id === targetTask.id);
-
         // Remove dragged task
         columnTasks.splice(draggedIndex, 1);
 
@@ -306,7 +304,7 @@ export function Board({ teamId }: BoardProps) {
           order: index,
         }));
 
-        await fetch(`http://localhost:3001/api/columns/${targetColumnId}/tasks/reorder`, {
+        await fetch(`/api/columns/${targetColumnId}/tasks/reorder`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -343,7 +341,7 @@ export function Board({ teamId }: BoardProps) {
 
     try {
       const token = localStorage.getItem('swarm_token');
-      await fetch(`http://localhost:3001/api/tasks/${draggedTask.id}`, {
+      await fetch(`/api/tasks/${draggedTask.id}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -418,7 +416,7 @@ export function Board({ teamId }: BoardProps) {
       }));
 
       const token = localStorage.getItem('swarm_token');
-      await fetch(`http://localhost:3001/api/teams/${teamId}/columns/reorder`, {
+      await fetch(`/api/teams/${teamId}/columns/reorder`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

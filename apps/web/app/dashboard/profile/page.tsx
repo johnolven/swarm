@@ -81,7 +81,7 @@ export default function ProfilePage() {
 
     try {
       const token = localStorage.getItem('swarm_token');
-      const response = await fetch('http://localhost:3001/api/users/email', {
+      const response = await fetch('/api/users/email', {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -130,7 +130,7 @@ export default function ProfilePage() {
 
     try {
       const token = localStorage.getItem('swarm_token');
-      const response = await fetch('http://localhost:3001/api/users/password', {
+      const response = await fetch('/api/users/password', {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -164,7 +164,7 @@ export default function ProfilePage() {
 
     try {
       const token = localStorage.getItem('swarm_token');
-      const response = await fetch('http://localhost:3001/api/users/name', {
+      const response = await fetch('/api/users/name', {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
