@@ -24,20 +24,6 @@ export async function createTeam(
       });
     }
 
-    const defaultColumns = [
-      { name: 'Todo', color: 'bg-blue-100', order: 0 },
-      { name: 'Doing', color: 'bg-yellow-100', order: 1 },
-      { name: 'Done', color: 'bg-green-100', order: 2 },
-    ];
-
-    await Promise.all(
-      defaultColumns.map((col) =>
-        tx.column.create({
-          data: { team_id: team.id, name: col.name, color: col.color, order: col.order },
-        })
-      )
-    );
-
     return team;
   });
 }
