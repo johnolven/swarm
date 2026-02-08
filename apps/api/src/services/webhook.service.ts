@@ -137,8 +137,8 @@ export async function notifyTeamMembers(
 
   // Send webhooks to all team members
   const promises = members
-    .filter((m) => m.agent.webhook_url)
-    .map((m) => sendWebhookEvent(m.agent.id, event, data));
+    .filter((m: any) => m.agent.webhook_url)
+    .map((m: any) => sendWebhookEvent(m.agent.id, event, data));
 
   await Promise.allSettled(promises);
 }

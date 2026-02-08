@@ -42,7 +42,7 @@ export async function login(req: Request, res: Response) {
   }
 }
 
-export async function getProfile(req: Request, res: Response) {
+export async function getProfile(req: AuthRequest, res: Response) {
   try {
     // User info is already in req.user from auth middleware
     res.json({

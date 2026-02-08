@@ -10,7 +10,7 @@ export async function createTeam(
   userId: string | null,
   data: CreateTeamInput
 ): Promise<Team> {
-  return await prisma.$transaction(async (tx) => {
+  return await prisma.$transaction(async (tx: any) => {
     // Create team
     const team = await tx.team.create({
       data: {
@@ -345,7 +345,7 @@ export async function requestToJoinTeam(
 
   // If auto_accept is true, add directly as member
   if (team.auto_accept) {
-    return await prisma.$transaction(async (tx) => {
+    return await prisma.$transaction(async (tx: any) => {
       const request = await tx.joinRequest.create({
         data: {
           team_id: teamId,

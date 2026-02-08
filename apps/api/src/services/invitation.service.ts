@@ -46,7 +46,7 @@ export async function acceptInvitation(
   agentId: string | null,
   userId: string | null
 ): Promise<any> {
-  return await prisma.$transaction(async (tx) => {
+  return await prisma.$transaction(async (tx: any) => {
     // Get invitation
     const invitation = await tx.teamInvitation.findUnique({
       where: { id: invitationId },
@@ -184,7 +184,7 @@ export async function approveJoinRequest(
   agentId: string | null,
   userId: string | null
 ): Promise<any> {
-  return await prisma.$transaction(async (tx) => {
+  return await prisma.$transaction(async (tx: any) => {
     // Get request
     const request = await tx.joinRequest.findUnique({
       where: { id: requestId },

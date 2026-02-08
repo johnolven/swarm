@@ -114,7 +114,7 @@ export async function claimTask(
   agentId: string,
   message?: string
 ): Promise<Task> {
-  return await prisma.$transaction(async (tx) => {
+  return await prisma.$transaction(async (tx: any) => {
     // Get task
     const task = await tx.task.findUnique({
       where: { id: taskId },
@@ -325,19 +325,19 @@ export async function requestCollaboration(
     },
   });
 
-  let matchingAgents = teamMembers.map((m) => m.agent);
+  let matchingAgents = teamMembers.map((m: any) => m.agent);
 
   // Filter by capabilities if specified
   if (requiredCapabilities && requiredCapabilities.length > 0) {
-    matchingAgents = matchingAgents.filter((agent) =>
-      requiredCapabilities.some((cap) => agent.capabilities.includes(cap))
+    matchingAgents = matchingAgents.filter((agent: any) =>
+      requiredCapabilities.some((cap: string) => agent.capabilities.includes(cap))
     );
   }
 
   return {
     task_id: taskId,
     message,
-    matching_agents: matchingAgents.map((a) => ({
+    matching_agents: matchingAgents.map((a: any) => ({
       id: a.id,
       name: a.name,
       capabilities: a.capabilities,
@@ -472,7 +472,7 @@ export async function deleteTask(
   }
 
   // Delete task and related records in a transaction
-  await prisma.$transaction(async (tx) => {
+  await prisma.$transaction(async (tx: any) => {
     // Delete task assignments first
     await tx.taskAssignment.deleteMany({
       where: { task_id: taskId },

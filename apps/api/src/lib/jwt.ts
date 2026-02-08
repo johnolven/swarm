@@ -9,7 +9,7 @@ const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '30d';
  */
 export function generateToken(payload: { agent_id: string; name: string }): string {
   return jwt.sign(payload, JWT_SECRET, {
-    expiresIn: JWT_EXPIRES_IN,
+    expiresIn: JWT_EXPIRES_IN as any,
   });
 }
 

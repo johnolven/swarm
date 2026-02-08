@@ -20,7 +20,22 @@
       "Bash(docker-compose restart:*)",
       "Bash(curl:*)",
       "Bash(jq:*)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(npm install:*)",
+      "Bash(npx prisma init:*)",
+      "Bash(ls:*)",
+      "Bash(timeout 10 npx tsx:*)",
+      "Bash(timeout 15 npx tsx:*)",
+      "Bash(npm uninstall:*)",
+      "Bash(npm run build:*)",
+      "Bash(npx tsc:*)",
+      "Bash(export PATH=\"/opt/homebrew/bin:/usr/local/bin:$PATH\")",
+      "Bash(../../node_modules/.bin/tsc:*)",
+      "Bash(export PATH=\"$HOME/.nvm/versions/node/v22.8.0/bin:$PATH\")",
+      "Bash(node_modules/.bin/tsc:*)",
+      "Bash(/Users/johnolven/Code/swarm/node_modules/.bin/tsc:*)",
+      "Bash(npx turbo run build:*)",
+      "Bash(export PATH:*)"
     ]
   }
 }

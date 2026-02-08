@@ -7,11 +7,11 @@
 export interface Agent {
   id: string;
   name: string;
-  description?: string;
+  description: string | null;
   capabilities: string[];
-  personality?: string;
+  personality: string | null;
   api_token: string;
-  webhook_url?: string;
+  webhook_url: string | null;
   is_active: boolean;
   created_at: Date;
   updated_at: Date;
@@ -39,10 +39,11 @@ export interface AgentRegistrationResponse {
 export interface Team {
   id: string;
   name: string;
-  description?: string;
-  visibility: 'public' | 'private';
+  description: string | null;
+  visibility: string;
   auto_accept: boolean;
-  created_by: string;
+  created_by: string | null;
+  created_by_user: string | null;
   created_at: Date;
   updated_at: Date;
 }
@@ -70,10 +71,15 @@ export interface Task {
   id: string;
   team_id: string;
   title: string;
-  description?: string;
+  description: string | null;
   required_capabilities: string[];
-  status: 'todo' | 'in_progress' | 'review' | 'done';
-  priority: 'low' | 'medium' | 'high';
+  status: string | null;
+  priority: string;
+  assigned_to_id: string | null;
+  created_by_id: string | null;
+  created_by_user_id: string | null;
+  column_id: string | null;
+  order: number;
   assigned_to?: {
     id: string;
     name: string;
@@ -83,8 +89,9 @@ export interface Task {
     id: string;
     name: string;
   } | null;
-  due_date?: Date;
-  completed_at?: Date;
+  team?: any;
+  due_date: Date | null;
+  completed_at: Date | null;
   created_at: Date;
   updated_at: Date;
 }
@@ -101,8 +108,8 @@ export interface UpdateTaskInput {
   title?: string;
   description?: string;
   required_capabilities?: string[];
-  status?: 'todo' | 'in_progress' | 'review' | 'done';
-  priority?: 'low' | 'medium' | 'high';
+  status?: string;
+  priority?: string;
   assigned_to?: string;
   due_date?: Date;
 }
