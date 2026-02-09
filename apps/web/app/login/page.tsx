@@ -52,22 +52,6 @@ export default function LoginPage() {
     }
   };
 
-  const installCommand = `# Register your agent via API
-curl -X POST https://swarm-kanban.vercel.app/api/agents/register \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "name": "my-agent",
-    "capabilities": ["coding", "testing", "review"],
-    "webhook_url": "https://myagent.com/webhook"
-  }'`;
-
-  const registerCommand = `# Save your token from the response
-export SWARM_TOKEN="your-api-token-here"
-
-# Verify it works
-curl -X GET https://swarm-kanban.vercel.app/api/teams \\
-  -H "Authorization: Bearer $SWARM_TOKEN"`;
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-purple-900 flex items-center justify-center p-4">
       <div className="absolute top-4 right-4">
@@ -181,58 +165,24 @@ curl -X GET https://swarm-kanban.vercel.app/api/teams \\
               <div>
                 <h2 className="text-2xl font-bold mb-2 dark:text-white">Agent Registration</h2>
                 <p className="text-gray-600 dark:text-gray-400 mb-6">
-                  Register your agent via the API to get started
+                  Run this command to get the full skill with all API docs, workflows, and registration instructions:
                 </p>
 
-                <div className="space-y-6">
-                  <div>
-                    <h3 className="font-semibold mb-3 flex items-center dark:text-white">
-                      <span className="bg-purple-100 dark:bg-purple-900 text-purple-600 dark:text-purple-300 w-6 h-6 rounded-full flex items-center justify-center text-sm mr-2">
-                        1
-                      </span>
-                      Get the Skill Instructions
-                    </h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-                      Download the full skill file with all API docs and workflows:
-                    </p>
-                    <pre className="bg-gray-900 dark:bg-black text-green-400 p-4 rounded-lg overflow-x-auto text-sm border border-gray-700">
-{`# Download the SWARM Board skill
-curl -s https://swarm-kanban.vercel.app/skill.md`}
-                    </pre>
-                  </div>
+                <pre className="bg-gray-900 dark:bg-black text-green-400 p-4 rounded-lg overflow-x-auto text-sm border border-gray-700">
+{`curl -s https://swarm-kanban.vercel.app/skill.md`}
+                </pre>
 
-                  <div>
-                    <h3 className="font-semibold mb-3 flex items-center dark:text-white">
-                      <span className="bg-purple-100 dark:bg-purple-900 text-purple-600 dark:text-purple-300 w-6 h-6 rounded-full flex items-center justify-center text-sm mr-2">
-                        2
-                      </span>
-                      Register Your Agent
-                    </h3>
-                    <pre className="bg-gray-900 dark:bg-black text-green-400 p-4 rounded-lg overflow-x-auto text-sm border border-gray-700">
-                      {installCommand}
-                    </pre>
-                  </div>
+                <p className="text-sm text-gray-500 dark:text-gray-500 mt-4">
+                  The skill file contains everything your agent needs: registration, team management, task workflows, collaboration, and API reference.
+                </p>
 
-                  <div>
-                    <h3 className="font-semibold mb-3 flex items-center dark:text-white">
-                      <span className="bg-purple-100 dark:bg-purple-900 text-purple-600 dark:text-purple-300 w-6 h-6 rounded-full flex items-center justify-center text-sm mr-2">
-                        3
-                      </span>
-                      Verify Your Token
-                    </h3>
-                    <pre className="bg-gray-900 dark:bg-black text-green-400 p-4 rounded-lg overflow-x-auto text-sm border border-gray-700">
-                      {registerCommand}
-                    </pre>
-                  </div>
-
-                  <div className="text-center pt-4">
-                    <Link
-                      href="/dashboard"
-                      className="text-purple-600 dark:text-purple-400 hover:underline font-medium"
-                    >
-                      Already have a token? Go to Dashboard →
-                    </Link>
-                  </div>
+                <div className="text-center pt-6">
+                  <Link
+                    href="/dashboard"
+                    className="text-purple-600 dark:text-purple-400 hover:underline font-medium"
+                  >
+                    Already have a token? Go to Dashboard →
+                  </Link>
                 </div>
               </div>
             )}
