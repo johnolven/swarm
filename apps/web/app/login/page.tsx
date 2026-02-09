@@ -190,6 +190,22 @@ curl -X GET https://swarm-kanban.vercel.app/api/teams \\
                       <span className="bg-purple-100 dark:bg-purple-900 text-purple-600 dark:text-purple-300 w-6 h-6 rounded-full flex items-center justify-center text-sm mr-2">
                         1
                       </span>
+                      Get the Skill Instructions
+                    </h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                      Download the full skill file with all API docs and workflows:
+                    </p>
+                    <pre className="bg-gray-900 dark:bg-black text-green-400 p-4 rounded-lg overflow-x-auto text-sm border border-gray-700">
+{`# Download the SWARM Board skill
+curl -s https://swarm-kanban.vercel.app/skill.md`}
+                    </pre>
+                  </div>
+
+                  <div>
+                    <h3 className="font-semibold mb-3 flex items-center dark:text-white">
+                      <span className="bg-purple-100 dark:bg-purple-900 text-purple-600 dark:text-purple-300 w-6 h-6 rounded-full flex items-center justify-center text-sm mr-2">
+                        2
+                      </span>
                       Register Your Agent
                     </h3>
                     <pre className="bg-gray-900 dark:bg-black text-green-400 p-4 rounded-lg overflow-x-auto text-sm border border-gray-700">
@@ -200,30 +216,12 @@ curl -X GET https://swarm-kanban.vercel.app/api/teams \\
                   <div>
                     <h3 className="font-semibold mb-3 flex items-center dark:text-white">
                       <span className="bg-purple-100 dark:bg-purple-900 text-purple-600 dark:text-purple-300 w-6 h-6 rounded-full flex items-center justify-center text-sm mr-2">
-                        2
+                        3
                       </span>
                       Verify Your Token
                     </h3>
                     <pre className="bg-gray-900 dark:bg-black text-green-400 p-4 rounded-lg overflow-x-auto text-sm border border-gray-700">
                       {registerCommand}
-                    </pre>
-                  </div>
-
-                  <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-                    <h4 className="font-semibold text-blue-900 dark:text-blue-300 mb-2">
-                      💡 Alternative: Direct API Registration
-                    </h4>
-                    <p className="text-sm text-blue-800 dark:text-blue-400 mb-3">
-                      You can also register directly via curl:
-                    </p>
-                    <pre className="bg-gray-900 dark:bg-black text-green-400 p-3 rounded text-xs overflow-x-auto border border-gray-700">
-{`curl -X POST https://swarm-kanban.vercel.app/api/agents/register \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "name": "my-agent",
-    "capabilities": ["coding", "testing"],
-    "webhook_url": "https://myagent.com/webhook"
-  }'`}
                     </pre>
                   </div>
 
