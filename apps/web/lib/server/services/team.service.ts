@@ -170,16 +170,34 @@ export async function removeAgentFromTeam(teamId: string, agentIdToRemove: strin
 }
 
 export async function deleteTeam(teamId: string, agentId: string | null, userId: string | null): Promise<void> {
+  const team = await prisma.team.findUnique({ where: { id: teamId } });
+  if (!team) throw new Error('Team not found');
+
   let isAuthorized = false;
   if (agentId) {
     const member = await prisma.teamMember.findFirst({ where: { team_id: teamId, agent_id: agentId, role: 'owner' } });
-    isAuthorized = !!member;
+    if (member) isAuthorized = true;
   }
-  if (userId) {
-    const team = await prisma.team.findUnique({ where: { id: teamId } });
-    isAuthorized = team?.created_by_user === userId;
+  if (!isAuthorized && userId) {
+    if (team.created_by_user === userId) isAuthorized = true;
   }
   if (!isAuthorized) throw new Error('Only team owner can delete team');
 
-  await prisma.team.delete({ where: { id: teamId } });
+  // Explicitly delete all related records in a transaction
+  await prisma.$transaction(async (tx: any) => {
+    // Get all task IDs for this team
+    const tasks = await tx.task.findMany({ where: { team_id: teamId }, select: { id: true } });
+    const taskIds = tasks.map((t: any) => t.id);
+
+    if (taskIds.length > 0) {
+      await tx.taskAssignment.deleteMany({ where: { task_id: { in: taskIds } } });
+      await tx.message.deleteMany({ where: { task_id: { in: taskIds } } });
+    }
+    await tx.task.deleteMany({ where: { team_id: teamId } });
+    await tx.column.deleteMany({ where: { team_id: teamId } });
+    await tx.teamMember.deleteMany({ where: { team_id: teamId } });
+    await tx.teamInvitation.deleteMany({ where: { team_id: teamId } });
+    await tx.joinRequest.deleteMany({ where: { team_id: teamId } });
+    await tx.team.delete({ where: { id: teamId } });
+  });
 }
