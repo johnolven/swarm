@@ -7,6 +7,9 @@ import type { Lang } from '@/lib/translations';
 const languages: { code: Lang; label: string }[] = [
   { code: 'en', label: 'English' },
   { code: 'es', label: 'Español' },
+  { code: 'pt', label: 'Português' },
+  { code: 'zh', label: '中文' },
+  { code: 'fr', label: 'Français' },
 ];
 
 export function LangToggle() {
