@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { authenticateToken } from '@/lib/server/auth';
 import * as invitationService from '@/lib/server/services/invitation.service';
 import * as webhookService from '@/lib/server/services/webhook.service';
+import { logActivity, getActorFromAuth } from '@/lib/server/services/activityLog.service';
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const auth = await authenticateToken(request);
@@ -14,6 +15,15 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     await webhookService.sendWebhookEvent(result.agent_id, 'team.join_approved', {
       team_id: result.team_id,
       approved_by: auth.agent?.name || auth.user?.email || 'Team Admin',
+    });
+
+    const actor = getActorFromAuth(auth);
+    logActivity({
+      teamId: result.team_id,
+      ...actor,
+      action: 'activity.invitation.approved',
+      entityType: 'member',
+      entityId: result.agent_id,
     });
 
     return NextResponse.json({ success: true, data: result, message: 'Join request approved' });

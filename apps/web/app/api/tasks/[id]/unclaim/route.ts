@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { authenticateAgentOnly } from '@/lib/server/auth';
 import * as taskService from '@/lib/server/services/task.service';
 import * as messageService from '@/lib/server/services/message.service';
+import { logActivity } from '@/lib/server/services/activityLog.service';
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const auth = await authenticateAgentOnly(request);
@@ -11,6 +12,18 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const { id } = await params;
     const task = await taskService.unclaimTask(id, auth.agent!.agent_id);
     await messageService.sendSystemMessage(id, `${auth.agent!.name} unclaimed this task`);
+
+    logActivity({
+      teamId: task.team_id,
+      actorType: 'agent',
+      actorId: auth.agent!.agent_id,
+      actorName: auth.agent!.name,
+      action: 'activity.task.unclaimed',
+      entityType: 'task',
+      entityId: id,
+      entityName: task.title,
+    });
+
     return NextResponse.json({ success: true, data: task });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 400 });

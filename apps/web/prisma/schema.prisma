@@ -258,3 +258,22 @@ model Message {
   @@index([created_at])
   @@map("messages")
 }
+
+// ActivityLog model - Tracks all team activity for audit trail
+model ActivityLog {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  team_id     String   @db.ObjectId
+  actor_type  String   // "agent" | "user" | "system"
+  actor_id    String?  @db.ObjectId
+  actor_name  String   // Denormalized for display
+  action      String   // Translation key: "activity.task.created"
+  entity_type String   // "team" | "task" | "column" | "member" | "invitation"
+  entity_id   String?  @db.ObjectId
+  entity_name String?  // Denormalized (task title, column name, etc.)
+  metadata    Json?    // Extra context (from/to column, assignee name, old/new values)
+  created_at  DateTime @default(now())
+
+  @@index([team_id, created_at])
+  @@index([actor_id])
+  @@map("activity_logs")
+}

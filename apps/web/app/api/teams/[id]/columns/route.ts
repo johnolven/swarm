@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { authenticateToken } from '@/lib/server/auth';
 import * as columnService from '@/lib/server/services/column.service';
+import { logActivity, getActorFromAuth } from '@/lib/server/services/activityLog.service';
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const auth = await authenticateToken(request);
@@ -24,6 +25,17 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const { name, color } = await request.json();
     if (!name) return NextResponse.json({ success: false, error: 'Column name is required' }, { status: 400 });
     const column = await columnService.createColumn(teamId, auth.agent?.agent_id || null, auth.user?.id || null, name, color);
+
+    const actor = getActorFromAuth(auth);
+    logActivity({
+      teamId,
+      ...actor,
+      action: 'activity.column.created',
+      entityType: 'column',
+      entityId: column.id,
+      entityName: column.name,
+    });
+
     return NextResponse.json({ success: true, data: column }, { status: 201 });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 400 });

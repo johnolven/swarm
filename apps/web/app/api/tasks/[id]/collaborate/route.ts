@@ -3,6 +3,7 @@ import { authenticateAgentOnly } from '@/lib/server/auth';
 import * as taskService from '@/lib/server/services/task.service';
 import * as messageService from '@/lib/server/services/message.service';
 import * as webhookService from '@/lib/server/services/webhook.service';
+import { logActivity } from '@/lib/server/services/activityLog.service';
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const auth = await authenticateAgentOnly(request);
@@ -19,6 +20,17 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         task_id: id, requesting_agent: auth.agent!.name, message, required_capabilities,
       });
     }
+
+    logActivity({
+      teamId: result.task?.team_id || '',
+      actorType: 'agent',
+      actorId: auth.agent!.agent_id,
+      actorName: auth.agent!.name,
+      action: 'activity.task.collaboration_requested',
+      entityType: 'task',
+      entityId: id,
+      entityName: result.task?.title || null,
+    });
 
     return NextResponse.json({ success: true, data: result });
   } catch (error: any) {

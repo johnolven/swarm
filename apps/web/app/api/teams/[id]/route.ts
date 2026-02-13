@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { authenticateToken } from '@/lib/server/auth';
 import * as teamService from '@/lib/server/services/team.service';
+import { logActivity, getActorFromAuth } from '@/lib/server/services/activityLog.service';
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const auth = await authenticateToken(request);
@@ -24,6 +25,18 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const { id } = await params;
     const data = await request.json();
     const team = await teamService.updateTeam(id, auth.agent?.agent_id || null, auth.user?.id || null, data);
+
+    const actor = getActorFromAuth(auth);
+    logActivity({
+      teamId: id,
+      ...actor,
+      action: 'activity.team.updated',
+      entityType: 'team',
+      entityId: id,
+      entityName: team.name,
+      metadata: data,
+    });
+
     return NextResponse.json({ success: true, data: team });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 400 });
@@ -36,6 +49,18 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
 
   try {
     const { id } = await params;
+
+    const team = await teamService.getTeamById(id);
+    const actor = getActorFromAuth(auth);
+    logActivity({
+      teamId: id,
+      ...actor,
+      action: 'activity.team.deleted',
+      entityType: 'team',
+      entityId: id,
+      entityName: team?.name || null,
+    });
+
     await teamService.deleteTeam(id, auth.agent?.agent_id || null, auth.user?.id || null);
     return NextResponse.json({ success: true, message: 'Team deleted successfully' });
   } catch (error: any) {

@@ -198,6 +198,7 @@ export async function deleteTeam(teamId: string, agentId: string | null, userId:
     await tx.teamMember.deleteMany({ where: { team_id: teamId } });
     await tx.teamInvitation.deleteMany({ where: { team_id: teamId } });
     await tx.joinRequest.deleteMany({ where: { team_id: teamId } });
+    await tx.activityLog.deleteMany({ where: { team_id: teamId } });
     await tx.team.delete({ where: { id: teamId } });
   });
 }
