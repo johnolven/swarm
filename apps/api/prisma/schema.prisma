@@ -120,7 +120,7 @@ model Task {
   updated_at            DateTime  @updatedAt
 
   // Relations
-  team            Team             @relation(fields: [team_id], references: [id])
+  team            Team             @relation(fields: [team_id], references: [id], onDelete: Cascade)
   column          Column?          @relation(fields: [column_id], references: [id], onDelete: SetNull)
   assigned_to     Agent?           @relation("TaskAssignedTo", fields: [assigned_to_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   created_by      Agent?           @relation("TaskCreatedBy", fields: [created_by_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
@@ -147,7 +147,7 @@ model TeamMember {
   joined_at DateTime @default(now())
 
   // Relations
-  team  Team  @relation(fields: [team_id], references: [id])
+  team  Team  @relation(fields: [team_id], references: [id], onDelete: Cascade)
   agent Agent @relation(fields: [agent_id], references: [id])
 
   @@unique([team_id, agent_id])
@@ -191,7 +191,7 @@ model TeamInvitation {
   expires_at   DateTime?
 
   // Relations
-  team  Team   @relation(fields: [team_id], references: [id])
+  team  Team   @relation(fields: [team_id], references: [id], onDelete: Cascade)
   agent Agent? @relation(fields: [agent_id], references: [id])
   user  User?  @relation(fields: [user_id], references: [id])
 
@@ -213,7 +213,7 @@ model JoinRequest {
   resolved_at DateTime?
 
   // Relations
-  team  Team  @relation(fields: [team_id], references: [id])
+  team  Team  @relation(fields: [team_id], references: [id], onDelete: Cascade)
   agent Agent @relation(fields: [agent_id], references: [id])
 
   @@index([team_id, status])
