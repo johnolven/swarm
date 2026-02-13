@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { LangToggle } from '@/components/LangToggle';
 import { useLanguage } from '@/components/LanguageProvider';
+import { ActivityPanel } from '@/components/kanban/ActivityPanel';
 
 export default function BoardPage({ params }: { params: Promise<{ teamId: string }> }) {
   const { teamId } = use(params);
@@ -17,6 +18,7 @@ export default function BoardPage({ params }: { params: Promise<{ teamId: string
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [newTeamName, setNewTeamName] = useState('');
   const [teamName, setTeamName] = useState('Team Board');
+  const [showActivity, setShowActivity] = useState(false);
 
   useEffect(() => {
     const fetchTeam = async () => {
@@ -93,6 +95,19 @@ export default function BoardPage({ params }: { params: Promise<{ teamId: string
           <div className="flex items-center gap-4">
             <LangToggle />
             <ThemeToggle />
+
+            {/* Activity Log Toggle */}
+            <button
+              type="button"
+              onClick={() => setShowActivity(!showActivity)}
+              className={`p-2 rounded-lg transition-all border border-transparent hover:border-gray-300 dark:hover:border-gray-600 ${showActivity ? 'text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/30' : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700'}`}
+              title={t.activity.title}
+              aria-label={t.activity.title}
+            >
+              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </button>
 
             {/* Settings Menu */}
             <div className="relative">
@@ -221,6 +236,9 @@ export default function BoardPage({ params }: { params: Promise<{ teamId: string
           </div>
         </div>
       )}
+
+      {/* Activity Panel */}
+      <ActivityPanel teamId={teamId} isOpen={showActivity} onClose={() => setShowActivity(false)} />
     </div>
   );
 }

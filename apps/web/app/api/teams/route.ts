@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { authenticateToken } from '@/lib/server/auth';
 import * as teamService from '@/lib/server/services/team.service';
+import { logActivity, getActorFromAuth } from '@/lib/server/services/activityLog.service';
 
 export async function GET(request: NextRequest) {
   const auth = await authenticateToken(request);
@@ -22,6 +23,7 @@ export async function POST(request: NextRequest) {
     const data = await request.json();
     if (!data.name) return NextResponse.json({ success: false, error: 'Team name is required' }, { status: 400 });
     const team = await teamService.createTeam(auth.agent?.agent_id || null, auth.user?.id || null, data);
+    logActivity({ teamId: team.id, ...getActorFromAuth(auth), action: 'activity.team.created', entityType: 'team', entityId: team.id, entityName: team.name });
     return NextResponse.json({ success: true, data: team }, { status: 201 });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 400 });

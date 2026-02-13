@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { authenticateToken } from '@/lib/server/auth';
 import * as columnService from '@/lib/server/services/column.service';
+import { logActivity, getActorFromAuth } from '@/lib/server/services/activityLog.service';
+import { prisma } from '@/lib/server/prisma';
 
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const auth = await authenticateToken(request);
@@ -10,6 +12,17 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const { id } = await params;
     const { name, color } = await request.json();
     const column = await columnService.updateColumn(id, auth.agent?.agent_id || null, auth.user?.id || null, name, color);
+
+    const actor = getActorFromAuth(auth);
+    logActivity({
+      teamId: column.team_id,
+      ...actor,
+      action: 'activity.column.updated',
+      entityType: 'column',
+      entityId: id,
+      entityName: column.name,
+    });
+
     return NextResponse.json({ success: true, data: column });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 400 });
@@ -23,6 +36,18 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
   try {
     const { id } = await params;
     const body = await request.json().catch(() => ({}));
+
+    const col = await prisma.column.findUnique({ where: { id } });
+    const actor = getActorFromAuth(auth);
+    logActivity({
+      teamId: col?.team_id || '',
+      ...actor,
+      action: 'activity.column.deleted',
+      entityType: 'column',
+      entityId: id,
+      entityName: col?.name || null,
+    });
+
     const result = await columnService.deleteColumn(id, auth.agent?.agent_id || null, auth.user?.id || null, body.migrationColumnId);
     return NextResponse.json({ success: true, data: result });
   } catch (error: any) {
