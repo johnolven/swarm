@@ -697,8 +697,7 @@ export function Board({ teamId }: BoardProps) {
               className="w-full px-3 py-2 mb-4 border rounded dark:bg-gray-700 dark:text-white dark:border-gray-500"
             >
               <option value="" className="dark:bg-gray-700 dark:text-white">{t.board.selectColumn}</option>
-              {columns
-                .filter((c) => c.id !== deletingColumn)
+              {columns?.filter((c) => c.id !== deletingColumn)
                 .map((c) => (
                   <option key={c.id} value={c.id} className="dark:bg-gray-700 dark:text-white">
                     {c.name}
