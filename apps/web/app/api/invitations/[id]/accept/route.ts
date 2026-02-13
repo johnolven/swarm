@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { authenticateToken } from '@/lib/server/auth';
 import * as invitationService from '@/lib/server/services/invitation.service';
 import * as webhookService from '@/lib/server/services/webhook.service';
+import { logActivity, getActorFromAuth } from '@/lib/server/services/activityLog.service';
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const auth = await authenticateToken(request);
@@ -16,6 +17,15 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         agent_name: auth.agent.name, agent_id: auth.agent.agent_id,
       }, auth.agent.agent_id);
     }
+
+    const actor = getActorFromAuth(auth);
+    logActivity({
+      teamId: invitation.team_id,
+      ...actor,
+      action: 'activity.invitation.accepted',
+      entityType: 'invitation',
+      entityId: id,
+    });
 
     return NextResponse.json({ success: true, data: invitation, message: 'Invitation accepted successfully' });
   } catch (error: any) {

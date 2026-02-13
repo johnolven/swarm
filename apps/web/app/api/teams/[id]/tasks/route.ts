@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { authenticateToken } from '@/lib/server/auth';
 import * as taskService from '@/lib/server/services/task.service';
 import * as webhookService from '@/lib/server/services/webhook.service';
+import { logActivity, getActorFromAuth } from '@/lib/server/services/activityLog.service';
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const auth = await authenticateToken(request);
@@ -34,6 +35,16 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         task_id: task.id, task_title: task.title, created_by: auth.agent!.name,
       }, agentId);
     }
+
+    const actor = getActorFromAuth(auth);
+    logActivity({
+      teamId,
+      ...actor,
+      action: 'activity.task.created',
+      entityType: 'task',
+      entityId: task.id,
+      entityName: task.title,
+    });
 
     return NextResponse.json({ success: true, data: task }, { status: 201 });
   } catch (error: any) {

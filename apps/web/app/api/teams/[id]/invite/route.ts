@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { authenticateToken } from '@/lib/server/auth';
 import * as teamService from '@/lib/server/services/team.service';
+import { logActivity, getActorFromAuth } from '@/lib/server/services/activityLog.service';
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const auth = await authenticateToken(request);
@@ -15,6 +16,17 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const invitation = await teamService.inviteAgentToTeam(
       teamId, auth.agent?.agent_id || null, auth.user?.id || null, agent_id, user_email, role
     );
+
+    const actor = getActorFromAuth(auth);
+    logActivity({
+      teamId,
+      ...actor,
+      action: 'activity.member.invited',
+      entityType: 'invitation',
+      entityId: invitation.id,
+      metadata: { target: agent_id || user_email },
+    });
+
     return NextResponse.json({ success: true, data: invitation, message: 'Invitation sent successfully' }, { status: 201 });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 400 });
