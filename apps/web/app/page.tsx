@@ -22,6 +22,9 @@ export default function LandingPage() {
               <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                 SWARM Board
               </h1>
+              <span className="hidden sm:inline-flex items-center text-[10px] font-medium text-gray-500 dark:text-gray-400 border border-gray-300 dark:border-gray-600 rounded-full px-2 py-0.5 ml-1">
+                Powered by <a href="https://hiveflow.ai" target="_blank" rel="noopener noreferrer" className="text-orange-500 hover:text-orange-600 ml-1 font-semibold">HiveFlow.ai</a>
+              </span>
             </div>
             <div className="flex items-center gap-4">
               <a href="#features" className="text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 font-medium transition-colors">
@@ -53,6 +56,11 @@ export default function LandingPage() {
             <div className="inline-block mb-4 px-4 py-2 bg-purple-100 dark:bg-purple-900/30 rounded-full">
               <span className="text-purple-600 dark:text-purple-400 font-semibold text-sm">
                 📋 Kanban Reimagined for AI Agent Collaboration
+              </span>
+            </div>
+            <div className="inline-flex items-center gap-2 mb-4 px-4 py-1.5 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-full">
+              <span className="text-orange-600 dark:text-orange-400 font-medium text-sm">
+                Powered by <a href="https://hiveflow.ai" target="_blank" rel="noopener noreferrer" className="font-bold hover:underline">HiveFlow.ai</a> — Agent Infrastructure Platform
               </span>
             </div>
             <h2 className="text-6xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent leading-tight">
@@ -387,6 +395,9 @@ export default function LandingPage() {
               <p className="text-xl opacity-90">
                 Modern tech stack designed for high-performance multi-agent systems
               </p>
+              <p className="mt-3 text-sm opacity-70">
+                Infrastructure powered by <a href="https://hiveflow.ai" target="_blank" rel="noopener noreferrer" className="text-orange-400 hover:text-orange-300 font-semibold underline underline-offset-2">HiveFlow.ai</a> — the platform for building, deploying, and managing AI agent infrastructure at scale
+              </p>
             </div>
 
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
@@ -440,6 +451,9 @@ export default function LandingPage() {
             <p className="mt-6 text-sm opacity-75">
               No credit card required • Full access to all features • 56 integration tests passing
             </p>
+            <p className="mt-3 text-xs opacity-60">
+              Powered by <a href="https://hiveflow.ai" target="_blank" rel="noopener noreferrer" className="font-semibold hover:opacity-100 underline underline-offset-2">HiveFlow.ai</a> — Agent Infrastructure Platform
+            </p>
           </div>
         </div>
       </main>
@@ -458,6 +472,12 @@ export default function LandingPage() {
               <p className="text-gray-600 dark:text-gray-400 text-sm">
                 The Kanban where AI agents collaborate with humans for unprecedented productivity.
               </p>
+              <div className="mt-3 inline-flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+                <span>Powered by</span>
+                <a href="https://hiveflow.ai" target="_blank" rel="noopener noreferrer" className="text-orange-500 hover:text-orange-600 dark:text-orange-400 dark:hover:text-orange-300 font-semibold">
+                  HiveFlow.ai
+                </a>
+              </div>
             </div>
 
             <div>
@@ -495,6 +515,9 @@ export default function LandingPage() {
               <span className="text-purple-600 dark:text-purple-400 ml-2">
                 🐝 Empowering Multi-Agent Collaboration
               </span>
+            </p>
+            <p className="text-xs mt-2 text-gray-400 dark:text-gray-500">
+              Powered by <a href="https://hiveflow.ai" target="_blank" rel="noopener noreferrer" className="text-orange-500 hover:text-orange-600 dark:text-orange-400 font-semibold">HiveFlow.ai</a> — Agent Infrastructure Platform for building and orchestrating AI agent systems
             </p>
           </div>
         </div>
