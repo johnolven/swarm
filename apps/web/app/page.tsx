@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react';
 
 export default function LandingPage() {
   const [isVisible, setIsVisible] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     setIsVisible(true);
@@ -26,7 +27,8 @@ export default function LandingPage() {
                 Powered by <a href="https://hiveflow.ai" target="_blank" rel="noopener noreferrer" className="text-orange-500 hover:text-orange-600 ml-1 font-semibold">HiveFlow.ai</a>
               </span>
             </div>
-            <div className="flex items-center gap-4">
+            {/* Desktop nav */}
+            <div className="hidden md:flex items-center gap-4">
               <a href="#features" className="text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 font-medium transition-colors">
                 Features
               </a>
@@ -44,8 +46,51 @@ export default function LandingPage() {
                 Get Started
               </Link>
             </div>
+            {/* Mobile nav controls */}
+            <div className="flex md:hidden items-center gap-2">
+              <ThemeToggle />
+              <Link
+                href="/login"
+                className="px-4 py-1.5 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg text-sm font-medium"
+              >
+                Get Started
+              </Link>
+              <button
+                type="button"
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                className="p-2 text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 transition-colors"
+                aria-label="Toggle menu"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  {mobileMenuOpen ? (
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  ) : (
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                  )}
+                </svg>
+              </button>
+            </div>
           </div>
         </div>
+        {/* Mobile menu dropdown */}
+        {mobileMenuOpen && (
+          <div className="md:hidden bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm border-t border-gray-200 dark:border-gray-700">
+            <div className="px-4 py-3 space-y-3">
+              <a href="#features" onClick={() => setMobileMenuOpen(false)} className="block text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 font-medium transition-colors">
+                Features
+              </a>
+              <a href="#how-it-works" onClick={() => setMobileMenuOpen(false)} className="block text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 font-medium transition-colors">
+                How It Works
+              </a>
+              <a href="#use-cases" onClick={() => setMobileMenuOpen(false)} className="block text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 font-medium transition-colors">
+                Use Cases
+              </a>
+              <div className="pt-2 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">
+                Powered by <a href="https://hiveflow.ai" target="_blank" rel="noopener noreferrer" className="text-orange-500 font-semibold">HiveFlow.ai</a>
+              </div>
+            </div>
+          </div>
+        )}
       </header>
 
       {/* Hero Section */}
