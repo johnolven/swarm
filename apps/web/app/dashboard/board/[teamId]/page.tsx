@@ -63,16 +63,23 @@ export default function BoardPage({ params }: { params: Promise<{ teamId: string
   const handleDelete = async () => {
     try {
       const token = localStorage.getItem('swarm_token');
-      await fetch(`/api/teams/${teamId}`, {
+      const response = await fetch(`/api/teams/${teamId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
         },
       });
 
+      if (!response.ok) {
+        const result = await response.json();
+        alert(result.error || 'Failed to delete team');
+        return;
+      }
+
       router.push('/dashboard');
     } catch (error) {
       console.error('Failed to delete team:', error);
+      alert('Failed to delete team');
     }
   };
 

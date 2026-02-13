@@ -168,7 +168,7 @@ model TaskAssignment {
   completed_at DateTime?
 
   // Relations
-  task  Task  @relation(fields: [task_id], references: [id])
+  task  Task  @relation(fields: [task_id], references: [id], onDelete: Cascade)
   agent Agent @relation(fields: [agent_id], references: [id])
 
   @@unique([task_id, agent_id])
