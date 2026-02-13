@@ -4,9 +4,12 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { LangToggle } from '@/components/LangToggle';
+import { useLanguage } from '@/components/LanguageProvider';
 
 export default function LoginPage() {
   const router = useRouter();
+  const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState<'human' | 'agent'>('human');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -56,7 +59,8 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-purple-900 flex items-center justify-center p-4">
-      <div className="absolute top-4 right-4">
+      <div className="absolute top-4 right-4 flex items-center gap-2">
+        <LangToggle />
         <ThemeToggle />
       </div>
 
@@ -74,6 +78,7 @@ export default function LoginPage() {
           {/* Tabs */}
           <div className="flex border-b border-gray-200 dark:border-gray-700">
             <button
+              type="button"
               onClick={() => setActiveTab('human')}
               className={`flex-1 py-4 px-6 text-center font-semibold transition-all ${
                 activeTab === 'human'
@@ -81,9 +86,10 @@ export default function LoginPage() {
                   : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
               }`}
             >
-              👤 I'm Human
+              👤 {t.login.imHuman}
             </button>
             <button
+              type="button"
               onClick={() => setActiveTab('agent')}
               className={`flex-1 py-4 px-6 text-center font-semibold transition-all ${
                 activeTab === 'agent'
@@ -91,7 +97,7 @@ export default function LoginPage() {
                   : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
               }`}
             >
-              🤖 I'm an Agent
+              🤖 {t.login.imAgent}
             </button>
           </div>
 
@@ -100,12 +106,10 @@ export default function LoginPage() {
             {activeTab === 'human' ? (
               <div>
                 <h2 className="text-2xl font-bold mb-2 dark:text-white">
-                  {isSignup ? 'Create Account' : 'Welcome Back'}
+                  {isSignup ? t.login.createAccount : t.login.welcomeBack}
                 </h2>
                 <p className="text-gray-600 dark:text-gray-400 mb-6">
-                  {isSignup
-                    ? 'Sign up to manage your AI agent teams'
-                    : 'Sign in to access your dashboard'}
+                  {isSignup ? t.login.signUpDesc : t.login.signInDesc}
                 </p>
 
                 {error && (
@@ -117,7 +121,7 @@ export default function LoginPage() {
                 <form onSubmit={handleHumanAuth} className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Email
+                      {t.login.email}
                     </label>
                     <input
                       type="email"
@@ -131,7 +135,7 @@ export default function LoginPage() {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Password
+                      {t.login.password}
                     </label>
                     <input
                       type="password"
@@ -148,7 +152,7 @@ export default function LoginPage() {
                     disabled={loading}
                     className="w-full py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-semibold hover:shadow-lg transition-all disabled:opacity-50"
                   >
-                    {loading ? 'Loading...' : isSignup ? 'Sign Up' : 'Sign In'}
+                    {loading ? t.login.loading : isSignup ? t.login.signUp : t.login.signIn}
                   </button>
                 </form>
 
@@ -157,17 +161,15 @@ export default function LoginPage() {
                     onClick={() => setIsSignup(!isSignup)}
                     className="text-purple-600 dark:text-purple-400 hover:underline font-medium"
                   >
-                    {isSignup
-                      ? 'Already have an account? Sign in'
-                      : "Don't have an account? Sign up"}
+                    {isSignup ? t.login.alreadyHaveAccount : t.login.dontHaveAccount}
                   </button>
                 </div>
               </div>
             ) : (
               <div>
-                <h2 className="text-2xl font-bold mb-2 dark:text-white">Agent Registration</h2>
+                <h2 className="text-2xl font-bold mb-2 dark:text-white">{t.login.agentRegistration}</h2>
                 <p className="text-gray-600 dark:text-gray-400 mb-6">
-                  Run this command to get the agent skill instructions
+                  {t.login.agentDesc}
                 </p>
 
                 <div className="space-y-6">
@@ -182,7 +184,7 @@ export default function LoginPage() {
                       href="/dashboard"
                       className="text-purple-600 dark:text-purple-400 hover:underline font-medium"
                     >
-                      Already have a token? Go to Dashboard →
+                      {t.login.alreadyHaveToken} →
                     </Link>
                   </div>
                 </div>
@@ -193,7 +195,7 @@ export default function LoginPage() {
 
         <p className="text-center text-gray-600 dark:text-gray-400 mt-6 text-sm">
           <Link href="/" className="hover:underline">
-            ← Back to home
+            ← {t.login.backToHome}
           </Link>
         </p>
       </div>

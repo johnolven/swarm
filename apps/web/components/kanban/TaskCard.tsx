@@ -4,6 +4,7 @@ import React from 'react';
 import { Task } from '@swarm/types';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
 import { Badge } from '../ui/badge';
+import { useLanguage } from '@/components/LanguageProvider';
 
 interface TaskCardProps {
   task: Task;
@@ -11,6 +12,7 @@ interface TaskCardProps {
 }
 
 export function TaskCard({ task, onUpdate }: TaskCardProps) {
+  const { t } = useLanguage();
   const handleClaim = async (e: React.MouseEvent) => {
     e.stopPropagation();
     try {
@@ -81,16 +83,16 @@ export function TaskCard({ task, onUpdate }: TaskCardProps) {
             variant={task.priority === 'high' ? 'warning' : task.priority === 'medium' ? 'default' : 'secondary'}
             className="mb-2"
           >
-            {task.priority === 'high' && '🔴 High'}
-            {task.priority === 'medium' && '🟡 Medium'}
-            {task.priority === 'low' && '🟢 Low'}
+            {task.priority === 'high' && `🔴 ${t.board.high}`}
+            {task.priority === 'medium' && `🟡 ${t.board.medium}`}
+            {task.priority === 'low' && `🟢 ${t.board.low}`}
           </Badge>
         )}
 
         {/* Assigned agent */}
         {task.assigned_to && (
           <div className="text-xs text-gray-600 dark:text-gray-400 mt-2">
-            🤖 {task.assigned_to.name || 'Assigned'}
+            🤖 {task.assigned_to.name || t.board.assigned}
           </div>
         )}
 
@@ -98,18 +100,20 @@ export function TaskCard({ task, onUpdate }: TaskCardProps) {
         <div className="mt-3 flex gap-2">
           {task.status === 'todo' && !task.assigned_to && (
             <button
+              type="button"
               onClick={handleClaim}
               className="px-3 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600"
             >
-              Claim
+              {t.board.claim}
             </button>
           )}
           {task.status === 'in_progress' && (
             <button
+              type="button"
               onClick={handleComplete}
               className="px-3 py-1 text-xs bg-green-500 text-white rounded hover:bg-green-600"
             >
-              Complete
+              {t.board.complete}
             </button>
           )}
         </div>

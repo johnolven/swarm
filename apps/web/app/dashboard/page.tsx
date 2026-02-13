@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { DebugPanel } from '@/components/DebugPanel';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { LangToggle } from '@/components/LangToggle';
+import { useLanguage } from '@/components/LanguageProvider';
 import { CreateTeamModal } from '@/components/CreateTeamModal';
 
 interface Team {
@@ -17,6 +19,7 @@ interface Team {
 
 export default function DashboardPage() {
   const router = useRouter();
+  const { t } = useLanguage();
   const [teams, setTeams] = useState<Team[]>([]);
   const [loading, setLoading] = useState(true);
   const [userType, setUserType] = useState('');
@@ -129,7 +132,7 @@ export default function DashboardPage() {
                 href="/dashboard/invitations"
                 className="relative text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white font-medium transition-colors"
               >
-                ✉️ Invitations
+                ✉️ {t.dashboard.invitations}
                 {invitationCount > 0 && (
                   <span className="absolute -top-1 -right-2 flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-red-500 rounded-full animate-pulse">
                     {invitationCount}
@@ -140,14 +143,16 @@ export default function DashboardPage() {
                 href="/dashboard/profile"
                 className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white font-medium transition-colors"
               >
-                {userType === 'human' ? '👤 Human' : '🤖 Agent'}
+                {userType === 'human' ? `👤 ${t.dashboard.human}` : `🤖 ${t.dashboard.agent}`}
               </Link>
+              <LangToggle />
               <ThemeToggle />
               <button
+                type="button"
                 onClick={handleLogout}
                 className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white font-medium"
               >
-                Logout
+                {t.dashboard.logout}
               </button>
             </div>
           </div>
@@ -157,8 +162,8 @@ export default function DashboardPage() {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
-          <h2 className="text-3xl font-bold mb-2 dark:text-white">Dashboard</h2>
-          <p className="text-gray-600 dark:text-gray-400">Manage your teams and tasks</p>
+          <h2 className="text-3xl font-bold mb-2 dark:text-white">{t.dashboard.title}</h2>
+          <p className="text-gray-600 dark:text-gray-400">{t.dashboard.subtitle}</p>
         </div>
 
         {/* Tabs and Search */}
@@ -166,6 +171,7 @@ export default function DashboardPage() {
           {/* Tabs */}
           <div className="flex border-b border-gray-200 dark:border-gray-700">
             <button
+              type="button"
               onClick={() => handleTabChange('private')}
               className={`px-6 py-3 font-semibold transition-all ${
                 activeTab === 'private'
@@ -173,9 +179,10 @@ export default function DashboardPage() {
                   : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
               }`}
             >
-              🔒 Private Teams ({teams.filter(t => t.visibility === 'private').length})
+              🔒 {t.dashboard.privateTeams} ({teams.filter(tm => tm.visibility === 'private').length})
             </button>
             <button
+              type="button"
               onClick={() => handleTabChange('public')}
               className={`px-6 py-3 font-semibold transition-all ${
                 activeTab === 'public'
@@ -183,7 +190,7 @@ export default function DashboardPage() {
                   : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
               }`}
             >
-              🌐 Public Teams ({teams.filter(t => t.visibility === 'public').length})
+              🌐 {t.dashboard.publicTeams} ({teams.filter(tm => tm.visibility === 'public').length})
             </button>
           </div>
 
@@ -194,7 +201,7 @@ export default function DashboardPage() {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => handleSearchChange(e.target.value)}
-                placeholder="Search teams by name or description..."
+                placeholder={t.dashboard.searchPlaceholder}
                 className="w-full px-4 py-3 pl-12 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white dark:placeholder-gray-400 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
               />
               <svg
@@ -212,7 +219,7 @@ export default function DashboardPage() {
         {loading ? (
           <div className="text-center py-12">
             <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
-            <p className="mt-4 text-gray-600 dark:text-gray-400">Loading teams...</p>
+            <p className="mt-4 text-gray-600 dark:text-gray-400">{t.dashboard.loadingTeams}</p>
           </div>
         ) : (
           <>
@@ -233,7 +240,7 @@ export default function DashboardPage() {
                   <p className="text-gray-600 dark:text-gray-400 text-sm mb-4">{team.description}</p>
                 )}
                 <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
-                  <span>View Board →</span>
+                  <span>{t.dashboard.viewBoard} →</span>
                 </div>
               </Link>
               ))}
@@ -245,13 +252,13 @@ export default function DashboardPage() {
                   </div>
                   <h3 className="text-xl font-semibold mb-2 dark:text-white">
                     {searchQuery
-                      ? 'No teams found'
-                      : `No ${activeTab} teams yet`}
+                      ? t.dashboard.noTeamsFound
+                      : t.dashboard.noTeamsYet.replace('{tab}', activeTab === 'public' ? t.dashboard.publicTeams.toLowerCase() : t.dashboard.privateTeams.toLowerCase())}
                   </h3>
                   <p className="text-gray-600 dark:text-gray-400 mb-6">
                     {searchQuery
-                      ? 'Try adjusting your search query'
-                      : 'Create your first team using the button below'}
+                      ? t.dashboard.adjustSearch
+                      : t.dashboard.createFirstTeam}
                   </p>
                 </div>
               )}
@@ -261,7 +268,7 @@ export default function DashboardPage() {
             {totalPages > 1 && (
               <div className="mt-8 flex items-center justify-between">
                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                  Showing {startIndex + 1} to {Math.min(endIndex, filteredTeams.length)} of {filteredTeams.length} teams
+                  {t.dashboard.showing} {startIndex + 1} {t.dashboard.to} {Math.min(endIndex, filteredTeams.length)} {t.dashboard.of} {filteredTeams.length} {t.dashboard.teams}
                 </p>
                 <div className="flex gap-2">
                   <button
@@ -269,7 +276,7 @@ export default function DashboardPage() {
                     disabled={currentPage === 1}
                     className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   >
-                    ← Previous
+                    ← {t.dashboard.previous}
                   </button>
                   <div className="flex gap-2">
                     {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
@@ -291,7 +298,7 @@ export default function DashboardPage() {
                     disabled={currentPage === totalPages}
                     className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   >
-                    Next →
+                    {t.dashboard.next} →
                   </button>
                 </div>
               </div>
@@ -300,23 +307,25 @@ export default function DashboardPage() {
         )}
 
         <div className="mt-12 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
-          <h3 className="text-xl font-bold mb-4 dark:text-white">Quick Actions</h3>
+          <h3 className="text-xl font-bold mb-4 dark:text-white">{t.dashboard.quickActions}</h3>
           <div className="grid md:grid-cols-3 gap-4">
             <button
+              type="button"
               onClick={() => setIsCreateModalOpen(true)}
               className="p-4 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg hover:border-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-all text-center"
             >
               <div className="text-3xl mb-2">➕</div>
-              <div className="font-semibold dark:text-white">Create Team</div>
-              <div className="text-sm text-gray-600 dark:text-gray-400">Start a new team</div>
+              <div className="font-semibold dark:text-white">{t.dashboard.createTeam}</div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">{t.dashboard.startNewTeam}</div>
             </button>
             <button
+              type="button"
               onClick={fetchTeams}
               className="p-4 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg hover:border-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all text-center"
             >
               <div className="text-3xl mb-2">🔄</div>
-              <div className="font-semibold dark:text-white">Refresh Teams</div>
-              <div className="text-sm text-gray-600 dark:text-gray-400">Update team list</div>
+              <div className="font-semibold dark:text-white">{t.dashboard.refreshTeams}</div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">{t.dashboard.updateTeamList}</div>
             </button>
             <Link
               href="/api/health"
@@ -324,8 +333,8 @@ export default function DashboardPage() {
               className="p-4 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg hover:border-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 transition-all text-center"
             >
               <div className="text-3xl mb-2">🏥</div>
-              <div className="font-semibold dark:text-white">API Status</div>
-              <div className="text-sm text-gray-600 dark:text-gray-400">Check health</div>
+              <div className="font-semibold dark:text-white">{t.dashboard.apiStatus}</div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">{t.dashboard.checkHealth}</div>
             </Link>
           </div>
         </div>

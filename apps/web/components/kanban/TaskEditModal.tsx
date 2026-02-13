@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { Task } from '@swarm/types';
+import { useLanguage } from '@/components/LanguageProvider';
 
 interface TaskEditModalProps {
   task: Task;
@@ -11,6 +12,7 @@ interface TaskEditModalProps {
 }
 
 export function TaskEditModal({ task, isOpen, onClose, onUpdate }: TaskEditModalProps) {
+  const { t } = useLanguage();
   const [title, setTitle] = useState(task.title);
   const [description, setDescription] = useState(task.description || '');
   const [priority, setPriority] = useState(task.priority || 'medium');
@@ -74,8 +76,9 @@ export function TaskEditModal({ task, isOpen, onClose, onUpdate }: TaskEditModal
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold dark:text-white">Edit Task</h2>
+          <h2 className="text-2xl font-bold dark:text-white">{t.board.editTask}</h2>
           <button
+            type="button"
             onClick={onClose}
             className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 text-2xl"
           >
@@ -86,44 +89,45 @@ export function TaskEditModal({ task, isOpen, onClose, onUpdate }: TaskEditModal
         {/* Title */}
         <div className="mb-4">
           <label className="block text-sm font-medium mb-2 dark:text-white">
-            Title
+            {t.board.title}
           </label>
           <input
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400 focus:ring-2 focus:ring-purple-600 focus:border-transparent"
-            placeholder="Task title..."
+            placeholder={t.board.taskTitlePlaceholder}
           />
         </div>
 
         {/* Description */}
         <div className="mb-4">
           <label className="block text-sm font-medium mb-2 dark:text-white">
-            Description
+            {t.board.description}
           </label>
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             rows={4}
             className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400 focus:ring-2 focus:ring-purple-600 focus:border-transparent"
-            placeholder="Task description..."
+            placeholder={t.board.taskDescPlaceholder}
           />
         </div>
 
         {/* Priority */}
         <div className="mb-4">
           <label className="block text-sm font-medium mb-2 dark:text-white">
-            Priority
+            {t.board.priority}
           </label>
           <select
             value={priority}
             onChange={(e) => setPriority(e.target.value)}
             className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+            aria-label={t.board.priority}
           >
-            <option value="low" className="dark:bg-gray-700 dark:text-white">Low</option>
-            <option value="medium" className="dark:bg-gray-700 dark:text-white">Medium</option>
-            <option value="high" className="dark:bg-gray-700 dark:text-white">High</option>
+            <option value="low" className="dark:bg-gray-700 dark:text-white">{t.board.low}</option>
+            <option value="medium" className="dark:bg-gray-700 dark:text-white">{t.board.medium}</option>
+            <option value="high" className="dark:bg-gray-700 dark:text-white">{t.board.high}</option>
           </select>
         </div>
 
@@ -131,18 +135,18 @@ export function TaskEditModal({ task, isOpen, onClose, onUpdate }: TaskEditModal
         <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
           <div className="text-sm space-y-2">
             <div className="flex justify-between">
-              <span className="text-gray-600 dark:text-gray-400">Status:</span>
+              <span className="text-gray-600 dark:text-gray-400">{t.board.status}</span>
               <span className="font-medium dark:text-white">{task.status}</span>
             </div>
             {task.assigned_to && (
               <div className="flex justify-between">
-                <span className="text-gray-600 dark:text-gray-400">Assigned to:</span>
+                <span className="text-gray-600 dark:text-gray-400">{t.board.assignedTo}</span>
                 <span className="font-medium dark:text-white">🤖 {task.assigned_to.name}</span>
               </div>
             )}
             {task.required_capabilities && task.required_capabilities.length > 0 && (
               <div className="flex justify-between">
-                <span className="text-gray-600 dark:text-gray-400">Capabilities:</span>
+                <span className="text-gray-600 dark:text-gray-400">{t.board.capabilities}</span>
                 <div className="flex flex-wrap gap-1">
                   {task.required_capabilities.map((cap) => (
                     <span
@@ -163,33 +167,37 @@ export function TaskEditModal({ task, isOpen, onClose, onUpdate }: TaskEditModal
           <div>
             {!isDeleting ? (
               <button
+                type="button"
                 onClick={handleDelete}
                 className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
               >
-                Delete Task
+                {t.board.deleteTask}
               </button>
             ) : (
               <button
+                type="button"
                 onClick={handleDelete}
                 className="px-4 py-2 bg-red-700 text-white rounded-lg hover:bg-red-800 transition-colors animate-pulse"
               >
-                Click again to confirm deletion
+                {t.board.confirmDeletion}
               </button>
             )}
           </div>
           <div className="flex gap-3">
             <button
+              type="button"
               onClick={onClose}
               className="px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-white rounded-lg hover:bg-gray-400 dark:hover:bg-gray-500 transition-colors"
             >
-              Cancel
+              {t.board.cancel}
             </button>
             <button
+              type="button"
               onClick={handleSave}
               disabled={!title.trim()}
               className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              Save Changes
+              {t.board.saveChanges}
             </button>
           </div>
         </div>

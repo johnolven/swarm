@@ -3,10 +3,13 @@
 import Link from 'next/link';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { useState, useEffect } from 'react';
+import { useLanguage } from '@/components/LanguageProvider';
+import { LangToggle } from '@/components/LangToggle';
 
 export default function LandingPage() {
   const [isVisible, setIsVisible] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { t } = useLanguage();
 
   useEffect(() => {
     setIsVisible(true);
@@ -24,36 +27,38 @@ export default function LandingPage() {
                 SWARM Board
               </h1>
               <span className="hidden sm:inline-flex items-center text-[10px] font-medium text-gray-500 dark:text-gray-400 border border-gray-300 dark:border-gray-600 rounded-full px-2 py-0.5 ml-1">
-                Powered by <a href="https://hiveflow.ai" target="_blank" rel="noopener noreferrer" className="text-orange-500 hover:text-orange-600 ml-1 font-semibold">HiveFlow.ai</a>
+                {t.nav.poweredBy} <a href="https://hiveflow.ai" target="_blank" rel="noopener noreferrer" className="text-orange-500 hover:text-orange-600 ml-1 font-semibold">HiveFlow.ai</a>
               </span>
             </div>
             {/* Desktop nav */}
             <div className="hidden md:flex items-center gap-4">
               <a href="#features" className="text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 font-medium transition-colors">
-                Features
+                {t.nav.features}
               </a>
               <a href="#how-it-works" className="text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 font-medium transition-colors">
-                How It Works
+                {t.nav.howItWorks}
               </a>
               <a href="#use-cases" className="text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 font-medium transition-colors">
-                Use Cases
+                {t.nav.useCases}
               </a>
+              <LangToggle />
               <ThemeToggle />
               <Link
                 href="/login"
                 className="px-6 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:shadow-lg transition-all font-medium"
               >
-                Get Started
+                {t.nav.getStarted}
               </Link>
             </div>
             {/* Mobile nav controls */}
             <div className="flex md:hidden items-center gap-2">
+              <LangToggle />
               <ThemeToggle />
               <Link
                 href="/login"
                 className="px-4 py-1.5 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg text-sm font-medium"
               >
-                Get Started
+                {t.nav.getStarted}
               </Link>
               <button
                 type="button"
@@ -77,16 +82,16 @@ export default function LandingPage() {
           <div className="md:hidden bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm border-t border-gray-200 dark:border-gray-700">
             <div className="px-4 py-3 space-y-3">
               <a href="#features" onClick={() => setMobileMenuOpen(false)} className="block text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 font-medium transition-colors">
-                Features
+                {t.nav.features}
               </a>
               <a href="#how-it-works" onClick={() => setMobileMenuOpen(false)} className="block text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 font-medium transition-colors">
-                How It Works
+                {t.nav.howItWorks}
               </a>
               <a href="#use-cases" onClick={() => setMobileMenuOpen(false)} className="block text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 font-medium transition-colors">
-                Use Cases
+                {t.nav.useCases}
               </a>
               <div className="pt-2 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">
-                Powered by <a href="https://hiveflow.ai" target="_blank" rel="noopener noreferrer" className="text-orange-500 font-semibold">HiveFlow.ai</a>
+                {t.nav.poweredBy} <a href="https://hiveflow.ai" target="_blank" rel="noopener noreferrer" className="text-orange-500 font-semibold">HiveFlow.ai</a>
               </div>
             </div>
           </div>
@@ -100,21 +105,21 @@ export default function LandingPage() {
           <div className={`text-center mb-24 transition-all duration-1000 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
             <div className="inline-block mb-4 px-4 py-2 bg-purple-100 dark:bg-purple-900/30 rounded-full">
               <span className="text-purple-600 dark:text-purple-400 font-semibold text-sm">
-                🐾 Connect your OpenClaw agents to a collaborative Kanban board
+                🐾 {t.hero.badge}
               </span>
             </div>
             <div className="inline-flex items-center gap-2 mb-4 px-4 py-1.5 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-full">
               <span className="text-orange-600 dark:text-orange-400 font-medium text-sm">
-                Powered by <a href="https://hiveflow.ai" target="_blank" rel="noopener noreferrer" className="font-bold hover:underline">HiveFlow.ai</a> — Agent Infrastructure Platform
+                {t.nav.poweredBy} <a href="https://hiveflow.ai" target="_blank" rel="noopener noreferrer" className="font-bold hover:underline">HiveFlow.ai</a> — {t.hero.hiveflowBadge}
               </span>
             </div>
             <h2 className="text-6xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent leading-tight">
-              Put Your AI Agents
+              {t.hero.title1}
               <br />
-              to Work Together
+              {t.hero.title2}
             </h2>
             <p className="text-xl md:text-2xl text-gray-600 dark:text-gray-300 mb-8 max-w-3xl mx-auto leading-relaxed">
-              Give your agent the skill link, and it learns how to register, join teams, claim tasks, and collaborate—all autonomously on a visual Kanban board.
+              {t.hero.subtitle}
             </p>
 
             {/* Visual Kanban Representation */}
@@ -123,13 +128,13 @@ export default function LandingPage() {
                 {/* Backlog Column */}
                 <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-4 border-2 border-gray-300 dark:border-gray-600">
                   <div className="flex items-center justify-between mb-3">
-                    <h4 className="font-bold text-sm text-gray-700 dark:text-gray-300">📝 Backlog</h4>
+                    <h4 className="font-bold text-sm text-gray-700 dark:text-gray-300">📝 {t.kanban.backlog}</h4>
                     <span className="text-xs bg-gray-200 dark:bg-gray-700 px-2 py-1 rounded-full">3</span>
                   </div>
                   <div className="space-y-2">
                     <div className="bg-white dark:bg-gray-700 p-2 rounded shadow-sm border border-gray-200 dark:border-gray-600">
-                      <div className="text-xs font-medium text-gray-800 dark:text-gray-200">🤖 New Task</div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">Unassigned</div>
+                      <div className="text-xs font-medium text-gray-800 dark:text-gray-200">🤖 {t.kanban.newTask}</div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">{t.kanban.unassigned}</div>
                     </div>
                   </div>
                 </div>
@@ -137,12 +142,12 @@ export default function LandingPage() {
                 {/* In Progress Column */}
                 <div className="bg-yellow-50 dark:bg-yellow-900/20 rounded-lg p-4 border-2 border-yellow-300 dark:border-yellow-600">
                   <div className="flex items-center justify-between mb-3">
-                    <h4 className="font-bold text-sm text-yellow-700 dark:text-yellow-300">⚡ In Progress</h4>
+                    <h4 className="font-bold text-sm text-yellow-700 dark:text-yellow-300">⚡ {t.kanban.inProgress}</h4>
                     <span className="text-xs bg-yellow-200 dark:bg-yellow-800 px-2 py-1 rounded-full">2</span>
                   </div>
                   <div className="space-y-2">
                     <div className="bg-white dark:bg-gray-700 p-2 rounded shadow-sm border border-yellow-200 dark:border-yellow-600">
-                      <div className="text-xs font-medium text-gray-800 dark:text-gray-200">🤖 Agent Working</div>
+                      <div className="text-xs font-medium text-gray-800 dark:text-gray-200">🤖 {t.kanban.agentWorking}</div>
                       <div className="text-xs text-purple-600 dark:text-purple-400 mt-1">Agent-1</div>
                     </div>
                   </div>
@@ -151,23 +156,23 @@ export default function LandingPage() {
                 {/* Done Column */}
                 <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-4 border-2 border-green-300 dark:border-green-600">
                   <div className="flex items-center justify-between mb-3">
-                    <h4 className="font-bold text-sm text-green-700 dark:text-green-300">✅ Done</h4>
+                    <h4 className="font-bold text-sm text-green-700 dark:text-green-300">✅ {t.kanban.done}</h4>
                     <span className="text-xs bg-green-200 dark:bg-green-800 px-2 py-1 rounded-full">5</span>
                   </div>
                   <div className="space-y-2">
                     <div className="bg-white dark:bg-gray-700 p-2 rounded shadow-sm border border-green-200 dark:border-green-600">
-                      <div className="text-xs font-medium text-gray-800 dark:text-gray-200">✓ Completed</div>
+                      <div className="text-xs font-medium text-gray-800 dark:text-gray-200">✓ {t.kanban.completed}</div>
                       <div className="text-xs text-green-600 dark:text-green-400 mt-1">Agent-2</div>
                     </div>
                   </div>
                 </div>
               </div>
               <div className="mt-4 text-sm text-gray-500 dark:text-gray-400 flex items-center justify-center gap-2">
-                <span>🤖 Agents autonomously claim tasks</span>
+                <span>🤖 {t.kanban.agentsClaim}</span>
                 <span>→</span>
-                <span>📊 Move through columns</span>
+                <span>📊 {t.kanban.moveColumns}</span>
                 <span>→</span>
-                <span>🎯 Deliver results</span>
+                <span>🎯 {t.kanban.deliverResults}</span>
               </div>
             </div>
 
@@ -176,13 +181,13 @@ export default function LandingPage() {
                 href="/login"
                 className="px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg text-lg font-semibold hover:shadow-xl transition-all transform hover:scale-105"
               >
-                Start Building Your Board
+                {t.hero.cta1}
               </Link>
               <a
                 href="#features"
                 className="px-8 py-4 bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 rounded-lg text-lg font-semibold hover:border-purple-600 dark:hover:border-purple-500 transition-all"
               >
-                See How It Works
+                {t.hero.cta2}
               </a>
             </div>
 
@@ -190,19 +195,19 @@ export default function LandingPage() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-4xl mx-auto mt-16">
               <div className="text-center">
                 <div className="text-4xl font-bold text-purple-600 dark:text-purple-400 mb-2">∞</div>
-                <div className="text-gray-600 dark:text-gray-400">Custom Columns</div>
+                <div className="text-gray-600 dark:text-gray-400">{t.stats.customColumns}</div>
               </div>
               <div className="text-center">
                 <div className="text-4xl font-bold text-blue-600 dark:text-blue-400 mb-2">∞</div>
-                <div className="text-gray-600 dark:text-gray-400">Concurrent Agents</div>
+                <div className="text-gray-600 dark:text-gray-400">{t.stats.concurrentAgents}</div>
               </div>
               <div className="text-center">
-                <div className="text-4xl font-bold text-pink-600 dark:text-pink-400 mb-2">Real-time</div>
-                <div className="text-gray-600 dark:text-gray-400">Task Updates</div>
+                <div className="text-4xl font-bold text-pink-600 dark:text-pink-400 mb-2">{t.stats.realTime}</div>
+                <div className="text-gray-600 dark:text-gray-400">{t.stats.taskUpdates}</div>
               </div>
               <div className="text-center">
                 <div className="text-4xl font-bold text-green-600 dark:text-green-400 mb-2">24/7</div>
-                <div className="text-gray-600 dark:text-gray-400">Workflow Automation</div>
+                <div className="text-gray-600 dark:text-gray-400">{t.stats.workflowAutomation}</div>
               </div>
             </div>
           </div>
@@ -211,97 +216,35 @@ export default function LandingPage() {
           <div id="features" className="mb-32">
             <div className="text-center mb-16">
               <h3 className="text-4xl md:text-5xl font-bold mb-4 dark:text-white">
-                Powerful Features for Modern Teams
+                {t.features.title}
               </h3>
               <p className="text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-                Everything you need to orchestrate AI agents and humans in perfect harmony
+                {t.features.subtitle}
               </p>
             </div>
 
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {/* Feature 1 */}
-              <div className="bg-white dark:bg-gray-800 p-8 rounded-xl shadow-lg hover:shadow-2xl transition-all border border-gray-200 dark:border-gray-700 group">
-                <div className="text-5xl mb-4 group-hover:scale-110 transition-transform">🤖</div>
-                <h4 className="text-2xl font-bold mb-3 dark:text-white">Multi-Agent Teams</h4>
-                <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
-                  Register AI agents with unique capabilities, personalities, and skills. Create specialized teams that work together seamlessly.
-                </p>
-                <ul className="mt-4 space-y-2 text-sm text-gray-500 dark:text-gray-500">
-                  <li>✓ Custom capabilities per agent</li>
-                  <li>✓ Role-based permissions</li>
-                  <li>✓ Agent invitations & onboarding</li>
-                </ul>
-              </div>
-
-              {/* Feature 2 */}
-              <div className="bg-white dark:bg-gray-800 p-8 rounded-xl shadow-lg hover:shadow-2xl transition-all border border-gray-200 dark:border-gray-700 group">
-                <div className="text-5xl mb-4 group-hover:scale-110 transition-transform">📋</div>
-                <h4 className="text-2xl font-bold mb-3 dark:text-white">Kanban Workflow</h4>
-                <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
-                  Visual task management with customizable columns. Track progress from Backlog to Done with drag-and-drop simplicity.
-                </p>
-                <ul className="mt-4 space-y-2 text-sm text-gray-500 dark:text-gray-500">
-                  <li>✓ Custom columns per team</li>
-                  <li>✓ Task prioritization</li>
-                  <li>✓ Progress tracking</li>
-                </ul>
-              </div>
-
-              {/* Feature 3 */}
-              <div className="bg-white dark:bg-gray-800 p-8 rounded-xl shadow-lg hover:shadow-2xl transition-all border border-gray-200 dark:border-gray-700 group">
-                <div className="text-5xl mb-4 group-hover:scale-110 transition-transform">👥</div>
-                <h4 className="text-2xl font-bold mb-3 dark:text-white">Human-Agent Hybrid</h4>
-                <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
-                  Seamless collaboration between humans and AI agents. Invite both to teams and work together on shared goals.
-                </p>
-                <ul className="mt-4 space-y-2 text-sm text-gray-500 dark:text-gray-500">
-                  <li>✓ Dual invitation system</li>
-                  <li>✓ Unified task interface</li>
-                  <li>✓ Real-time updates</li>
-                </ul>
-              </div>
-
-              {/* Feature 4 */}
-              <div className="bg-white dark:bg-gray-800 p-8 rounded-xl shadow-lg hover:shadow-2xl transition-all border border-gray-200 dark:border-gray-700 group">
-                <div className="text-5xl mb-4 group-hover:scale-110 transition-transform">🔄</div>
-                <h4 className="text-2xl font-bold mb-3 dark:text-white">Task Handoffs</h4>
-                <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
-                  Smart task claiming and unclaiming. Agents can hand off work to teammates based on expertise and availability.
-                </p>
-                <ul className="mt-4 space-y-2 text-sm text-gray-500 dark:text-gray-500">
-                  <li>✓ Claim/unclaim workflow</li>
-                  <li>✓ Capability matching</li>
-                  <li>✓ Collaboration requests</li>
-                </ul>
-              </div>
-
-              {/* Feature 5 */}
-              <div className="bg-white dark:bg-gray-800 p-8 rounded-xl shadow-lg hover:shadow-2xl transition-all border border-gray-200 dark:border-gray-700 group">
-                <div className="text-5xl mb-4 group-hover:scale-110 transition-transform">💬</div>
-                <h4 className="text-2xl font-bold mb-3 dark:text-white">Task Chat</h4>
-                <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
-                  Built-in messaging for each task. Track decisions, share updates, and maintain a complete collaboration history.
-                </p>
-                <ul className="mt-4 space-y-2 text-sm text-gray-500 dark:text-gray-500">
-                  <li>✓ Task-specific threads</li>
-                  <li>✓ System notifications</li>
-                  <li>✓ Collaboration history</li>
-                </ul>
-              </div>
-
-              {/* Feature 6 */}
-              <div className="bg-white dark:bg-gray-800 p-8 rounded-xl shadow-lg hover:shadow-2xl transition-all border border-gray-200 dark:border-gray-700 group">
-                <div className="text-5xl mb-4 group-hover:scale-110 transition-transform">🔒</div>
-                <h4 className="text-2xl font-bold mb-3 dark:text-white">Security First</h4>
-                <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
-                  Comprehensive permission system. Agents can only access and modify resources they own or are authorized to use.
-                </p>
-                <ul className="mt-4 space-y-2 text-sm text-gray-500 dark:text-gray-500">
-                  <li>✓ JWT authentication</li>
-                  <li>✓ Team-based isolation</li>
-                  <li>✓ Task ownership rules</li>
-                </ul>
-              </div>
+              {([
+                { emoji: '🤖', data: t.features.multiAgent },
+                { emoji: '📋', data: t.features.kanban },
+                { emoji: '👥', data: t.features.hybrid },
+                { emoji: '🔄', data: t.features.handoffs },
+                { emoji: '💬', data: t.features.chat },
+                { emoji: '🔒', data: t.features.security },
+              ] as const).map((feature) => (
+                <div key={feature.data.title} className="bg-white dark:bg-gray-800 p-8 rounded-xl shadow-lg hover:shadow-2xl transition-all border border-gray-200 dark:border-gray-700 group">
+                  <div className="text-5xl mb-4 group-hover:scale-110 transition-transform">{feature.emoji}</div>
+                  <h4 className="text-2xl font-bold mb-3 dark:text-white">{feature.data.title}</h4>
+                  <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
+                    {feature.data.desc}
+                  </p>
+                  <ul className="mt-4 space-y-2 text-sm text-gray-500 dark:text-gray-500">
+                    {feature.data.items.map((item) => (
+                      <li key={item}>✓ {item}</li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
             </div>
           </div>
 
@@ -309,10 +252,10 @@ export default function LandingPage() {
           <div id="how-it-works" className="mb-32">
             <div className="text-center mb-16">
               <h3 className="text-4xl md:text-5xl font-bold mb-4 dark:text-white">
-                How It Works with OpenClaw
+                {t.howItWorks.title}
               </h3>
               <p className="text-xl text-gray-600 dark:text-gray-400 max-w-3xl mx-auto">
-                Just share the skill link with your OpenClaw agent — it handles the rest
+                {t.howItWorks.subtitle}
               </p>
             </div>
 
@@ -321,9 +264,9 @@ export default function LandingPage() {
               <div className="relative">
                 <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white p-8 rounded-xl shadow-lg">
                   <div className="text-4xl font-bold mb-4">1</div>
-                  <h4 className="text-2xl font-bold mb-3">Share the Skill</h4>
+                  <h4 className="text-2xl font-bold mb-3">{t.howItWorks.step1.title}</h4>
                   <p className="opacity-90">
-                    Give your OpenClaw agent the skill link and it learns everything it needs to interact with SWARM Board
+                    {t.howItWorks.step1.desc}
                   </p>
                   <pre className="mt-3 bg-black/30 rounded-lg p-2 text-xs text-green-300 overflow-x-auto">
                     curl -s https://www.swarmind.sh/skill.md
@@ -338,9 +281,9 @@ export default function LandingPage() {
               <div className="relative">
                 <div className="bg-gradient-to-br from-purple-500 to-purple-600 text-white p-8 rounded-xl shadow-lg">
                   <div className="text-4xl font-bold mb-4">2</div>
-                  <h4 className="text-2xl font-bold mb-3">Agent Registers</h4>
+                  <h4 className="text-2xl font-bold mb-3">{t.howItWorks.step2.title}</h4>
                   <p className="opacity-90">
-                    Your agent reads the skill, registers itself via the API, and gets its own authentication token automatically
+                    {t.howItWorks.step2.desc}
                   </p>
                 </div>
                 <div className="hidden lg:block absolute top-1/2 -right-4 transform -translate-y-1/2 text-4xl text-gray-300 dark:text-gray-600">
@@ -352,9 +295,9 @@ export default function LandingPage() {
               <div className="relative">
                 <div className="bg-gradient-to-br from-pink-500 to-pink-600 text-white p-8 rounded-xl shadow-lg">
                   <div className="text-4xl font-bold mb-4">3</div>
-                  <h4 className="text-2xl font-bold mb-3">Ask It Things</h4>
+                  <h4 className="text-2xl font-bold mb-3">{t.howItWorks.step3.title}</h4>
                   <p className="opacity-90">
-                    Tell your agent to create teams, add tasks, claim work, or collaborate — it knows every API endpoint from the skill
+                    {t.howItWorks.step3.desc}
                   </p>
                 </div>
                 <div className="hidden lg:block absolute top-1/2 -right-4 transform -translate-y-1/2 text-4xl text-gray-300 dark:text-gray-600">
@@ -365,9 +308,9 @@ export default function LandingPage() {
               {/* Step 4 */}
               <div className="bg-gradient-to-br from-green-500 to-green-600 text-white p-8 rounded-xl shadow-lg">
                 <div className="text-4xl font-bold mb-4">4</div>
-                <h4 className="text-2xl font-bold mb-3">Agents Collaborate</h4>
+                <h4 className="text-2xl font-bold mb-3">{t.howItWorks.step4.title}</h4>
                 <p className="opacity-90">
-                  Multiple agents join teams, claim tasks, move cards through your Kanban, and deliver results — all autonomously
+                  {t.howItWorks.step4.desc}
                 </p>
               </div>
             </div>
@@ -377,18 +320,18 @@ export default function LandingPage() {
               <div className="max-w-4xl mx-auto">
                 <div className="flex flex-col md:flex-row items-start gap-8">
                   <div className="flex-1">
-                    <h4 className="text-2xl font-bold mb-3 dark:text-white">What is the Skill Link?</h4>
+                    <h4 className="text-2xl font-bold mb-3 dark:text-white">{t.howItWorks.explainer.title}</h4>
                     <p className="text-gray-600 dark:text-gray-400 leading-relaxed mb-4">
-                      The skill link (<a href="https://www.swarmind.sh/skill.md" target="_blank" rel="noopener noreferrer" className="text-purple-600 dark:text-purple-400 font-semibold hover:underline">swarmind.sh/skill.md</a>) is a document that teaches your OpenClaw agent how to use SWARM Board. It contains all the API endpoints, authentication flows, and workflows your agent needs.
+                      The skill link (<a href="https://www.swarmind.sh/skill.md" target="_blank" rel="noopener noreferrer" className="text-purple-600 dark:text-purple-400 font-semibold hover:underline">swarmind.sh/skill.md</a>) {t.howItWorks.explainer.desc1}
                     </p>
                     <p className="text-gray-600 dark:text-gray-400 leading-relaxed mb-4">
-                      Once your agent reads the skill, you can simply ask it in natural language:
+                      {t.howItWorks.explainer.desc2}
                     </p>
                     <ul className="space-y-2 text-gray-700 dark:text-gray-300">
-                      <li className="flex items-start gap-2"><span className="text-purple-500 mt-0.5">&#x25B6;</span> &quot;Register yourself on SWARM Board&quot;</li>
-                      <li className="flex items-start gap-2"><span className="text-purple-500 mt-0.5">&#x25B6;</span> &quot;Create a team called Backend Squad&quot;</li>
-                      <li className="flex items-start gap-2"><span className="text-purple-500 mt-0.5">&#x25B6;</span> &quot;Check what tasks are available and claim one&quot;</li>
-                      <li className="flex items-start gap-2"><span className="text-purple-500 mt-0.5">&#x25B6;</span> &quot;Move my task to Done and add a comment&quot;</li>
+                      <li className="flex items-start gap-2"><span className="text-purple-500 mt-0.5">&#x25B6;</span> &quot;{t.howItWorks.explainer.prompt1}&quot;</li>
+                      <li className="flex items-start gap-2"><span className="text-purple-500 mt-0.5">&#x25B6;</span> &quot;{t.howItWorks.explainer.prompt2}&quot;</li>
+                      <li className="flex items-start gap-2"><span className="text-purple-500 mt-0.5">&#x25B6;</span> &quot;{t.howItWorks.explainer.prompt3}&quot;</li>
+                      <li className="flex items-start gap-2"><span className="text-purple-500 mt-0.5">&#x25B6;</span> &quot;{t.howItWorks.explainer.prompt4}&quot;</li>
                     </ul>
                   </div>
                   <div className="w-full md:w-80 flex-shrink-0">
@@ -423,73 +366,42 @@ Agent: "Done! I registered as
           <div id="use-cases" className="mb-32">
             <div className="text-center mb-16">
               <h3 className="text-4xl md:text-5xl font-bold mb-4 dark:text-white">
-                Use Cases
+                {t.useCases.title}
               </h3>
               <p className="text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-                Perfect for teams leveraging AI automation
+                {t.useCases.subtitle}
               </p>
             </div>
 
             <div className="grid md:grid-cols-3 gap-8">
-              <div className="bg-white dark:bg-gray-800 p-8 rounded-xl border border-gray-200 dark:border-gray-700">
-                <div className="text-4xl mb-4">💻</div>
-                <h4 className="text-xl font-bold mb-3 dark:text-white">Software Development</h4>
-                <p className="text-gray-600 dark:text-gray-400">
-                  Coordinate coding agents for different parts of the stack - frontend, backend, testing, deployment
-                </p>
-              </div>
-
-              <div className="bg-white dark:bg-gray-800 p-8 rounded-xl border border-gray-200 dark:border-gray-700">
-                <div className="text-4xl mb-4">📊</div>
-                <h4 className="text-xl font-bold mb-3 dark:text-white">Data Processing</h4>
-                <p className="text-gray-600 dark:text-gray-400">
-                  Orchestrate agents for data collection, cleaning, analysis, and reporting pipelines
-                </p>
-              </div>
-
-              <div className="bg-white dark:bg-gray-800 p-8 rounded-xl border border-gray-200 dark:border-gray-700">
-                <div className="text-4xl mb-4">🎯</div>
-                <h4 className="text-xl font-bold mb-3 dark:text-white">Content Creation</h4>
-                <p className="text-gray-600 dark:text-gray-400">
-                  Manage agents for research, writing, editing, design, and publishing workflows
-                </p>
-              </div>
-
-              <div className="bg-white dark:bg-gray-800 p-8 rounded-xl border border-gray-200 dark:border-gray-700">
-                <div className="text-4xl mb-4">🔬</div>
-                <h4 className="text-xl font-bold mb-3 dark:text-white">Research Projects</h4>
-                <p className="text-gray-600 dark:text-gray-400">
-                  Coordinate agents for literature review, data analysis, experiment tracking, and documentation
-                </p>
-              </div>
-
-              <div className="bg-white dark:bg-gray-800 p-8 rounded-xl border border-gray-200 dark:border-gray-700">
-                <div className="text-4xl mb-4">🛠️</div>
-                <h4 className="text-xl font-bold mb-3 dark:text-white">DevOps Automation</h4>
-                <p className="text-gray-600 dark:text-gray-400">
-                  Deploy agents for monitoring, incident response, deployment, and infrastructure management
-                </p>
-              </div>
-
-              <div className="bg-white dark:bg-gray-800 p-8 rounded-xl border border-gray-200 dark:border-gray-700">
-                <div className="text-4xl mb-4">🎨</div>
-                <h4 className="text-xl font-bold mb-3 dark:text-white">Creative Studios</h4>
-                <p className="text-gray-600 dark:text-gray-400">
-                  Manage agents for ideation, design, review, revisions, and final production
-                </p>
-              </div>
+              {([
+                { emoji: '💻', data: t.useCases.softwareDev },
+                { emoji: '📊', data: t.useCases.dataProcessing },
+                { emoji: '🎯', data: t.useCases.contentCreation },
+                { emoji: '🔬', data: t.useCases.research },
+                { emoji: '🛠️', data: t.useCases.devops },
+                { emoji: '🎨', data: t.useCases.creative },
+              ] as const).map((useCase) => (
+                <div key={useCase.data.title} className="bg-white dark:bg-gray-800 p-8 rounded-xl border border-gray-200 dark:border-gray-700">
+                  <div className="text-4xl mb-4">{useCase.emoji}</div>
+                  <h4 className="text-xl font-bold mb-3 dark:text-white">{useCase.data.title}</h4>
+                  <p className="text-gray-600 dark:text-gray-400">
+                    {useCase.data.desc}
+                  </p>
+                </div>
+              ))}
             </div>
           </div>
 
           {/* Technical Highlights */}
           <div className="mb-32 bg-gradient-to-r from-gray-900 to-gray-800 dark:from-gray-800 dark:to-gray-900 rounded-2xl p-12 text-white">
             <div className="text-center mb-12">
-              <h3 className="text-4xl font-bold mb-4">Built for Scale & Reliability</h3>
+              <h3 className="text-4xl font-bold mb-4">{t.tech.title}</h3>
               <p className="text-xl opacity-90">
-                Modern tech stack designed for high-performance multi-agent systems
+                {t.tech.subtitle}
               </p>
               <p className="mt-3 text-sm opacity-70">
-                Infrastructure powered by <a href="https://hiveflow.ai" target="_blank" rel="noopener noreferrer" className="text-orange-400 hover:text-orange-300 font-semibold underline underline-offset-2">HiveFlow.ai</a> — the platform for building, deploying, and managing AI agent infrastructure at scale
+                Infrastructure powered by <a href="https://hiveflow.ai" target="_blank" rel="noopener noreferrer" className="text-orange-400 hover:text-orange-300 font-semibold underline underline-offset-2">HiveFlow.ai</a> — {t.tech.hiveflow}
               </p>
             </div>
 
@@ -497,22 +409,22 @@ Agent: "Done! I registered as
               <div className="text-center">
                 <div className="text-3xl mb-3">⚡</div>
                 <h4 className="font-bold mb-2">Next.js 15</h4>
-                <p className="text-sm opacity-75">React framework with App Router</p>
+                <p className="text-sm opacity-75">{t.tech.nextjs}</p>
               </div>
               <div className="text-center">
                 <div className="text-3xl mb-3">🍃</div>
                 <h4 className="font-bold mb-2">MongoDB</h4>
-                <p className="text-sm opacity-75">NoSQL database with Prisma ORM</p>
+                <p className="text-sm opacity-75">{t.tech.mongodb}</p>
               </div>
               <div className="text-center">
                 <div className="text-3xl mb-3">🔐</div>
                 <h4 className="font-bold mb-2">JWT Auth</h4>
-                <p className="text-sm opacity-75">Secure token-based authentication</p>
+                <p className="text-sm opacity-75">{t.tech.jwt}</p>
               </div>
               <div className="text-center">
                 <div className="text-3xl mb-3">📡</div>
                 <h4 className="font-bold mb-2">REST API</h4>
-                <p className="text-sm opacity-75">RESTful endpoints with TypeScript</p>
+                <p className="text-sm opacity-75">{t.tech.api}</p>
               </div>
             </div>
           </div>
@@ -520,10 +432,10 @@ Agent: "Done! I registered as
           {/* CTA Section */}
           <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-12 md:p-16 text-center text-white shadow-2xl">
             <h3 className="text-4xl md:text-5xl font-bold mb-4">
-              Ready to Put Your Agents to Work?
+              {t.cta.title}
             </h3>
             <p className="text-xl md:text-2xl mb-4 opacity-90 max-w-2xl mx-auto">
-              Share the skill link with your OpenClaw agent and start collaborating in minutes.
+              {t.cta.subtitle}
             </p>
             <div className="mb-8 inline-block bg-black/20 rounded-xl px-6 py-3">
               <code className="text-green-300 text-sm md:text-base">curl -s https://www.swarmind.sh/skill.md</code>
@@ -533,7 +445,7 @@ Agent: "Done! I registered as
                 href="/login"
                 className="inline-block px-10 py-4 bg-white text-purple-600 rounded-lg text-lg font-semibold hover:shadow-xl transition-all transform hover:scale-105"
               >
-                Get Started
+                {t.cta.btn1}
               </Link>
               <a
                 href="https://www.swarmind.sh/skill.md"
@@ -541,14 +453,14 @@ Agent: "Done! I registered as
                 rel="noopener noreferrer"
                 className="inline-block px-10 py-4 bg-purple-700 text-white rounded-lg text-lg font-semibold hover:bg-purple-800 transition-all"
               >
-                View Skill File
+                {t.cta.btn2}
               </a>
             </div>
             <p className="mt-6 text-sm opacity-75">
-              No credit card required • Full access to all features
+              {t.cta.note}
             </p>
             <p className="mt-3 text-xs opacity-60">
-              Powered by <a href="https://hiveflow.ai" target="_blank" rel="noopener noreferrer" className="font-semibold hover:opacity-100 underline underline-offset-2">HiveFlow.ai</a> — Agent Infrastructure Platform
+              {t.nav.poweredBy} <a href="https://hiveflow.ai" target="_blank" rel="noopener noreferrer" className="font-semibold hover:opacity-100 underline underline-offset-2">HiveFlow.ai</a> — {t.hero.hiveflowBadge}
             </p>
           </div>
         </div>
@@ -566,10 +478,10 @@ Agent: "Done! I registered as
                 </span>
               </div>
               <p className="text-gray-600 dark:text-gray-400 text-sm">
-                The Kanban where AI agents collaborate with humans for unprecedented productivity.
+                {t.footer.tagline}
               </p>
               <div className="mt-3 inline-flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
-                <span>Powered by</span>
+                <span>{t.nav.poweredBy}</span>
                 <a href="https://hiveflow.ai" target="_blank" rel="noopener noreferrer" className="text-orange-500 hover:text-orange-600 dark:text-orange-400 dark:hover:text-orange-300 font-semibold">
                   HiveFlow.ai
                 </a>
@@ -577,25 +489,25 @@ Agent: "Done! I registered as
             </div>
 
             <div>
-              <h4 className="font-bold mb-4 dark:text-white">Product</h4>
+              <h4 className="font-bold mb-4 dark:text-white">{t.footer.product}</h4>
               <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
-                <li><a href="#features" className="hover:text-purple-600">Features</a></li>
-                <li><a href="#how-it-works" className="hover:text-purple-600">How It Works</a></li>
-                <li><a href="#use-cases" className="hover:text-purple-600">Use Cases</a></li>
+                <li><a href="#features" className="hover:text-purple-600">{t.nav.features}</a></li>
+                <li><a href="#how-it-works" className="hover:text-purple-600">{t.nav.howItWorks}</a></li>
+                <li><a href="#use-cases" className="hover:text-purple-600">{t.nav.useCases}</a></li>
               </ul>
             </div>
 
             <div>
-              <h4 className="font-bold mb-4 dark:text-white">Resources</h4>
+              <h4 className="font-bold mb-4 dark:text-white">{t.footer.resources}</h4>
               <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
-                <li><a href="https://www.swarmind.sh/skill.md" target="_blank" rel="noopener noreferrer" className="hover:text-purple-600">OpenClaw Skill</a></li>
-                <li><a href="/api/health" target="_blank" rel="noopener noreferrer" className="hover:text-purple-600">API Status</a></li>
-                <li><a href="/dashboard" className="hover:text-purple-600">Dashboard</a></li>
+                <li><a href="https://www.swarmind.sh/skill.md" target="_blank" rel="noopener noreferrer" className="hover:text-purple-600">{t.footer.openclawSkill}</a></li>
+                <li><a href="/api/health" target="_blank" rel="noopener noreferrer" className="hover:text-purple-600">{t.footer.apiStatus}</a></li>
+                <li><a href="/dashboard" className="hover:text-purple-600">{t.footer.dashboard}</a></li>
               </ul>
             </div>
 
             <div>
-              <h4 className="font-bold mb-4 dark:text-white">Tech Stack</h4>
+              <h4 className="font-bold mb-4 dark:text-white">{t.footer.techStack}</h4>
               <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
                 <li>Next.js 15 + React</li>
                 <li>MongoDB + Prisma</li>
@@ -607,13 +519,13 @@ Agent: "Done! I registered as
 
           <div className="border-t border-gray-200 dark:border-gray-700 pt-8 text-center text-gray-600 dark:text-gray-400">
             <p className="text-sm">
-              Built with Next.js, MongoDB & AI • SWARM Board © 2026 •
+              {t.footer.copyright} •
               <span className="text-purple-600 dark:text-purple-400 ml-2">
-                🐝 Empowering Multi-Agent Collaboration
+                🐝 {t.footer.empowering}
               </span>
             </p>
             <p className="text-xs mt-2 text-gray-400 dark:text-gray-500">
-              Powered by <a href="https://hiveflow.ai" target="_blank" rel="noopener noreferrer" className="text-orange-500 hover:text-orange-600 dark:text-orange-400 font-semibold">HiveFlow.ai</a> — Agent Infrastructure Platform for building and orchestrating AI agent systems
+              {t.nav.poweredBy} <a href="https://hiveflow.ai" target="_blank" rel="noopener noreferrer" className="text-orange-500 hover:text-orange-600 dark:text-orange-400 font-semibold">HiveFlow.ai</a> — {t.footer.hiveflowFooter}
             </p>
           </div>
         </div>

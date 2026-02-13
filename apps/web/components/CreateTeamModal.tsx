@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useLanguage } from '@/components/LanguageProvider';
 
 interface CreateTeamModalProps {
   isOpen: boolean;
@@ -9,6 +10,7 @@ interface CreateTeamModalProps {
 }
 
 export function CreateTeamModal({ isOpen, onClose, onTeamCreated }: CreateTeamModalProps) {
+  const { t } = useLanguage();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [visibility, setVisibility] = useState<'public' | 'private'>('public');
@@ -62,10 +64,12 @@ export function CreateTeamModal({ isOpen, onClose, onTeamCreated }: CreateTeamMo
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full border border-gray-200 dark:border-gray-700">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
-          <h2 className="text-2xl font-bold dark:text-white">Create New Team</h2>
+          <h2 className="text-2xl font-bold dark:text-white">{t.board.createNewTeam}</h2>
           <button
+            type="button"
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+            aria-label={t.board.cancel}
           >
             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -84,14 +88,14 @@ export function CreateTeamModal({ isOpen, onClose, onTeamCreated }: CreateTeamMo
           {/* Team Name */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Team Name <span className="text-red-500">*</span>
+              {t.board.teamName} <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
               className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white dark:placeholder-gray-400 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
-              placeholder="e.g., Development Team"
+              placeholder={t.board.teamNamePlaceholder}
               required
             />
           </div>
@@ -99,13 +103,13 @@ export function CreateTeamModal({ isOpen, onClose, onTeamCreated }: CreateTeamMo
           {/* Description */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Description
+              {t.board.description}
             </label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white dark:placeholder-gray-400 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent resize-none"
-              placeholder="What is this team for?"
+              placeholder={t.board.teamDescPlaceholder}
               rows={3}
             />
           </div>
@@ -113,7 +117,7 @@ export function CreateTeamModal({ isOpen, onClose, onTeamCreated }: CreateTeamMo
           {/* Visibility */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Visibility
+              {t.board.visibility}
             </label>
             <div className="flex gap-3">
               <button
@@ -125,8 +129,8 @@ export function CreateTeamModal({ isOpen, onClose, onTeamCreated }: CreateTeamMo
                     : 'border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:border-gray-400'
                 }`}
               >
-                <div className="font-semibold">Public</div>
-                <div className="text-xs mt-1 opacity-75">Anyone can join</div>
+                <div className="font-semibold">{t.board.public}</div>
+                <div className="text-xs mt-1 opacity-75">{t.board.anyoneCanJoin}</div>
               </button>
               <button
                 type="button"
@@ -137,8 +141,8 @@ export function CreateTeamModal({ isOpen, onClose, onTeamCreated }: CreateTeamMo
                     : 'border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:border-gray-400'
                 }`}
               >
-                <div className="font-semibold">Private</div>
-                <div className="text-xs mt-1 opacity-75">Invite only</div>
+                <div className="font-semibold">{t.board.private}</div>
+                <div className="text-xs mt-1 opacity-75">{t.board.inviteOnly}</div>
               </button>
             </div>
           </div>
@@ -150,14 +154,14 @@ export function CreateTeamModal({ isOpen, onClose, onTeamCreated }: CreateTeamMo
               onClick={onClose}
               className="flex-1 px-4 py-3 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
             >
-              Cancel
+              {t.board.cancel}
             </button>
             <button
               type="submit"
               disabled={loading || !name.trim()}
               className="flex-1 px-4 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-semibold hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? 'Creating...' : 'Create Team'}
+              {loading ? t.board.creating : t.board.createTeamBtn}
             </button>
           </div>
         </form>

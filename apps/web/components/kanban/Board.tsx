@@ -5,6 +5,7 @@ import useSWR from 'swr';
 import { Task } from '@swarm/types';
 import { TaskCard } from './TaskCard';
 import { TaskEditModal } from './TaskEditModal';
+import { useLanguage } from '@/components/LanguageProvider';
 
 interface BoardProps {
   teamId: string;
@@ -34,6 +35,7 @@ const fetcher = async (url: string) => {
 };
 
 export function Board({ teamId }: BoardProps) {
+  const { t } = useLanguage();
   const { data: tasks, error: tasksError, mutate: mutateTasks, isLoading: tasksLoading } = useSWR<Task[]>(
     `/api/teams/${teamId}/tasks`,
     fetcher,
@@ -131,7 +133,7 @@ export function Board({ teamId }: BoardProps) {
     const tasksInColumn = getTasksByColumn(columnId);
 
     if (columns && columns.length === 1) {
-      alert('Cannot delete the last column. You must have at least one column.');
+      alert(t.board.cannotDeleteLast);
       return;
     }
 
@@ -283,12 +285,12 @@ export function Board({ teamId }: BoardProps) {
       } else {
         // Reordering within the same column
         const columnTasks = getTasksByColumn(targetColumnId);
-        const draggedIndex = columnTasks.findIndex(t => t.id === draggedTask.id);
+        const draggedIndex = columnTasks.findIndex(tk => tk.id === draggedTask.id);
         // Remove dragged task
         columnTasks.splice(draggedIndex, 1);
 
         // Calculate new target index after removal
-        let newTargetIndex = columnTasks.findIndex(t => t.id === targetTask.id);
+        let newTargetIndex = columnTasks.findIndex(tk => tk.id === targetTask.id);
 
         // If dropping on bottom, insert after the target
         if (taskDropIndicator?.position === 'bottom') {
@@ -436,7 +438,7 @@ export function Board({ teamId }: BoardProps) {
   if (tasksError || columnsError) {
     return (
       <div className="p-8 text-center">
-        <div className="text-red-500 dark:text-red-400 mb-2">Error loading board</div>
+        <div className="text-red-500 dark:text-red-400 mb-2">{t.board.errorLoading}</div>
         <p className="text-sm text-gray-600 dark:text-gray-400">
           {tasksError?.message || columnsError?.message}
         </p>
@@ -448,19 +450,7 @@ export function Board({ teamId }: BoardProps) {
     return (
       <div className="p-8 text-center">
         <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mb-4"></div>
-        <p className="text-gray-600 dark:text-gray-400">Loading board...</p>
-      </div>
-    );
-  }
-
-  if (!columns || columns.length === 0) {
-    return (
-      <div className="p-8 text-center">
-        <div className="text-6xl mb-4">📋</div>
-        <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">No columns configured</h3>
-        <p className="text-gray-600 dark:text-gray-400">
-          This team doesn't have any columns. Contact an administrator.
-        </p>
+        <p className="text-gray-600 dark:text-gray-400">{t.board.loadingBoard}</p>
       </div>
     );
   }
@@ -468,7 +458,7 @@ export function Board({ teamId }: BoardProps) {
   return (
     <>
       <div className="flex gap-4 py-6 overflow-x-auto h-screen">
-        {columns.sort((a, b) => a.order - b.order).map((column) => (
+        {columns && columns.length > 0 && columns.sort((a, b) => a.order - b.order).map((column) => (
           <div
             key={column.id}
             className={`flex-shrink-0 w-80 relative ${draggedColumn?.id === column.id ? 'opacity-50' : ''}`}
@@ -501,7 +491,7 @@ export function Board({ teamId }: BoardProps) {
                       if (e.key === 'Enter') handleUpdateColumnName(column.id);
                       if (e.key === 'Escape') setEditingColumn(null);
                     }}
-                    placeholder="Column name..."
+                    placeholder={t.board.columnName}
                     className="flex-1 px-2 py-1 border rounded dark:bg-gray-600 dark:text-white dark:placeholder-gray-400 dark:border-gray-500"
                     autoFocus
                   />
@@ -521,14 +511,14 @@ export function Board({ teamId }: BoardProps) {
                       setEditingName(column.name);
                     }}
                     className="p-1 hover:bg-white/50 dark:hover:bg-gray-600 rounded"
-                    title="Edit column name"
+                    title={t.board.editColumnName}
                   >
                     ✏️
                   </button>
                   <button
                     onClick={() => handleDeleteColumn(column.id)}
                     className="p-1 hover:bg-white/50 dark:hover:bg-gray-600 rounded"
-                    title="Delete column"
+                    title={t.board.deleteColumn}
                   >
                     🗑️
                   </button>
@@ -589,14 +579,14 @@ export function Board({ teamId }: BoardProps) {
                       type="text"
                       value={newTaskTitle}
                       onChange={(e) => setNewTaskTitle(e.target.value)}
-                      placeholder="Task title..."
+                      placeholder={t.board.taskTitle}
                       className="w-full px-2 py-1 mb-2 border rounded dark:bg-gray-600 dark:text-white dark:placeholder-gray-400 dark:border-gray-500"
                       autoFocus
                     />
                     <textarea
                       value={newTaskDescription}
                       onChange={(e) => setNewTaskDescription(e.target.value)}
-                      placeholder="Description (optional)..."
+                      placeholder={t.board.descriptionOptional}
                       className="w-full px-2 py-1 mb-2 border rounded dark:bg-gray-600 dark:text-white dark:placeholder-gray-400 dark:border-gray-500"
                       rows={2}
                     />
@@ -606,16 +596,16 @@ export function Board({ teamId }: BoardProps) {
                       className="w-full px-2 py-1 mb-2 border rounded dark:bg-gray-600 dark:text-white dark:border-gray-500"
                       aria-label="Task priority"
                     >
-                      <option value="low" className="dark:bg-gray-700 dark:text-white">🟢 Low Priority</option>
-                      <option value="medium" className="dark:bg-gray-700 dark:text-white">🟡 Medium Priority</option>
-                      <option value="high" className="dark:bg-gray-700 dark:text-white">🔴 High Priority</option>
+                      <option value="low" className="dark:bg-gray-700 dark:text-white">🟢 {t.board.lowPriority}</option>
+                      <option value="medium" className="dark:bg-gray-700 dark:text-white">🟡 {t.board.mediumPriority}</option>
+                      <option value="high" className="dark:bg-gray-700 dark:text-white">🔴 {t.board.highPriority}</option>
                     </select>
                     <div className="flex gap-2">
                       <button
                         onClick={() => handleCreateTask(column.id)}
                         className="px-3 py-1 bg-purple-600 text-white rounded hover:bg-purple-700"
                       >
-                        Create
+                        {t.board.create}
                       </button>
                       <button
                         onClick={() => {
@@ -626,7 +616,7 @@ export function Board({ teamId }: BoardProps) {
                         }}
                         className="px-3 py-1 bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-white rounded hover:bg-gray-400 dark:hover:bg-gray-500"
                       >
-                        Cancel
+                        {t.board.cancel}
                       </button>
                     </div>
                   </div>
@@ -635,7 +625,7 @@ export function Board({ teamId }: BoardProps) {
                     onClick={() => setCreatingTaskInColumn(column.id)}
                     className="w-full p-2 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg text-gray-500 dark:text-gray-400 hover:border-purple-500 hover:text-purple-600 dark:hover:text-purple-400 transition-colors"
                   >
-                    + Add task
+                    {t.board.addTask}
                   </button>
                 )}
               </div>
@@ -655,7 +645,7 @@ export function Board({ teamId }: BoardProps) {
                   if (e.key === 'Enter') handleCreateColumn();
                   if (e.key === 'Escape') setShowNewColumnForm(false);
                 }}
-                placeholder="Column name..."
+                placeholder={t.board.columnName}
                 className="w-full px-3 py-2 mb-3 border rounded dark:bg-gray-600 dark:text-white dark:placeholder-gray-400 dark:border-gray-500"
                 autoFocus
               />
@@ -664,7 +654,7 @@ export function Board({ teamId }: BoardProps) {
                   onClick={handleCreateColumn}
                   className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
                 >
-                  Create
+                  {t.board.create}
                 </button>
                 <button
                   onClick={() => {
@@ -673,7 +663,7 @@ export function Board({ teamId }: BoardProps) {
                   }}
                   className="px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-white rounded hover:bg-gray-400 dark:hover:bg-gray-500"
                 >
-                  Cancel
+                  {t.board.cancel}
                 </button>
               </div>
             </div>
@@ -686,7 +676,7 @@ export function Board({ teamId }: BoardProps) {
             >
               <div className="text-center">
                 <div className="text-3xl mb-2">+</div>
-                <div>Add Column</div>
+                <div>{t.board.addColumn}</div>
               </div>
             </button>
           </div>
@@ -697,17 +687,16 @@ export function Board({ teamId }: BoardProps) {
       {deletingColumn && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
-            <h3 className="text-xl font-bold mb-4 dark:text-white">Delete Column</h3>
+            <h3 className="text-xl font-bold mb-4 dark:text-white">{t.board.deleteColumnTitle}</h3>
             <p className="text-gray-600 dark:text-gray-300 mb-4">
-              This column has {getTasksByColumn(deletingColumn).length} task(s).
-              Where would you like to move them?
+              {t.board.deleteColumnMsg.replace('{count}', String(getTasksByColumn(deletingColumn).length))}
             </p>
             <select
               value={migrationColumnId}
               onChange={(e) => setMigrationColumnId(e.target.value)}
               className="w-full px-3 py-2 mb-4 border rounded dark:bg-gray-700 dark:text-white dark:border-gray-500"
             >
-              <option value="" className="dark:bg-gray-700 dark:text-white">Select a column...</option>
+              <option value="" className="dark:bg-gray-700 dark:text-white">{t.board.selectColumn}</option>
               {columns
                 .filter((c) => c.id !== deletingColumn)
                 .map((c) => (
@@ -724,14 +713,14 @@ export function Board({ teamId }: BoardProps) {
                 }}
                 className="px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-white rounded hover:bg-gray-400 dark:hover:bg-gray-500"
               >
-                Cancel
+                {t.board.cancel}
               </button>
               <button
                 onClick={confirmDeleteColumn}
                 disabled={!migrationColumnId}
                 className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Delete
+                {t.board.delete}
               </button>
             </div>
           </div>
