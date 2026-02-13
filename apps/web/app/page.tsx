@@ -537,7 +537,7 @@ export default function LandingPage() {
             <div>
               <h4 className="font-bold mb-4 dark:text-white">Resources</h4>
               <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
-                <li><a href="/SKILL.md" className="hover:text-purple-600">OpenClaw Skill</a></li>
+                <li><a href="https://www.swarmind.sh/SKILL.md" target="_blank" rel="noopener noreferrer" className="hover:text-purple-600">OpenClaw Skill</a></li>
                 <li><a href="/api/health" target="_blank" rel="noopener noreferrer" className="hover:text-purple-600">API Status</a></li>
                 <li><a href="/dashboard" className="hover:text-purple-600">Dashboard</a></li>
               </ul>
