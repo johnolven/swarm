@@ -1,4 +1,5 @@
 import { prisma } from '../lib/prisma';
+import { authorizeTeamAction } from '../lib/authorize';
 
 /**
  * Get all invitations for an agent or user
@@ -131,27 +132,7 @@ export async function getTeamJoinRequests(
   agentId: string | null,
   userId: string | null
 ): Promise<any[]> {
-  // Verify authorization
-  let isAuthorized = false;
-
-  if (agentId) {
-    const member = await prisma.teamMember.findFirst({
-      where: {
-        team_id: teamId,
-        agent_id: agentId,
-        role: { in: ['owner', 'admin'] },
-      },
-    });
-    isAuthorized = !!member;
-  }
-
-  if (userId) {
-    const team = await prisma.team.findUnique({
-      where: { id: teamId },
-    });
-    isAuthorized = team?.created_by_user === userId;
-  }
-
+  const isAuthorized = await authorizeTeamAction(teamId, agentId, userId, ['owner', 'admin']);
   if (!isAuthorized) {
     throw new Error('Only team admins/creators can view join requests');
   }
@@ -198,27 +179,7 @@ export async function approveJoinRequest(
       throw new Error('Request already processed');
     }
 
-    // Verify authorization
-    let isAuthorized = false;
-
-    if (agentId) {
-      const member = await tx.teamMember.findFirst({
-        where: {
-          team_id: request.team_id,
-          agent_id: agentId,
-          role: { in: ['owner', 'admin'] },
-        },
-      });
-      isAuthorized = !!member;
-    }
-
-    if (userId) {
-      const team = await tx.team.findUnique({
-        where: { id: request.team_id },
-      });
-      isAuthorized = team?.created_by_user === userId;
-    }
-
+    const isAuthorized = await authorizeTeamAction(request.team_id, agentId, userId, ['owner', 'admin']);
     if (!isAuthorized) {
       throw new Error('Only team admins/creators can approve requests');
     }
@@ -265,27 +226,7 @@ export async function rejectJoinRequest(
     throw new Error('Request already processed');
   }
 
-  // Verify authorization
-  let isAuthorized = false;
-
-  if (agentId) {
-    const member = await prisma.teamMember.findFirst({
-      where: {
-        team_id: request.team_id,
-        agent_id: agentId,
-        role: { in: ['owner', 'admin'] },
-      },
-    });
-    isAuthorized = !!member;
-  }
-
-  if (userId) {
-    const team = await prisma.team.findUnique({
-      where: { id: request.team_id },
-    });
-    isAuthorized = team?.created_by_user === userId;
-  }
-
+  const isAuthorized = await authorizeTeamAction(request.team_id, agentId, userId, ['owner', 'admin']);
   if (!isAuthorized) {
     throw new Error('Only team admins/creators can reject requests');
   }

@@ -3,7 +3,7 @@ import { AuthRequest } from '../middleware/auth';
 import * as taskService from '../services/task.service';
 import * as messageService from '../services/message.service';
 import * as webhookService from '../services/webhook.service';
-import { CreateTaskInput, UpdateTaskInput } from '@swarm/types';
+import { createTaskSchema, updateTaskSchema, reorderSchema, validate } from '../lib/validation';
 
 /**
  * POST /api/teams/:teamId/tasks
@@ -12,25 +12,20 @@ import { CreateTaskInput, UpdateTaskInput } from '@swarm/types';
 export async function createTask(req: AuthRequest, res: Response): Promise<void> {
   try {
     const { teamId } = req.params;
-    const data: CreateTaskInput = req.body;
+    const data = validate(createTaskSchema, req.body);
 
-    // Get creator info (agent or human user)
     const agentId = req.agent?.agent_id || null;
     const userId = req.user?.id || null;
 
-    if (!data.title) {
-      res.status(400).json({
-        success: false,
-        error: 'Title is required',
-      });
-      return;
-    }
-
-    const task = await taskService.createTask(teamId, agentId, userId, data);
+    const task = await taskService.createTask(teamId, agentId, userId, {
+      ...data,
+      required_capabilities: data.required_capabilities || [],
+      due_date: data.due_date ? new Date(data.due_date) : undefined,
+    });
 
     // Notify team members (only if created by agent)
     if (agentId) {
-      await webhookService.notifyTeamMembers(
+      webhookService.notifyTeamMembers(
         teamId,
         'task.created',
         {
@@ -39,7 +34,7 @@ export async function createTask(req: AuthRequest, res: Response): Promise<void>
           created_by: req.agent!.name,
         },
         agentId
-      );
+      ).catch((err) => console.error('Webhook notification failed:', err.message));
     }
 
     res.status(201).json({
@@ -111,11 +106,14 @@ export async function getTaskById(req: AuthRequest, res: Response): Promise<void
 export async function updateTask(req: AuthRequest, res: Response): Promise<void> {
   try {
     const { id } = req.params;
-    const data: UpdateTaskInput = req.body;
+    const data = validate(updateTaskSchema, req.body);
     const agentId = req.agent?.agent_id || null;
     const userId = req.user?.id || null;
 
-    const task = await taskService.updateTask(id, agentId, userId, data);
+    const task = await taskService.updateTask(id, agentId, userId, {
+      ...data,
+      due_date: data.due_date ? new Date(data.due_date) : undefined,
+    } as any);
 
     res.json({
       success: true,
@@ -326,15 +324,8 @@ export async function reorderTasks(req: AuthRequest, res: Response): Promise<voi
     const agentId = req.agent?.agent_id || null;
     const userId = req.user?.id || null;
 
-    if (!taskOrders || !Array.isArray(taskOrders)) {
-      res.status(400).json({
-        success: false,
-        error: 'taskOrders array is required',
-      });
-      return;
-    }
-
-    await taskService.reorderTasks(columnId, agentId, userId, taskOrders);
+    const validatedOrders = validate(reorderSchema, taskOrders);
+    await taskService.reorderTasks(columnId, agentId, userId, validatedOrders);
 
     res.json({
       success: true,

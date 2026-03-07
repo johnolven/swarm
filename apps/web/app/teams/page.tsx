@@ -2,10 +2,27 @@
 
 import { useEffect, useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { useLanguage } from '@/components/LanguageProvider';
+import { getToken } from '@/lib/auth';
+
+interface Team {
+  id: string;
+  name: string;
+  description: string | null;
+  visibility: 'public' | 'private';
+  auto_accept: boolean;
+  created_at: string;
+  _count?: {
+    members: number;
+    tasks: number;
+  };
+}
 
 export default function TeamsPage() {
-  const [teams, setTeams] = useState<any[]>([]);
+  const { t } = useLanguage();
+  const [teams, setTeams] = useState<Team[]>([]);
   const [loading, setLoading] = useState(true);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   useEffect(() => {
     fetchTeams();
@@ -13,7 +30,7 @@ export default function TeamsPage() {
 
   const fetchTeams = async () => {
     try {
-      const token = localStorage.getItem('swarm_token');
+      const token = getToken();
       const response = await fetch('/api/teams', {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -24,8 +41,8 @@ export default function TeamsPage() {
         const data = await response.json();
         setTeams(data.data || []);
       }
-    } catch (error) {
-      console.error('Failed to fetch teams:', error);
+    } catch {
+      // ignore
     } finally {
       setLoading(false);
     }
@@ -33,7 +50,7 @@ export default function TeamsPage() {
 
   const handleJoinTeam = async (teamId: string) => {
     try {
-      const token = localStorage.getItem('swarm_token');
+      const token = getToken();
       const response = await fetch(`/api/teams/${teamId}/join`, {
         method: 'POST',
         headers: {
@@ -44,21 +61,27 @@ export default function TeamsPage() {
       });
 
       if (response.ok) {
-        alert('Join request sent!');
+        setSuccessMessage('Join request sent!');
+        setTimeout(() => setSuccessMessage(null), 3000);
         fetchTeams();
       }
-    } catch (error) {
-      console.error('Failed to join team:', error);
+    } catch {
+      // ignore
     }
   };
 
   if (loading) {
-    return <div className="p-8 text-center">Loading teams...</div>;
+    return <div className="p-8 text-center">{t.dashboard.loadingTeams}</div>;
   }
 
   return (
     <div className="min-h-screen p-8">
       <div className="max-w-6xl mx-auto">
+        {successMessage && (
+          <div className="mb-4 p-3 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 rounded-md text-sm">
+            {successMessage}
+          </div>
+        )}
         <h1 className="text-4xl font-bold mb-8">🐝 Teams</h1>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -78,7 +101,7 @@ export default function TeamsPage() {
                   <div>👥 {team._count?.members || 0} members</div>
                   <div>📋 {team._count?.tasks || 0} tasks</div>
                   <div>
-                    {team.visibility === 'public' ? '🌍 Public' : '🔒 Private'}
+                    {team.visibility === 'public' ? `🌍 ${t.board.public}` : `🔒 ${t.board.private}`}
                   </div>
                 </div>
 
@@ -87,7 +110,7 @@ export default function TeamsPage() {
                     href={`/board/${team.id}`}
                     className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm"
                   >
-                    View Board
+                    {t.dashboard.viewBoard}
                   </a>
                   <button
                     onClick={() => handleJoinTeam(team.id)}
@@ -103,8 +126,8 @@ export default function TeamsPage() {
 
         {teams.length === 0 && (
           <div className="text-center text-gray-500 mt-12">
-            <p>No teams available yet.</p>
-            <p className="text-sm mt-2">Create a team via API to get started!</p>
+            <p>{t.dashboard.noTeamsFound}</p>
+            <p className="text-sm mt-2">{t.dashboard.createFirstTeam}</p>
           </div>
         )}
       </div>

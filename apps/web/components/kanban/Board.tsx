@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import useSWR from 'swr';
 import { Task } from '@swarm/types';
 import { TaskCard } from './TaskCard';
 import { TaskEditModal } from './TaskEditModal';
 import { useLanguage } from '@/components/LanguageProvider';
+import { authFetcher, getToken } from '@/lib/auth';
 
 interface BoardProps {
   teamId: string;
@@ -18,33 +19,17 @@ interface Column {
   order: number;
 }
 
-const fetcher = async (url: string) => {
-  const token = localStorage.getItem('swarm_token');
-  const response = await fetch(url, {
-    headers: {
-      'Authorization': `Bearer ${token}`,
-    },
-  });
-
-  if (!response.ok) {
-    throw new Error('Failed to fetch data');
-  }
-
-  const data = await response.json();
-  return data.data || [];
-};
-
 export function Board({ teamId }: BoardProps) {
   const { t } = useLanguage();
   const { data: tasks, error: tasksError, mutate: mutateTasks, isLoading: tasksLoading } = useSWR<Task[]>(
     `/api/teams/${teamId}/tasks`,
-    fetcher,
+    authFetcher,
     { revalidateOnFocus: true }
   );
 
   const { data: columns, error: columnsError, mutate: mutateColumns, isLoading: columnsLoading } = useSWR<Column[]>(
     `/api/teams/${teamId}/columns`,
-    fetcher,
+    authFetcher,
     { revalidateOnFocus: true }
   );
 
@@ -86,7 +71,7 @@ export function Board({ teamId }: BoardProps) {
     if (!editingName.trim()) return;
 
     try {
-      const token = localStorage.getItem('swarm_token');
+      const token = getToken();
       await fetch(`/api/columns/${columnId}`, {
         method: 'PUT',
         headers: {
@@ -108,7 +93,7 @@ export function Board({ teamId }: BoardProps) {
     if (!newColumnName.trim()) return;
 
     try {
-      const token = localStorage.getItem('swarm_token');
+      const token = getToken();
       await fetch(`/api/teams/${teamId}/columns`, {
         method: 'POST',
         headers: {
@@ -143,7 +128,7 @@ export function Board({ teamId }: BoardProps) {
     }
 
     try {
-      const token = localStorage.getItem('swarm_token');
+      const token = getToken();
       await fetch(`/api/columns/${columnId}`, {
         method: 'DELETE',
         headers: {
@@ -162,7 +147,7 @@ export function Board({ teamId }: BoardProps) {
     if (!deletingColumn || !migrationColumnId) return;
 
     try {
-      const token = localStorage.getItem('swarm_token');
+      const token = getToken();
       await fetch(`/api/columns/${deletingColumn}`, {
         method: 'DELETE',
         headers: {
@@ -185,7 +170,7 @@ export function Board({ teamId }: BoardProps) {
     if (!newTaskTitle.trim()) return;
 
     try {
-      const token = localStorage.getItem('swarm_token');
+      const token = getToken();
       await fetch(`/api/teams/${teamId}/tasks`, {
         method: 'POST',
         headers: {
@@ -268,7 +253,7 @@ export function Board({ teamId }: BoardProps) {
     const targetColumnId = (targetTask as any).column_id;
 
     try {
-      const token = localStorage.getItem('swarm_token');
+      const token = getToken();
 
       // If moving to a different column
       if (draggedColumnId !== targetColumnId) {
@@ -342,7 +327,7 @@ export function Board({ teamId }: BoardProps) {
     }
 
     try {
-      const token = localStorage.getItem('swarm_token');
+      const token = getToken();
       await fetch(`/api/tasks/${draggedTask.id}`, {
         method: 'PUT',
         headers: {
@@ -417,7 +402,7 @@ export function Board({ teamId }: BoardProps) {
         order: index,
       }));
 
-      const token = localStorage.getItem('swarm_token');
+      const token = getToken();
       await fetch(`/api/teams/${teamId}/columns/reorder`, {
         method: 'POST',
         headers: {

@@ -1,7 +1,8 @@
+import bcrypt from 'bcrypt';
 import { prisma } from '../lib/prisma';
-import jwt from 'jsonwebtoken';
+import { generateUserToken, verifyToken } from '../lib/jwt';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-in-production';
+const BCRYPT_ROUNDS = 12;
 
 interface CreateUserInput {
   email: string;
@@ -12,7 +13,6 @@ interface CreateUserInput {
 export async function createUser(input: CreateUserInput) {
   const { email, password, name } = input;
 
-  // Check if user already exists
   const existingUser = await prisma.user.findUnique({
     where: { email },
   });
@@ -21,30 +21,21 @@ export async function createUser(input: CreateUserInput) {
     throw new Error('User with this email already exists');
   }
 
-  // For now, we're not hashing passwords (TODO: add bcrypt in production)
-  // In a real production app, you would:
-  // const hashedPassword = await bcrypt.hash(password, 10);
+  const hashedPassword = await bcrypt.hash(password, BCRYPT_ROUNDS);
 
-  // Create user in database
   const user = await prisma.user.create({
     data: {
       email,
-      password, // Store plain password for development (NEVER do this in production!)
+      password: hashedPassword,
       name: name || email.split('@')[0],
     },
   });
 
-  // Generate JWT token
-  const token = jwt.sign(
-    {
-      user_id: user.id,
-      email: user.email,
-      type: 'human',
-      name: user.name,
-    },
-    JWT_SECRET,
-    { expiresIn: '30d' }
-  );
+  const token = generateUserToken({
+    user_id: user.id,
+    email: user.email,
+    name: user.name || '',
+  });
 
   return {
     token,
@@ -58,7 +49,6 @@ export async function createUser(input: CreateUserInput) {
 }
 
 export async function loginUser(email: string, password: string) {
-  // Find user by email
   const user = await prisma.user.findUnique({
     where: { email },
   });
@@ -67,23 +57,16 @@ export async function loginUser(email: string, password: string) {
     throw new Error('Invalid email or password');
   }
 
-  // Verify password
-  // In production, you'd use bcrypt.compare(password, user.password)
-  if (user.password !== password) {
+  const isValidPassword = await bcrypt.compare(password, user.password);
+  if (!isValidPassword) {
     throw new Error('Invalid email or password');
   }
 
-  // Generate JWT token
-  const token = jwt.sign(
-    {
-      user_id: user.id,
-      email: user.email,
-      type: 'human',
-      name: user.name,
-    },
-    JWT_SECRET,
-    { expiresIn: '30d' }
-  );
+  const token = generateUserToken({
+    user_id: user.id,
+    email: user.email,
+    name: user.name || '',
+  });
 
   return {
     token,
@@ -98,7 +81,7 @@ export async function loginUser(email: string, password: string) {
 
 export async function verifyUserToken(token: string) {
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as any;
+    const decoded = verifyToken(token) as any;
 
     if (decoded.type !== 'human') {
       throw new Error('Invalid user token');
@@ -116,7 +99,6 @@ export async function verifyUserToken(token: string) {
 }
 
 export async function updateUserEmail(userId: string, newEmail: string) {
-  // Check if email is already taken
   const existingUser = await prisma.user.findUnique({
     where: { email: newEmail },
   });
@@ -125,23 +107,16 @@ export async function updateUserEmail(userId: string, newEmail: string) {
     throw new Error('Email already in use');
   }
 
-  // Update email
   const user = await prisma.user.update({
     where: { id: userId },
     data: { email: newEmail },
   });
 
-  // Generate new JWT token with updated email
-  const token = jwt.sign(
-    {
-      user_id: user.id,
-      email: user.email,
-      type: 'human',
-      name: user.name,
-    },
-    JWT_SECRET,
-    { expiresIn: '30d' }
-  );
+  const token = generateUserToken({
+    user_id: user.id,
+    email: user.email,
+    name: user.name || '',
+  });
 
   return {
     token,
@@ -155,7 +130,6 @@ export async function updateUserEmail(userId: string, newEmail: string) {
 }
 
 export async function updateUserPassword(userId: string, currentPassword: string, newPassword: string) {
-  // Get user
   const user = await prisma.user.findUnique({
     where: { id: userId },
   });
@@ -164,17 +138,16 @@ export async function updateUserPassword(userId: string, currentPassword: string
     throw new Error('User not found');
   }
 
-  // Verify current password
-  // In production, you'd use bcrypt.compare(currentPassword, user.password)
-  if (user.password !== currentPassword) {
+  const isValidPassword = await bcrypt.compare(currentPassword, user.password);
+  if (!isValidPassword) {
     throw new Error('Current password is incorrect');
   }
 
-  // Update password
-  // In production, you'd use: const hashedPassword = await bcrypt.hash(newPassword, 10);
+  const hashedPassword = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
+
   await prisma.user.update({
     where: { id: userId },
-    data: { password: newPassword },
+    data: { password: hashedPassword },
   });
 
   return {
@@ -184,23 +157,16 @@ export async function updateUserPassword(userId: string, currentPassword: string
 }
 
 export async function updateUserName(userId: string, newName: string) {
-  // Update name
   const user = await prisma.user.update({
     where: { id: userId },
     data: { name: newName },
   });
 
-  // Generate new JWT token with updated name
-  const token = jwt.sign(
-    {
-      user_id: user.id,
-      email: user.email,
-      type: 'human',
-      name: user.name,
-    },
-    JWT_SECRET,
-    { expiresIn: '30d' }
-  );
+  const token = generateUserToken({
+    user_id: user.id,
+    email: user.email,
+    name: user.name || '',
+  });
 
   return {
     token,

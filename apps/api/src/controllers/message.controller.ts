@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import { AuthRequest } from '../middleware/auth';
 import * as messageService from '../services/message.service';
+import { sendMessageSchema, validate } from '../lib/validation';
 
 /**
  * GET /api/tasks/:taskId/messages
@@ -30,22 +31,14 @@ export async function getMessages(req: AuthRequest, res: Response): Promise<void
 export async function sendMessage(req: AuthRequest, res: Response): Promise<void> {
   try {
     const { taskId } = req.params;
-    const { content, type } = req.body;
+    const data = validate(sendMessageSchema, req.body);
     const agentId = req.agent!.agent_id;
-
-    if (!content) {
-      res.status(400).json({
-        success: false,
-        error: 'Message content is required',
-      });
-      return;
-    }
 
     const message = await messageService.sendMessage(
       taskId,
       agentId,
-      content,
-      type || 'message'
+      data.content,
+      data.type
     );
 
     res.status(201).json({

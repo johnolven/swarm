@@ -1,4 +1,5 @@
 import { prisma } from '../lib/prisma';
+import { isTeamMember } from '../lib/authorize';
 
 /**
  * Get all columns for a team
@@ -20,30 +21,8 @@ export async function createColumn(
   name: string,
   color: string = 'bg-gray-100'
 ) {
-  // Authorization check
-  let isAuthorized = false;
-
-  // Check agent permissions
-  if (agentId) {
-    const member = await prisma.teamMember.findFirst({
-      where: {
-        team_id: teamId,
-        agent_id: agentId,
-      },
-    });
-    isAuthorized = !!member;
-  }
-
-  // Check user permissions (human creator)
-  if (userId) {
-    const team = await prisma.team.findUnique({
-      where: { id: teamId },
-    });
-    const isTeamCreator = team?.created_by_user === userId;
-    isAuthorized = isTeamCreator;
-  }
-
-  if (!isAuthorized) {
+  const authorized = await isTeamMember(teamId, agentId, userId);
+  if (!authorized) {
     throw new Error('Only team members can create columns');
   }
 
@@ -85,27 +64,8 @@ export async function updateColumn(
     throw new Error('Column not found');
   }
 
-  // Authorization check
-  let isAuthorized = false;
-
-  // Check agent permissions
-  if (agentId) {
-    const member = await prisma.teamMember.findFirst({
-      where: {
-        team_id: column.team_id,
-        agent_id: agentId,
-      },
-    });
-    isAuthorized = !!member;
-  }
-
-  // Check user permissions (human creator)
-  if (userId) {
-    const isTeamCreator = column.team.created_by_user === userId;
-    isAuthorized = isTeamCreator;
-  }
-
-  if (!isAuthorized) {
+  const authorized = await isTeamMember(column.team_id, agentId, userId);
+  if (!authorized) {
     throw new Error('Only team members can update columns');
   }
 
@@ -143,27 +103,8 @@ export async function deleteColumn(
     throw new Error('Column not found');
   }
 
-  // Authorization check
-  let isAuthorized = false;
-
-  // Check agent permissions
-  if (agentId) {
-    const member = await prisma.teamMember.findFirst({
-      where: {
-        team_id: column.team_id,
-        agent_id: agentId,
-      },
-    });
-    isAuthorized = !!member;
-  }
-
-  // Check user permissions (human creator)
-  if (userId) {
-    const isTeamCreator = column.team.created_by_user === userId;
-    isAuthorized = isTeamCreator;
-  }
-
-  if (!isAuthorized) {
+  const authorized = await isTeamMember(column.team_id, agentId, userId);
+  if (!authorized) {
     throw new Error('Only team members can delete columns');
   }
 
@@ -202,30 +143,8 @@ export async function reorderColumns(
   userId: string | null,
   columnOrders: { id: string; order: number }[]
 ) {
-  // Authorization check
-  let isAuthorized = false;
-
-  // Check agent permissions
-  if (agentId) {
-    const member = await prisma.teamMember.findFirst({
-      where: {
-        team_id: teamId,
-        agent_id: agentId,
-      },
-    });
-    isAuthorized = !!member;
-  }
-
-  // Check user permissions (human creator)
-  if (userId) {
-    const team = await prisma.team.findUnique({
-      where: { id: teamId },
-    });
-    const isTeamCreator = team?.created_by_user === userId;
-    isAuthorized = isTeamCreator;
-  }
-
-  if (!isAuthorized) {
+  const authorized = await isTeamMember(teamId, agentId, userId);
+  if (!authorized) {
     throw new Error('Only team members can reorder columns');
   }
 

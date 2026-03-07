@@ -2,6 +2,7 @@ import { Response } from 'express';
 import { AuthRequest } from '../middleware/auth';
 import * as teamService from '../services/team.service';
 import { CreateTeamInput } from '@swarm/types';
+import { createTeamSchema, inviteSchema, validate } from '../lib/validation';
 
 /**
  * POST /api/teams
@@ -9,21 +10,9 @@ import { CreateTeamInput } from '@swarm/types';
  */
 export async function createTeam(req: AuthRequest, res: Response): Promise<void> {
   try {
-    const data: CreateTeamInput = req.body;
-
-    // Get agent ID if authenticated as agent, null if human
+    const data = validate(createTeamSchema, req.body);
     const agentId = req.agent?.agent_id || null;
-
-    // Get user ID if authenticated as human, null if agent
     const userId = req.user?.id || null;
-
-    if (!data.name) {
-      res.status(400).json({
-        success: false,
-        error: 'Team name is required',
-      });
-      return;
-    }
 
     const team = await teamService.createTeam(agentId, userId, data);
 
@@ -122,32 +111,23 @@ export async function updateTeam(req: AuthRequest, res: Response): Promise<void>
 export async function inviteAgent(req: AuthRequest, res: Response): Promise<void> {
   try {
     const { id: teamId } = req.params;
-    const { agent_id, user_email, role } = req.body;
+    const data = validate(inviteSchema, req.body);
     const invitedById = req.agent?.agent_id || null;
     const invitedByUserId = req.user?.id || null;
-
-    // Validate that either agent_id or user_email is provided
-    if (!agent_id && !user_email) {
-      res.status(400).json({
-        success: false,
-        error: 'Either agent_id or user_email is required',
-      });
-      return;
-    }
 
     const invitation = await teamService.inviteAgentToTeam(
       teamId,
       invitedById,
       invitedByUserId,
-      agent_id,
-      user_email,
-      role
+      data.agent_id,
+      data.user_email,
+      data.role
     );
 
     res.status(201).json({
       success: true,
       data: invitation,
-      message: agent_id
+      message: data.agent_id
         ? 'Agent invitation sent successfully'
         : 'Human invitation sent successfully',
     });

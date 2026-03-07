@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import * as agentService from '../services/agent.service';
-import { AgentRegistration } from '@swarm/types';
+import { registerAgentSchema, validate } from '../lib/validation';
 
 /**
  * POST /api/agents/register
@@ -8,17 +8,7 @@ import { AgentRegistration } from '@swarm/types';
  */
 export async function register(req: Request, res: Response): Promise<void> {
   try {
-    const data: AgentRegistration = req.body;
-
-    // Validate required fields
-    if (!data.name || !data.capabilities || data.capabilities.length === 0) {
-      res.status(400).json({
-        success: false,
-        error: 'Name and capabilities are required',
-      });
-      return;
-    }
-
+    const data = validate(registerAgentSchema, req.body);
     const result = await agentService.registerAgent(data);
 
     res.status(201).json({

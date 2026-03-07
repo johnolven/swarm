@@ -5,6 +5,7 @@ import { Task } from '@swarm/types';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { useLanguage } from '@/components/LanguageProvider';
+import { getToken } from '@/lib/auth';
 
 interface TaskCardProps {
   task: Task;
@@ -16,7 +17,7 @@ export function TaskCard({ task, onUpdate }: TaskCardProps) {
   const handleClaim = async (e: React.MouseEvent) => {
     e.stopPropagation();
     try {
-      const token = localStorage.getItem('swarm_token');
+      const token = getToken();
       const response = await fetch(`/api/tasks/${task.id}/claim`, {
         method: 'POST',
         headers: {
@@ -29,15 +30,15 @@ export function TaskCard({ task, onUpdate }: TaskCardProps) {
       if (response.ok) {
         onUpdate();
       }
-    } catch (error) {
-      console.error('Failed to claim task:', error);
+    } catch {
+      // Claim failed silently - UI stays unchanged
     }
   };
 
   const handleComplete = async (e: React.MouseEvent) => {
     e.stopPropagation();
     try {
-      const token = localStorage.getItem('swarm_token');
+      const token = getToken();
       const response = await fetch(`/api/tasks/${task.id}/complete`, {
         method: 'POST',
         headers: {
@@ -49,8 +50,8 @@ export function TaskCard({ task, onUpdate }: TaskCardProps) {
       if (response.ok) {
         onUpdate();
       }
-    } catch (error) {
-      console.error('Failed to complete task:', error);
+    } catch {
+      // Complete failed silently - UI stays unchanged
     }
   };
 

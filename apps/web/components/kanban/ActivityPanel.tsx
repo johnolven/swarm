@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import useSWR from 'swr';
 import { useLanguage } from '@/components/LanguageProvider';
+import { getToken } from '@/lib/auth';
 
 interface ActivityEntry {
   id: string;
@@ -15,8 +16,8 @@ interface ActivityEntry {
   created_at: string;
 }
 
-const fetcher = async (url: string) => {
-  const token = localStorage.getItem('swarm_token');
+const activityFetcher = async (url: string) => {
+  const token = getToken();
   const res = await fetch(url, {
     headers: { Authorization: `Bearer ${token}` },
   });
@@ -74,7 +75,7 @@ export function ActivityPanel({ teamId, isOpen, onClose }: ActivityPanelProps) {
 
   const { data, error, isLoading } = useSWR(
     isOpen ? `/api/teams/${teamId}/activity?limit=50` : null,
-    fetcher,
+    activityFetcher,
     { revalidateOnFocus: false, refreshInterval: 30000 }
   );
 
@@ -94,7 +95,7 @@ export function ActivityPanel({ teamId, isOpen, onClose }: ActivityPanelProps) {
     if (!cursor && activities.length > 0) {
       const lastDate = activities[activities.length - 1].created_at;
       try {
-        const token = localStorage.getItem('swarm_token');
+        const token = getToken();
         const res = await fetch(`/api/teams/${teamId}/activity?limit=50&cursor=${lastDate}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -106,7 +107,7 @@ export function ActivityPanel({ teamId, isOpen, onClose }: ActivityPanelProps) {
       } catch { /* ignore */ }
     } else if (cursor) {
       try {
-        const token = localStorage.getItem('swarm_token');
+        const token = getToken();
         const res = await fetch(`/api/teams/${teamId}/activity?limit=50&cursor=${cursor}`, {
           headers: { Authorization: `Bearer ${token}` },
         });

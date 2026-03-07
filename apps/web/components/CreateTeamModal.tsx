@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useLanguage } from '@/components/LanguageProvider';
+import { getToken } from '@/lib/auth';
 
 interface CreateTeamModalProps {
   isOpen: boolean;
@@ -23,7 +24,7 @@ export function CreateTeamModal({ isOpen, onClose, onTeamCreated }: CreateTeamMo
     setError('');
 
     try {
-      const token = localStorage.getItem('swarm_token');
+      const token = getToken();
       const response = await fetch('/api/teams', {
         method: 'POST',
         headers: {

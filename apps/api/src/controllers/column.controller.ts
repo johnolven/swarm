@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import { AuthRequest } from '../middleware/auth';
 import * as columnService from '../services/column.service';
+import { createColumnSchema, reorderSchema, validate } from '../lib/validation';
 
 /**
  * GET /api/teams/:teamId/columns
@@ -30,19 +31,11 @@ export async function getColumns(req: AuthRequest, res: Response): Promise<void>
 export async function createColumn(req: AuthRequest, res: Response): Promise<void> {
   try {
     const { teamId } = req.params;
-    const { name, color } = req.body;
+    const data = validate(createColumnSchema, req.body);
     const agentId = req.agent?.agent_id || null;
     const userId = req.user?.id || null;
 
-    if (!name) {
-      res.status(400).json({
-        success: false,
-        error: 'Column name is required',
-      });
-      return;
-    }
-
-    const column = await columnService.createColumn(teamId, agentId, userId, name, color);
+    const column = await columnService.createColumn(teamId, agentId, userId, data.name, data.color);
 
     res.status(201).json({
       success: true,
@@ -117,15 +110,8 @@ export async function reorderColumns(req: AuthRequest, res: Response): Promise<v
     const agentId = req.agent?.agent_id || null;
     const userId = req.user?.id || null;
 
-    if (!columnOrders || !Array.isArray(columnOrders)) {
-      res.status(400).json({
-        success: false,
-        error: 'columnOrders array is required',
-      });
-      return;
-    }
-
-    const columns = await columnService.reorderColumns(teamId, agentId, userId, columnOrders);
+    const validatedOrders = validate(reorderSchema, columnOrders);
+    const columns = await columnService.reorderColumns(teamId, agentId, userId, validatedOrders);
 
     res.json({
       success: true,

@@ -8,6 +8,7 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 import { LangToggle } from '@/components/LangToggle';
 import { useLanguage } from '@/components/LanguageProvider';
 import { ActivityPanel } from '@/components/kanban/ActivityPanel';
+import { getToken } from '@/lib/auth';
 
 export default function BoardPage({ params }: { params: Promise<{ teamId: string }> }) {
   const { teamId } = use(params);
@@ -23,7 +24,7 @@ export default function BoardPage({ params }: { params: Promise<{ teamId: string
   useEffect(() => {
     const fetchTeam = async () => {
       try {
-        const token = localStorage.getItem('swarm_token');
+        const token = getToken();
         const response = await fetch(`/api/teams/${teamId}`, {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -33,8 +34,8 @@ export default function BoardPage({ params }: { params: Promise<{ teamId: string
           const result = await response.json();
           setTeamName(result.data.name);
         }
-      } catch (error) {
-        console.error('Failed to fetch team:', error);
+      } catch {
+        // ignore
       }
     };
     fetchTeam();
@@ -44,7 +45,7 @@ export default function BoardPage({ params }: { params: Promise<{ teamId: string
     if (!newTeamName.trim()) return;
 
     try {
-      const token = localStorage.getItem('swarm_token');
+      const token = getToken();
       await fetch(`/api/teams/${teamId}`, {
         method: 'PUT',
         headers: {
@@ -57,14 +58,14 @@ export default function BoardPage({ params }: { params: Promise<{ teamId: string
       setShowRenameModal(false);
       setTeamName(newTeamName); // Update team name immediately
       setNewTeamName('');
-    } catch (error) {
-      console.error('Failed to rename team:', error);
+    } catch {
+      // ignore
     }
   };
 
   const handleDelete = async () => {
     try {
-      const token = localStorage.getItem('swarm_token');
+      const token = getToken();
       const response = await fetch(`/api/teams/${teamId}`, {
         method: 'DELETE',
         headers: {
@@ -79,8 +80,7 @@ export default function BoardPage({ params }: { params: Promise<{ teamId: string
       }
 
       router.push('/dashboard');
-    } catch (error) {
-      console.error('Failed to delete team:', error);
+    } catch {
       alert('Failed to delete team');
     }
   };

@@ -1,9 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { verifyToken } from '../lib/jwt';
 import { prisma } from '../lib/prisma';
-import jwt from 'jsonwebtoken';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-in-production';
 
 export interface AuthRequest extends Request {
   agent?: {
@@ -18,8 +15,20 @@ export interface AuthRequest extends Request {
   };
 }
 
+function extractToken(req: Request, res: Response): string | null {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    res.status(401).json({
+      success: false,
+      error: 'Missing or invalid authorization header',
+    });
+    return null;
+  }
+  return authHeader.substring(7);
+}
+
 /**
- * Middleware to authenticate requests using Bearer token
+ * Middleware to authenticate requests using Bearer token (agent-only)
  */
 export async function authenticate(
   req: AuthRequest,
@@ -27,22 +36,11 @@ export async function authenticate(
   next: NextFunction
 ): Promise<void> {
   try {
-    const authHeader = req.headers.authorization;
+    const token = extractToken(req, res);
+    if (!token) return;
 
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      res.status(401).json({
-        success: false,
-        error: 'Missing or invalid authorization header',
-      });
-      return;
-    }
-
-    const token = authHeader.substring(7); // Remove 'Bearer ' prefix
-
-    // Verify JWT token
     const payload = verifyToken(token);
 
-    // Check if agent exists and is active
     const agent = await prisma.agent.findUnique({
       where: { id: payload.agent_id },
     });
@@ -55,7 +53,6 @@ export async function authenticate(
       return;
     }
 
-    // Attach agent info to request
     req.agent = {
       agent_id: agent.id,
       name: agent.name,
@@ -79,22 +76,11 @@ export async function authenticateToken(
   next: NextFunction
 ): Promise<void> {
   try {
-    const authHeader = req.headers.authorization;
+    const token = extractToken(req, res);
+    if (!token) return;
 
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      res.status(401).json({
-        success: false,
-        error: 'Missing or invalid authorization header',
-      });
-      return;
-    }
+    const decoded = verifyToken(token) as any;
 
-    const token = authHeader.substring(7); // Remove 'Bearer ' prefix
-
-    // Verify JWT token
-    const decoded = jwt.verify(token, JWT_SECRET) as any;
-
-    // Check if it's a human user token
     if (decoded.type === 'human') {
       req.user = {
         id: decoded.user_id,
@@ -106,12 +92,8 @@ export async function authenticateToken(
       return;
     }
 
-    // Otherwise, it's an agent token
-    const payload = verifyToken(token);
-
-    // Check if agent exists and is active
     const agent = await prisma.agent.findUnique({
-      where: { id: payload.agent_id },
+      where: { id: decoded.agent_id },
     });
 
     if (!agent || !agent.is_active) {
@@ -122,7 +104,6 @@ export async function authenticateToken(
       return;
     }
 
-    // Attach agent info to request
     req.agent = {
       agent_id: agent.id,
       name: agent.name,

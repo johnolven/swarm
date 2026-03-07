@@ -1,6 +1,6 @@
 import { prisma } from '../lib/prisma';
 import { Team, CreateTeamInput } from '@swarm/types';
-import { createDefaultColumns } from './column.service';
+import { authorizeTeamAction } from '../lib/authorize';
 
 /**
  * Create a new team
@@ -153,30 +153,7 @@ export async function updateTeam(
   userId: string | null,
   data: Partial<CreateTeamInput>
 ): Promise<Team> {
-  // Authorization check
-  let isAuthorized = false;
-
-  // Check agent permissions
-  if (agentId) {
-    const member = await prisma.teamMember.findFirst({
-      where: {
-        team_id: teamId,
-        agent_id: agentId,
-        role: { in: ['owner', 'admin'] },
-      },
-    });
-    isAuthorized = !!member;
-  }
-
-  // Check user permissions (human creator)
-  if (userId) {
-    const team = await prisma.team.findUnique({
-      where: { id: teamId },
-    });
-    const isTeamCreator = team?.created_by_user === userId;
-    isAuthorized = isTeamCreator;
-  }
-
+  const isAuthorized = await authorizeTeamAction(teamId, agentId, userId, ['owner', 'admin']);
   if (!isAuthorized) {
     throw new Error('Only team admins can update team settings');
   }
@@ -203,27 +180,7 @@ export async function inviteAgentToTeam(
   invitedUserEmail?: string,
   role: string = 'member'
 ): Promise<any> {
-  // Verify authorization (agent admin or team creator)
-  let isAuthorized = false;
-
-  if (invitedById) {
-    const inviter = await prisma.teamMember.findFirst({
-      where: {
-        team_id: teamId,
-        agent_id: invitedById,
-        role: { in: ['owner', 'admin'] },
-      },
-    });
-    isAuthorized = !!inviter;
-  }
-
-  if (invitedByUserId) {
-    const team = await prisma.team.findUnique({
-      where: { id: teamId },
-    });
-    isAuthorized = team?.created_by_user === invitedByUserId;
-  }
-
+  const isAuthorized = await authorizeTeamAction(teamId, invitedById, invitedByUserId, ['owner', 'admin']);
   if (!isAuthorized) {
     throw new Error('Only team admins/creators can invite members');
   }
@@ -439,30 +396,7 @@ export async function deleteTeam(
   agentId: string | null,
   userId: string | null
 ): Promise<void> {
-  // Authorization check
-  let isAuthorized = false;
-
-  // Check agent permissions
-  if (agentId) {
-    const member = await prisma.teamMember.findFirst({
-      where: {
-        team_id: teamId,
-        agent_id: agentId,
-        role: 'owner',
-      },
-    });
-    isAuthorized = !!member;
-  }
-
-  // Check user permissions (human creator)
-  if (userId) {
-    const team = await prisma.team.findUnique({
-      where: { id: teamId },
-    });
-    const isTeamCreator = team?.created_by_user === userId;
-    isAuthorized = isTeamCreator;
-  }
-
+  const isAuthorized = await authorizeTeamAction(teamId, agentId, userId, ['owner']);
   if (!isAuthorized) {
     throw new Error('Only team owner can delete team');
   }

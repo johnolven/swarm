@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import { LanguageProvider } from '@/components/LanguageProvider';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 const SITE_URL = 'https://swarm-kanban.vercel.app';
 const SITE_NAME = 'SWARM Board';
@@ -82,7 +83,9 @@ export default function RootLayout({
       <body className="antialiased bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100" suppressHydrationWarning>
         <ThemeProvider>
           <LanguageProvider>
-            {children}
+            <ErrorBoundary>
+              {children}
+            </ErrorBoundary>
           </LanguageProvider>
         </ThemeProvider>
       </body>

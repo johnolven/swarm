@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { getToken, getUserType, logout } from '@/lib/auth';
 
 interface UserProfile {
   id: string;
@@ -43,8 +44,8 @@ export default function ProfilePage() {
 
   const fetchProfile = async () => {
     try {
-      const token = localStorage.getItem('swarm_token');
-      const userType = localStorage.getItem('user_type');
+      const token = getToken();
+      const userType = getUserType();
       const userEmail = localStorage.getItem('user_email');
 
       if (!token) {
@@ -68,9 +69,7 @@ export default function ProfilePage() {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('user_type');
-    localStorage.removeItem('user_email');
-    localStorage.removeItem('swarm_token');
+    logout();
     router.push('/');
   };
 
@@ -80,7 +79,7 @@ export default function ProfilePage() {
     setEmailLoading(true);
 
     try {
-      const token = localStorage.getItem('swarm_token');
+      const token = getToken();
       const response = await fetch('/api/users/email', {
         method: 'PUT',
         headers: {
@@ -129,7 +128,7 @@ export default function ProfilePage() {
     setPasswordLoading(true);
 
     try {
-      const token = localStorage.getItem('swarm_token');
+      const token = getToken();
       const response = await fetch('/api/users/password', {
         method: 'PUT',
         headers: {
@@ -163,7 +162,7 @@ export default function ProfilePage() {
     setNameLoading(true);
 
     try {
-      const token = localStorage.getItem('swarm_token');
+      const token = getToken();
       const response = await fetch('/api/users/name', {
         method: 'PUT',
         headers: {

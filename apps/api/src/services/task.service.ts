@@ -1,5 +1,6 @@
 import { prisma } from '../lib/prisma';
 import { Task, CreateTaskInput, UpdateTaskInput } from '@swarm/types';
+import { authorizeTeamAction, isTeamMember } from '../lib/authorize';
 
 /**
  * Create a new task
@@ -236,30 +237,19 @@ export async function updateTask(
     throw new Error('Task not found');
   }
 
-  // Authorization check: assigned agent, team admin, or task creator (human)
+  // Authorization: assigned agent, team admin, or task creator
   let isAuthorized = false;
 
   if (agentId) {
     const isAssigned = task.assigned_to_id === agentId;
-    const member = await prisma.teamMember.findFirst({
-      where: {
-        team_id: task.team_id,
-        agent_id: agentId,
-        role: { in: ['owner', 'admin'] },
-      },
-    });
-    isAuthorized = isAssigned || !!member;
+    const isAdmin = await authorizeTeamAction(task.team_id, agentId, null, ['owner', 'admin']);
+    isAuthorized = isAssigned || isAdmin;
   }
 
   if (userId) {
-    // Humans who created the task can update it
     const isCreator = task.created_by_user_id === userId;
-    // Or humans who created the team
-    const team = await prisma.team.findUnique({
-      where: { id: task.team_id },
-    });
-    const isTeamCreator = team?.created_by_user === userId;
-    isAuthorized = isCreator || isTeamCreator;
+    const isTeamAdmin = await authorizeTeamAction(task.team_id, null, userId);
+    isAuthorized = isCreator || isTeamAdmin;
   }
 
   if (!isAuthorized) {
@@ -439,32 +429,19 @@ export async function deleteTask(
     throw new Error('Task not found');
   }
 
-  // Authorization check
+  // Authorization: task creator or team admin
   let isAuthorized = false;
 
-  // Check agent permissions
   if (agentId) {
     const isCreator = task.created_by_id === agentId;
-    const member = await prisma.teamMember.findFirst({
-      where: {
-        team_id: task.team_id,
-        agent_id: agentId,
-        role: { in: ['owner', 'admin'] },
-      },
-    });
-    isAuthorized = isCreator || !!member;
+    const isAdmin = await authorizeTeamAction(task.team_id, agentId, null, ['owner', 'admin']);
+    isAuthorized = isCreator || isAdmin;
   }
 
-  // Check user permissions
   if (userId) {
-    // Humans who created the task can delete it
     const isCreator = task.created_by_user_id === userId;
-    // Or humans who created the team
-    const team = await prisma.team.findUnique({
-      where: { id: task.team_id },
-    });
-    const isTeamCreator = team?.created_by_user === userId;
-    isAuthorized = isCreator || isTeamCreator;
+    const isTeamAdmin = await authorizeTeamAction(task.team_id, null, userId);
+    isAuthorized = isCreator || isTeamAdmin;
   }
 
   if (!isAuthorized) {
@@ -504,27 +481,8 @@ export async function reorderTasks(
     throw new Error('Column not found');
   }
 
-  // Authorization check
-  let isAuthorized = false;
-
-  // Check agent permissions
-  if (agentId) {
-    const member = await prisma.teamMember.findFirst({
-      where: {
-        team_id: column.team_id,
-        agent_id: agentId,
-      },
-    });
-    isAuthorized = !!member;
-  }
-
-  // Check user permissions (human creator)
-  if (userId) {
-    const isTeamCreator = column.team.created_by_user === userId;
-    isAuthorized = isTeamCreator;
-  }
-
-  if (!isAuthorized) {
+  const authorized = await isTeamMember(column.team_id, agentId, userId);
+  if (!authorized) {
     throw new Error('Only team members can reorder tasks');
   }
 

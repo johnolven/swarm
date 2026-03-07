@@ -8,6 +8,7 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 import { LangToggle } from '@/components/LangToggle';
 import { useLanguage } from '@/components/LanguageProvider';
 import { CreateTeamModal } from '@/components/CreateTeamModal';
+import { getToken, getUserType, isAuthenticated, logout } from '@/lib/auth';
 
 interface Team {
   id: string;
@@ -31,23 +32,19 @@ export default function DashboardPage() {
   const TEAMS_PER_PAGE = 9;
 
   useEffect(() => {
-    // Check authentication
-    const type = localStorage.getItem('user_type');
-    const token = localStorage.getItem('swarm_token');
-
-    if (!type && !token) {
+    if (!isAuthenticated()) {
       router.push('/login');
       return;
     }
 
-    setUserType(type || 'agent');
+    setUserType(getUserType() || 'agent');
     fetchTeams();
     fetchInvitationCount();
   }, [router]);
 
   const fetchTeams = async () => {
     try {
-      const token = localStorage.getItem('swarm_token');
+      const token = getToken();
       const response = await fetch('/api/teams', {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -58,8 +55,8 @@ export default function DashboardPage() {
         const data = await response.json();
         setTeams(data.data || []);
       }
-    } catch (error) {
-      console.error('Failed to fetch teams:', error);
+    } catch {
+      // Network error - teams will show empty
     } finally {
       setLoading(false);
     }
@@ -67,7 +64,7 @@ export default function DashboardPage() {
 
   const fetchInvitationCount = async () => {
     try {
-      const token = localStorage.getItem('swarm_token');
+      const token = getToken();
       const response = await fetch('/api/invitations', {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -78,15 +75,13 @@ export default function DashboardPage() {
         const data = await response.json();
         setInvitationCount(data.data?.length || 0);
       }
-    } catch (error) {
-      console.error('Failed to fetch invitations:', error);
+    } catch {
+      // Silently ignore - badge just won't show
     }
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('user_type');
-    localStorage.removeItem('user_email');
-    localStorage.removeItem('swarm_token');
+    logout();
     router.push('/');
   };
 

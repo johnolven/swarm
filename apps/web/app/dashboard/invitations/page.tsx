@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { getToken, getUserType, logout } from '@/lib/auth';
 
 interface Invitation {
   id: string;
@@ -57,8 +58,8 @@ export default function InvitationsPage() {
 
   useEffect(() => {
     // Check authentication
-    const type = localStorage.getItem('user_type');
-    const token = localStorage.getItem('swarm_token');
+    const type = getUserType();
+    const token = getToken();
 
     if (!type && !token) {
       router.push('/login');
@@ -78,7 +79,7 @@ export default function InvitationsPage() {
 
   const fetchInvitations = async () => {
     try {
-      const token = localStorage.getItem('swarm_token');
+      const token = getToken();
       const response = await fetch('/api/invitations', {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -89,8 +90,8 @@ export default function InvitationsPage() {
         const data = await response.json();
         setInvitations(data.data || []);
       }
-    } catch (error) {
-      console.error('Failed to fetch invitations:', error);
+    } catch {
+      // ignore
     } finally {
       setLoading(false);
     }
@@ -98,7 +99,7 @@ export default function InvitationsPage() {
 
   const fetchTeams = async () => {
     try {
-      const token = localStorage.getItem('swarm_token');
+      const token = getToken();
       const response = await fetch('/api/teams', {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -113,14 +114,14 @@ export default function InvitationsPage() {
           setSelectedTeamId(data.data[0].id);
         }
       }
-    } catch (error) {
-      console.error('Failed to fetch teams:', error);
+    } catch {
+      // ignore
     }
   };
 
   const fetchJoinRequests = async (teamId: string) => {
     try {
-      const token = localStorage.getItem('swarm_token');
+      const token = getToken();
       const response = await fetch(`/api/teams/${teamId}/join-requests`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -131,14 +132,14 @@ export default function InvitationsPage() {
         const data = await response.json();
         setJoinRequests(data.data || []);
       }
-    } catch (error) {
-      console.error('Failed to fetch join requests:', error);
+    } catch {
+      // ignore
     }
   };
 
   const handleAcceptInvitation = async (invitationId: string) => {
     try {
-      const token = localStorage.getItem('swarm_token');
+      const token = getToken();
       const response = await fetch(`/api/invitations/${invitationId}/accept`, {
         method: 'POST',
         headers: {
@@ -153,14 +154,14 @@ export default function InvitationsPage() {
         const data = await response.json();
         alert(`Failed to accept invitation: ${data.error}`);
       }
-    } catch (error) {
-      console.error('Failed to accept invitation:', error);
+    } catch {
+      // ignore
     }
   };
 
   const handleDeclineInvitation = async (invitationId: string) => {
     try {
-      const token = localStorage.getItem('swarm_token');
+      const token = getToken();
       const response = await fetch(`/api/invitations/${invitationId}/decline`, {
         method: 'POST',
         headers: {
@@ -175,14 +176,14 @@ export default function InvitationsPage() {
         const data = await response.json();
         alert(`Failed to decline invitation: ${data.error}`);
       }
-    } catch (error) {
-      console.error('Failed to decline invitation:', error);
+    } catch {
+      // ignore
     }
   };
 
   const handleApproveRequest = async (requestId: string) => {
     try {
-      const token = localStorage.getItem('swarm_token');
+      const token = getToken();
       const response = await fetch(`/api/join-requests/${requestId}/approve`, {
         method: 'POST',
         headers: {
@@ -197,14 +198,14 @@ export default function InvitationsPage() {
         const data = await response.json();
         alert(`Failed to approve request: ${data.error}`);
       }
-    } catch (error) {
-      console.error('Failed to approve request:', error);
+    } catch {
+      // ignore
     }
   };
 
   const handleRejectRequest = async (requestId: string) => {
     try {
-      const token = localStorage.getItem('swarm_token');
+      const token = getToken();
       const response = await fetch(`/api/join-requests/${requestId}/reject`, {
         method: 'POST',
         headers: {
@@ -219,8 +220,8 @@ export default function InvitationsPage() {
         const data = await response.json();
         alert(`Failed to reject request: ${data.error}`);
       }
-    } catch (error) {
-      console.error('Failed to reject request:', error);
+    } catch {
+      // ignore
     }
   };
 
@@ -241,7 +242,7 @@ export default function InvitationsPage() {
     }
 
     try {
-      const token = localStorage.getItem('swarm_token');
+      const token = getToken();
       const body = inviteType === 'agent'
         ? { agent_id: agentIdToInvite, role: inviteRole }
         : { user_email: humanEmailToInvite, role: inviteRole };
@@ -264,16 +265,13 @@ export default function InvitationsPage() {
         const data = await response.json();
         alert(`Failed to send invitation: ${data.error}`);
       }
-    } catch (error) {
-      console.error('Failed to send invitation:', error);
+    } catch {
       alert('Failed to send invitation');
     }
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('user_type');
-    localStorage.removeItem('user_email');
-    localStorage.removeItem('swarm_token');
+    logout();
     router.push('/');
   };
 

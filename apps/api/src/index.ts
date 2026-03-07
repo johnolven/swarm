@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
 import routes from './routes';
 import { prisma } from './lib/prisma';
@@ -10,7 +11,6 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Allow multiple origins for CORS (development + production)
 const allowedOrigins = process.env.CORS_ORIGIN
   ? process.env.CORS_ORIGIN.split(',')
   : ['http://localhost:3000'];
@@ -21,9 +21,7 @@ const allowedOrigins = process.env.CORS_ORIGIN
 
 app.use(cors({
   origin: function(origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl)
     if (!origin) return callback(null, true);
-
     if (allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
@@ -33,14 +31,39 @@ app.use(cors({
   credentials: true,
 }));
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// Request size limits
+app.use(express.json({ limit: '1mb' }));
+app.use(express.urlencoded({ extended: true, limit: '1mb' }));
+
+// Rate limiting - general
+const generalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 500,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, error: 'Too many requests, please try again later' },
+});
+app.use(generalLimiter);
+
+// Strict rate limiting for auth endpoints
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, error: 'Too many authentication attempts, please try again later' },
+});
+app.use('/api/users/signup', authLimiter);
+app.use('/api/users/login', authLimiter);
+app.use('/api/agents/register', authLimiter);
 
 // Request logging
-app.use((req, res, next) => {
-  console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
-  next();
-});
+if (process.env.NODE_ENV !== 'test') {
+  app.use((req, res, next) => {
+    console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
+    next();
+  });
+}
 
 // ============================================================
 // ROUTES
@@ -58,7 +81,6 @@ app.get('/', (req, res) => {
       health: '/api/health',
       register: 'POST /api/agents/register',
       agents: 'GET /api/agents',
-      docs: '/api-docs (coming soon)',
     },
   });
 });
@@ -72,11 +94,12 @@ app.use((req, res) => {
 });
 
 // Error handler
-app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+app.use((err: any, req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error('Error:', err);
-  res.status(500).json({
+  const statusCode = err.status || 500;
+  res.status(statusCode).json({
     success: false,
-    error: err.message || 'Internal server error',
+    error: process.env.NODE_ENV === 'production' ? 'Internal server error' : err.message,
   });
 });
 
@@ -86,27 +109,39 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
 
 async function startServer() {
   try {
-    // Test database connection
     await prisma.$connect();
-    console.log('✅ Connected to MongoDB');
+    console.log('Connected to MongoDB');
 
-    // Start server
-    app.listen(PORT, () => {
-      console.log(`🚀 SWARM Board API running on http://localhost:${PORT}`);
-      console.log(`📝 Environment: ${process.env.NODE_ENV || 'development'}`);
-      console.log(`🌐 CORS enabled for: ${allowedOrigins.join(', ')}`);
+    const server = app.listen(PORT, () => {
+      console.log(`SWARM Board API running on http://localhost:${PORT}`);
+      console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+      console.log(`CORS enabled for: ${allowedOrigins.join(', ')}`);
     });
+
+    // Graceful shutdown
+    const shutdown = async (signal: string) => {
+      console.log(`\n${signal} received. Shutting down gracefully...`);
+      server.close(async () => {
+        await prisma.$disconnect();
+        process.exit(0);
+      });
+      // Force exit after 10s
+      setTimeout(() => process.exit(1), 10000);
+    };
+
+    process.on('SIGINT', () => shutdown('SIGINT'));
+    process.on('SIGTERM', () => shutdown('SIGTERM'));
   } catch (error) {
-    console.error('❌ Failed to start server:', error);
+    console.error('Failed to start server:', error);
     process.exit(1);
   }
 }
 
+// Unhandled rejection handler
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
 startServer();
 
-// Graceful shutdown
-process.on('SIGINT', async () => {
-  console.log('\n👋 Shutting down gracefully...');
-  await prisma.$disconnect();
-  process.exit(0);
-});
+export default app;

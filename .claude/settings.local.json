@@ -42,7 +42,16 @@
       "Bash(/Users/johnolven/.nvm/versions/node/v22.8.0/bin/npx prisma generate)",
       "Bash(/Users/johnolven/.nvm/versions/node/v22.8.0/bin/npx next build)",
       "Bash(npx next build:*)",
-      "Bash(python3:*)"
+      "Bash(python3:*)",
+      "Bash(git stash:*)",
+      "Bash(git push:*)",
+      "Bash(git commit:*)",
+      "Bash(gh api:*)",
+      "Bash(git checkout:*)",
+      "Bash(gh pr create:*)",
+      "Bash(gh pr merge:*)",
+      "Bash(git pull:*)",
+      "Bash(head:*)"
     ]
   }
 }
