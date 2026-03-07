@@ -30,17 +30,29 @@ swarm/
 │   ├── api/                    # Express.js backend
 │   │   ├── prisma/
 │   │   │   └── schema.prisma   # Database schema (MongoDB)
+│   │   ├── jest.config.js      # Jest test configuration
 │   │   └── src/
-│   │       ├── index.ts        # Entry point (port 3001)
-│   │       ├── controllers/    # Request handlers
+│   │       ├── index.ts        # Entry point (port 3001, rate limiting, graceful shutdown)
+│   │       ├── controllers/    # Request handlers (Zod-validated inputs)
 │   │       ├── services/       # Business logic
 │   │       ├── routes/         # Express routers
-│   │       ├── middleware/     # Auth middleware
-│   │       └── lib/            # JWT, Prisma client
+│   │       ├── middleware/     # Auth middleware (authenticate, authenticateToken)
+│   │       ├── lib/
+│   │       │   ├── jwt.ts         # JWT utilities (generateToken, generateUserToken, verifyToken, generateApiToken)
+│   │       │   ├── prisma.ts      # Prisma client singleton
+│   │       │   ├── validation.ts  # Zod schemas for all API inputs + SSRF protection
+│   │       │   └── authorize.ts   # Centralized team authorization (authorizeTeamAction, isTeamMember)
+│   │       └── __tests__/      # Unit tests
+│   │           ├── setup.ts          # Test env setup (JWT_SECRET)
+│   │           ├── prisma.mock.ts    # Prisma client mock
+│   │           ├── agent.flow.test.ts      # Agent registration + JWT tests
+│   │           ├── auth.middleware.test.ts  # Auth middleware tests
+│   │           └── validation.test.ts      # Zod schema tests
 │   └── web/                    # Next.js frontend
 │       ├── app/                # App Router pages
 │       │   ├── page.tsx        # Landing page
 │       │   ├── login/          # Auth (human + agent tabs)
+│       │   ├── not-found.tsx   # Custom 404 page
 │       │   ├── dashboard/      # Protected routes
 │       │   │   ├── page.tsx           # Teams overview
 │       │   │   ├── board/[teamId]/    # Kanban board
@@ -51,17 +63,21 @@ swarm/
 │       │   ├── kanban/         # Board, TaskCard, TaskEditModal, ActivityPanel
 │       │   ├── teams/          # Team management
 │       │   ├── ui/             # Shadcn components (Card, Badge)
+│       │   ├── ErrorBoundary.tsx    # React error boundary (wraps layout)
 │       │   ├── ThemeProvider.tsx
 │       │   ├── LanguageProvider.tsx
 │       │   └── CreateTeamModal.tsx
 │       └── lib/
+│           ├── auth.ts         # Centralized auth (getToken, isAuthenticated, authFetcher, logout)
 │           ├── config.ts       # API URL config
 │           ├── translations.ts # i18n (5 languages, ~1400 lines)
 │           └── server/         # Server-side auth, services, prisma
 ├── packages/
 │   └── types/                  # Shared TypeScript types
+├── .env.example                # Environment variable template
+├── .dockerignore               # Docker build exclusions
 ├── docker-compose.yml
-├── Dockerfile                  # Multi-stage (api + web targets)
+├── Dockerfile                  # Multi-stage with HEALTHCHECK (api + web targets)
 └── turbo.json
 ```
 
@@ -128,11 +144,32 @@ Two auth modes coexist:
 1. **Human users**: JWT with `{ user_id, email, type: 'human', name }` - 30d expiry
 2. **AI agents**: API token (`swarm_sk_live_*`) + JWT with `{ agent_id, name }`
 
-Middleware:
+Middleware (`src/middleware/auth.ts`):
 - `authenticate()` - Agent-only auth (checks `is_active`)
 - `authenticateToken()` - Accepts both human and agent tokens
+- Both use centralized `verifyToken()` from `lib/jwt.ts`
 
-Token stored in frontend `localStorage` as `swarm_token`.
+Token stored in frontend `localStorage` as `swarm_token` via centralized `lib/auth.ts`.
+
+## Security
+
+- **Input validation**: All API inputs validated with Zod schemas (`lib/validation.ts`)
+- **SSRF protection**: Webhook URLs block localhost, 127.0.0.1, 10.x, 172.16-31.x, 192.168.x
+- **Rate limiting**: 500 req/15min general, 20 req/15min on auth endpoints (`/signup`, `/login`, `/register`)
+- **Password hashing**: bcrypt with 12 salt rounds
+- **Request size**: 1mb limit on JSON/URL-encoded bodies
+- **JWT_SECRET**: Required env var (throws on startup if missing)
+- **CORS**: Configurable allowed origins via `CORS_ORIGIN` env var
+- **Error handling**: Production mode hides error details, graceful shutdown on SIGINT/SIGTERM
+- **Authorization**: Centralized via `authorizeTeamAction()` and `isTeamMember()` in `lib/authorize.ts`
+- **ErrorBoundary**: React error boundary wraps the app layout
+
+## Testing
+
+- **Framework**: Jest + ts-jest
+- **Run**: `npx jest --config apps/api/jest.config.js`
+- **Mock**: Prisma client mocked via `__tests__/prisma.mock.ts` (includes `$transaction` support)
+- **Test suites**: Agent flow (JWT + service), auth middleware, Zod validation schemas (63 tests total)
 
 ## Key Commands
 
@@ -148,8 +185,10 @@ npm run db:studio    # Open Prisma Studio
 
 # Quality
 npm run lint         # Lint all packages
-npm run test         # Run tests
 npm run format       # Prettier format
+
+# Testing
+npx jest --config apps/api/jest.config.js   # Run API tests
 ```
 
 ## Environment Variables
@@ -169,12 +208,15 @@ npm run format       # Prettier format
 
 ## Architecture Patterns
 
-- **Backend**: Controller -> Service -> Prisma (clean separation)
-- **Frontend**: App Router pages -> components -> SWR hooks -> API calls
-- **State**: React Context (theme, i18n) + SWR (server data) + localStorage (auth)
+- **Backend**: Controller (Zod validation) -> Service (business logic + authorization) -> Prisma
+- **Frontend**: App Router pages -> components -> SWR hooks (authFetcher) -> API calls
+- **Validation**: Centralized Zod schemas in `lib/validation.ts`, used by all controllers
+- **Authorization**: Centralized in `lib/authorize.ts`, used by team/task/column/invitation services
+- **State**: React Context (theme, i18n) + SWR (server data) + localStorage via `lib/auth.ts`
 - **Styling**: Tailwind utility classes + CSS variables for theming + dark mode via class strategy
 - **Default columns**: Teams auto-create "Todo", "Doing", "Done" columns
 - **Activity logging**: All team actions logged with i18n action keys
+- **Error handling**: ErrorBoundary at layout level, custom 404 page
 
 ## Important Notes
 
@@ -182,4 +224,5 @@ npm run format       # Prettier format
 - Agent capabilities are string arrays matched against task `required_capabilities`
 - Kanban board uses dnd-kit for drag-and-drop between columns
 - Translations file (`lib/translations.ts`) is ~1400 lines covering 5 languages
-- Docker multi-stage build produces separate `api` and `web` targets
+- Docker multi-stage build produces separate `api` and `web` targets with HEALTHCHECK
+- `.env.example` documents all required/optional environment variables
