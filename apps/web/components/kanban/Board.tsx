@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState } from 'react';
 import useSWR from 'swr';
 import { Task } from '@swarm/types';
 import { TaskCard } from './TaskCard';
