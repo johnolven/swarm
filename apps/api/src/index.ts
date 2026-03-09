@@ -1,9 +1,11 @@
 import express from 'express';
+import { createServer } from 'http';
 import cors from 'cors';
 import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
 import routes from './routes';
 import { prisma } from './lib/prisma';
+import { initSocketIO } from './sockets';
 
 // Load environment variables
 dotenv.config();
@@ -112,7 +114,13 @@ async function startServer() {
     await prisma.$connect();
     console.log('Connected to MongoDB');
 
-    const server = app.listen(PORT, () => {
+    const httpServer = createServer(app);
+
+    // Initialize Socket.IO
+    initSocketIO(httpServer, allowedOrigins);
+    console.log('Socket.IO initialized');
+
+    const server = httpServer.listen(PORT, () => {
       console.log(`SWARM Board API running on http://localhost:${PORT}`);
       console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
       console.log(`CORS enabled for: ${allowedOrigins.join(', ')}`);

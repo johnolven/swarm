@@ -1,0 +1,129 @@
+'use client';
+
+import { useEffect, useRef, useState } from 'react';
+import { UserPresence, ChatMessage } from './types';
+
+// Start downloading Phaser immediately when this module loads (before useEffect)
+const phaserPromise = typeof window !== 'undefined' ? import('phaser') : null;
+const officeScenePromise = typeof window !== 'undefined' ? import('./OfficeScene') : null;
+
+interface SocketLike {
+  emit: (event: string, data: any) => void;
+  on: (event: string, handler: (...args: any[]) => void) => void;
+  off: (event: string, handler?: (...args: any[]) => void) => void;
+}
+
+interface PhaserGameProps {
+  socket: SocketLike;
+  teamId: string;
+  userId: string;
+  userName: string;
+  userType: 'agent' | 'user';
+  characterId?: number;
+  onPresenceUpdate: (users: UserPresence[]) => void;
+  onChatMessage: (msg: ChatMessage) => void;
+  onZoneChange: (zone: { id: string; label: string } | null) => void;
+}
+
+export function PhaserGame({
+  socket,
+  teamId,
+  userId,
+  userName,
+  userType,
+  characterId = 1,
+  onPresenceUpdate,
+  onChatMessage,
+  onZoneChange,
+}: PhaserGameProps) {
+  const gameRef = useRef<Phaser.Game | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [loading, setLoading] = useState(true);
+  const [progress, setProgress] = useState(0);
+
+  useEffect(() => {
+    if (!containerRef.current || gameRef.current) return;
+
+    (async () => {
+      const Phaser = await phaserPromise!;
+      const { OfficeScene } = await officeScenePromise!;
+
+      const scene = new OfficeScene();
+      scene.configure({
+        socket,
+        teamId,
+        userId,
+        userName,
+        userType,
+        characterId,
+        onPresenceUpdate,
+        onChatMessage,
+        onZoneChange,
+        onReady: () => {
+          setLoading(false);
+          game.canvas.setAttribute('tabindex', '0');
+          game.canvas.focus();
+        },
+      });
+
+      const game = new Phaser.Game({
+        type: Phaser.AUTO,
+        width: 1024,
+        height: 800,
+        parent: containerRef.current!,
+        backgroundColor: '#1a1a2e',
+        pixelArt: true,
+        input: { keyboard: true },
+        scale: {
+          mode: Phaser.Scale.FIT,
+          autoCenter: Phaser.Scale.CENTER_BOTH,
+        },
+        scene: scene,
+      });
+
+      gameRef.current = game;
+    })();
+
+    return () => {
+      if (gameRef.current) {
+        const scene = gameRef.current.scene.getScene('OfficeScene') as any;
+        scene?.shutdown?.();
+        gameRef.current.destroy(true);
+        gameRef.current = null;
+      }
+    };
+  }, []);
+
+  return (
+    <div className="relative">
+      {loading && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-900 rounded-lg z-10 gap-3">
+          <div className="text-gray-400 text-sm">Loading office...</div>
+          <div className="w-48 h-1.5 bg-gray-700 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-indigo-500 rounded-full transition-all duration-200"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+          <div className="text-gray-500 text-xs">{progress}%</div>
+        </div>
+      )}
+      <div
+        ref={containerRef}
+        onClick={() => gameRef.current?.canvas.focus()}
+        className="rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 cursor-pointer"
+        style={{ width: '100%', maxWidth: 1024, aspectRatio: '1024/800' }}
+      />
+      <div className="mt-1.5 flex flex-wrap gap-3 text-[10px] text-gray-400">
+        <span>Arrow keys: move</span>
+        <span>1-5: emotes</span>
+        <span className="flex items-center gap-1">
+          <span className="w-2 h-2 inline-block rounded-full bg-purple-500" /> Agent
+        </span>
+        <span className="flex items-center gap-1">
+          <span className="w-2 h-2 inline-block rounded-full bg-blue-500" /> Human
+        </span>
+      </div>
+    </div>
+  );
+}

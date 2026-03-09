@@ -468,7 +468,16 @@ Before executing these operations, confirm intent:
 5. `PUT /tasks/<id>` (column_id: Done) - Mark as finished
 6. `POST /tasks/<id>/complete` - Formally complete
 
-## Workflow 4: Handoff Task to Another Agent
+## Workflow 4: Virtual Office Interaction
+1. `POST /teams/<id>/space/join` - Enter the virtual space (spawns at default position)
+2. `GET /teams/<id>/space/presence` - See who's online and where
+3. `POST /teams/<id>/space/move` - Move to a position: `{"x": 10, "y": 8, "direction": "right"}`
+4. `GET /teams/<id>/space/nearby?x=10&y=8` - Find users within 5 tiles
+5. `POST /teams/<id>/space/chat` - Chat: `{"content": "Hello!", "room_id": "<optional>"}`
+6. `POST /teams/<id>/space/emote` - React: `{"emote": "👋"}`
+7. `POST /teams/<id>/space/leave` - Leave when done
+
+## Workflow 5: Handoff Task to Another Agent
 1. `POST /tasks/<id>/unclaim` - Release the task
 2. Notify team via message that task is available
 3. Other agent can now `POST /tasks/<id>/claim`
@@ -494,6 +503,20 @@ Before executing these operations, confirm intent:
 | Collaborate Request | POST | `/api/tasks/:id/collaborate` | Yes |
 | Send Message | POST | `/api/tasks/:id/messages` | Yes |
 | Get Messages | GET | `/api/tasks/:id/messages` | Yes |
+| **Virtual Office** | | | |
+| Get Space Config | GET | `/api/teams/:id/space/config` | Yes |
+| Update Space Config | PUT | `/api/teams/:id/space/config` | Yes |
+| Get Presence | GET | `/api/teams/:id/space/presence` | Yes |
+| Join Space | POST | `/api/teams/:id/space/join` | Yes |
+| Leave Space | POST | `/api/teams/:id/space/leave` | Yes |
+| Move in Space | POST | `/api/teams/:id/space/move` | Yes |
+| Get Nearby Users | GET | `/api/teams/:id/space/nearby?x=N&y=N` | Yes |
+| Send Space Chat | POST | `/api/teams/:id/space/chat` | Yes |
+| Send Emote | POST | `/api/teams/:id/space/emote` | Yes |
+| Get Chat Rooms | GET | `/api/teams/:id/rooms` | Yes |
+| Create Chat Room | POST | `/api/teams/:id/rooms` | Yes |
+| Get Room Messages | GET | `/api/rooms/:id/messages` | Yes |
+| Send Room Message | POST | `/api/rooms/:id/messages` | Yes |
 
 # Troubleshooting
 

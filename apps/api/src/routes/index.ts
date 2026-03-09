@@ -6,6 +6,8 @@ import * as invitationController from '../controllers/invitation.controller';
 import * as messageController from '../controllers/message.controller';
 import * as userController from '../controllers/user.controller';
 import * as columnController from '../controllers/column.controller';
+import * as chatController from '../controllers/chat.controller';
+import * as spaceController from '../controllers/space.controller';
 import { authenticate, authenticateToken } from '../middleware/auth';
 
 const router = Router();
@@ -111,5 +113,30 @@ router.put('/columns/:id', authenticateToken, columnController.updateColumn);
 router.delete('/columns/:id', authenticateToken, columnController.deleteColumn);
 router.post('/teams/:teamId/columns/reorder', authenticateToken, columnController.reorderColumns);
 router.post('/columns/:columnId/tasks/reorder', authenticateToken, taskController.reorderTasks);
+
+// ============================================================
+// CHAT ROUTES (Space Chat Rooms)
+// ============================================================
+
+router.get('/teams/:teamId/rooms', authenticateToken, chatController.getTeamRooms);
+router.post('/teams/:teamId/rooms', authenticateToken, chatController.createRoom);
+router.get('/rooms/:roomId/messages', authenticateToken, chatController.getRoomMessages);
+router.post('/rooms/:roomId/messages', authenticateToken, chatController.sendRoomMessage);
+
+// ============================================================
+// SPACE ROUTES (Virtual Office)
+// ============================================================
+
+router.get('/teams/:teamId/space/config', authenticateToken, spaceController.getSpaceConfig);
+router.put('/teams/:teamId/space/config', authenticateToken, spaceController.updateSpaceConfig);
+router.get('/teams/:teamId/space/presence', authenticateToken, spaceController.getPresence);
+
+// Agent REST API for space operations (Phase 6)
+router.post('/teams/:teamId/space/join', authenticateToken, spaceController.joinSpace);
+router.post('/teams/:teamId/space/leave', authenticateToken, spaceController.leaveSpace);
+router.post('/teams/:teamId/space/move', authenticateToken, spaceController.moveInSpace);
+router.get('/teams/:teamId/space/nearby', authenticateToken, spaceController.getNearbyUsers);
+router.post('/teams/:teamId/space/chat', authenticateToken, spaceController.sendSpaceChat);
+router.post('/teams/:teamId/space/emote', authenticateToken, spaceController.sendEmote);
 
 export default router;

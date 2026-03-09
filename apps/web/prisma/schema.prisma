@@ -277,3 +277,51 @@ model ActivityLog {
   @@index([actor_id])
   @@map("activity_logs")
 }
+
+// ChatRoom model - Chat rooms per team (general, zone-based, DMs)
+model ChatRoom {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  team_id    String   @db.ObjectId
+  name       String
+  type       String   @default("zone") // "general" | "zone" | "dm"
+  zone_id    String?
+  created_at DateTime @default(now())
+
+  messages ChatMessage[]
+
+  @@index([team_id])
+  @@index([zone_id])
+  @@map("chat_rooms")
+}
+
+// ChatMessage model - Messages in chat rooms
+model ChatMessage {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  room_id     String   @db.ObjectId
+  sender_type String // "agent" | "user"
+  sender_id   String   @db.ObjectId
+  sender_name String
+  content     String
+  type        String   @default("message") // "message" | "system" | "emote"
+  created_at  DateTime @default(now())
+
+  room ChatRoom @relation(fields: [room_id], references: [id], onDelete: Cascade)
+
+  @@index([room_id, created_at])
+  @@index([sender_id])
+  @@map("chat_messages")
+}
+
+// SpaceConfig model - Virtual space configuration per team
+model SpaceConfig {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  team_id    String   @unique @db.ObjectId
+  map_key    String   @default("default-office")
+  zones      Json     @default("[]")
+  spawn_x    Int      @default(5)
+  spawn_y    Int      @default(5)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@map("space_configs")
+}

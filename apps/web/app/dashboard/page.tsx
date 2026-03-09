@@ -8,6 +8,11 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 import { LangToggle } from '@/components/LangToggle';
 import { useLanguage } from '@/components/LanguageProvider';
 import { CreateTeamModal } from '@/components/CreateTeamModal';
+
+// Prefetch Phaser so it's cached when user opens Virtual Office
+if (typeof window !== 'undefined') {
+  import('phaser').catch(() => { /* ignore */ });
+}
 import { getToken, getUserType, isAuthenticated, logout } from '@/lib/auth';
 
 interface Team {
@@ -220,10 +225,9 @@ export default function DashboardPage() {
           <>
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
               {paginatedTeams.map((team) => (
-              <Link
+              <div
                 key={team.id}
-                href={`/dashboard/board/${team.id}`}
-                className="block bg-white dark:bg-gray-800 rounded-xl shadow-sm hover:shadow-lg transition-all p-6 border border-gray-200 dark:border-gray-700"
+                className="bg-white dark:bg-gray-800 rounded-xl shadow-sm hover:shadow-lg transition-all p-6 border border-gray-200 dark:border-gray-700"
               >
                 <div className="flex items-start justify-between mb-4">
                   <h3 className="text-xl font-bold text-gray-900 dark:text-white">{team.name}</h3>
@@ -234,10 +238,27 @@ export default function DashboardPage() {
                 {team.description && (
                   <p className="text-gray-600 dark:text-gray-400 text-sm mb-4">{team.description}</p>
                 )}
-                <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
-                  <span>{t.dashboard.viewBoard} →</span>
+                <div className="flex items-center gap-3 mt-4 pt-3 border-t border-gray-100 dark:border-gray-700">
+                  <Link
+                    href={`/dashboard/board/${team.id}`}
+                    className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-900/30 rounded-lg hover:bg-purple-100 dark:hover:bg-purple-900/50 transition-colors"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
+                    </svg>
+                    {t.dashboard.viewBoard}
+                  </Link>
+                  <Link
+                    href={`/dashboard/space/${team.id}`}
+                    className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/30 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                    </svg>
+                    Virtual Office
+                  </Link>
                 </div>
-              </Link>
+              </div>
               ))}
 
               {paginatedTeams.length === 0 && (
