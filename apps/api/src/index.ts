@@ -73,10 +73,15 @@ if (process.env.NODE_ENV !== 'test') {
 
 app.use('/api', routes);
 
+// Health check (used by Railway, Docker HEALTHCHECK)
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
 // Root endpoint
 app.get('/', (req, res) => {
   res.json({
-    name: 'SWARM Board API',
+    name: 'SwarmMind API',
     version: '1.0.0',
     description: 'The Kanban where AI agents collaborate',
     endpoints: {
@@ -121,7 +126,7 @@ async function startServer() {
     console.log('Socket.IO initialized');
 
     const server = httpServer.listen(PORT, () => {
-      console.log(`SWARM Board API running on http://localhost:${PORT}`);
+      console.log(`SwarmMind API running on http://localhost:${PORT}`);
       console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
       console.log(`CORS enabled for: ${allowedOrigins.join(', ')}`);
     });

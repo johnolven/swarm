@@ -33,11 +33,25 @@ export async function authorizeTeamAction(
 
 /**
  * Check if an agent or user is a team member (any role).
+ * For public teams, any authenticated user is considered a member.
  */
 export async function isTeamMember(
   teamId: string,
   agentId: string | null,
   userId: string | null
 ): Promise<boolean> {
-  return authorizeTeamAction(teamId, agentId, userId, ['owner', 'admin', 'member']);
+  // First check explicit membership/ownership
+  const hasRole = await authorizeTeamAction(teamId, agentId, userId, ['owner', 'admin', 'member']);
+  if (hasRole) return true;
+
+  // For public teams, allow any authenticated user
+  if (userId || agentId) {
+    const team = await prisma.team.findUnique({
+      where: { id: teamId },
+      select: { visibility: true },
+    });
+    if (team?.visibility === 'public') return true;
+  }
+
+  return false;
 }

@@ -4,7 +4,7 @@ import { use, useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { getToken } from '@/lib/auth';
-import { PhaserGame } from '@/components/space/PhaserGame';
+import { PhaserGame, PhaserGameHandle } from '@/components/space/PhaserGame';
 import { ChatPanel } from '@/components/space/ChatPanel';
 import { PresenceList } from '@/components/space/PresenceList';
 import { CharacterPicker } from '@/components/space/CharacterPicker';
@@ -54,6 +54,7 @@ export default function SpacePage({ params }: { params: Promise<{ teamId: string
     name: string;
     type: 'agent' | 'user';
   } | null>(null);
+  const phaserRef = useRef<PhaserGameHandle>(null);
 
   // Socket-like interface for Phaser (local events only)
   const listenersRef = useRef<Map<string, Set<(...args: any[]) => void>>>(new Map());
@@ -368,6 +369,39 @@ export default function SpacePage({ params }: { params: Promise<{ teamId: string
     return () => clearInterval(interval);
   }, [currentRoom?.id]);
 
+  // Poll backend for real presence data (agents connected via REST API)
+  useEffect(() => {
+    if (!ready || !userInfo) return;
+    const token = getToken();
+    if (!token) return;
+
+    const pollPresence = async () => {
+      try {
+        const res = await fetch(`/api/teams/${teamId}/space/presence`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          const users: UserPresence[] = data.data || [];
+          if (users.length > 0) {
+            phaserRef.current?.syncPresences(users);
+            setPresences(prev => {
+              // Merge: keep local player, add remote users
+              const localPlayer = prev.find(p => p.id === userInfo!.id);
+              const remoteUsers = users.filter(u => u.id !== userInfo!.id);
+              return localPlayer ? [localPlayer, ...remoteUsers] : users;
+            });
+          }
+        }
+      } catch (e) { console.error('[space] presence poll error:', e); }
+    };
+
+    const interval = setInterval(pollPresence, 2000);
+    // Initial poll
+    pollPresence();
+    return () => clearInterval(interval);
+  }, [ready, userInfo, teamId]);
+
   const handleCharacterSelect = useCallback((charId: number) => {
     setCharacterId(charId);
     localStorage.setItem('swarm_character_id', String(charId));
@@ -432,6 +466,7 @@ export default function SpacePage({ params }: { params: Promise<{ teamId: string
           <div className="flex-1 min-w-0">
             {ready ? (
               <PhaserGame
+                ref={phaserRef}
                 socket={socketLike.current as any}
                 teamId={teamId}
                 userId={userInfo.id}

@@ -1,12 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { authenticateToken } from '@/lib/server/auth';
 
-// Presence is in-memory on the Express backend only.
-// This route returns an empty list as a fallback — real presence
-// comes via Socket.IO from the Express server.
-export async function GET(request: NextRequest) {
-  const auth = await authenticateToken(request);
-  if ('error' in auth) return NextResponse.json({ success: false, error: auth.error }, { status: 401 });
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
-  return NextResponse.json({ success: true, data: [] });
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
+  const auth = request.headers.get('authorization');
+  if (!auth) {
+    return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+  }
+
+  try {
+    const res = await fetch(`${API_URL}/api/teams/${id}/space/presence`, {
+      headers: { Authorization: auth },
+    });
+    const data = await res.json();
+    return NextResponse.json(data, { status: res.status });
+  } catch {
+    return NextResponse.json({ success: true, data: [] });
+  }
 }

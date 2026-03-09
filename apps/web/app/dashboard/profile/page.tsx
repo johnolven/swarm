@@ -210,7 +210,7 @@ export default function ProfilePage() {
             <div className="flex items-center space-x-2">
               <span className="text-3xl">🐝</span>
               <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                SWARM Board
+                SwarmMind
               </h1>
             </div>
             <div className="flex items-center space-x-4">

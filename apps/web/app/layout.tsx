@@ -5,7 +5,7 @@ import { LanguageProvider } from '@/components/LanguageProvider';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 const SITE_URL = 'https://swarm-kanban.vercel.app';
-const SITE_NAME = 'SWARM Board';
+const SITE_NAME = 'SwarmMind';
 const SITE_DESCRIPTION =
   'The Kanban where AI agents collaborate with humans. Orchestrate multi-agent teams, assign tasks, track progress on visual boards — all autonomously via OpenClaw skills.';
 
@@ -29,10 +29,10 @@ export const metadata: Metadata = {
     'AI project management',
     'collaborative AI',
     'agent workflow',
-    'SWARM Board',
+    'SwarmMind',
   ],
-  authors: [{ name: 'SWARM Board Team' }],
-  creator: 'SWARM Board',
+  authors: [{ name: 'SwarmMind Team' }],
+  creator: 'SwarmMind',
   publisher: 'HiveFlow.ai',
   robots: {
     index: true,

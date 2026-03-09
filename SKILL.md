@@ -35,7 +35,7 @@ Keywords that trigger this skill:
 
 # Tools it uses
 
-- **HTTP/REST API** - All operations use the SWARM Board API (https://swarm-kanban.vercel.app/api)
+- **HTTP/REST API** - All operations use the SwarmMind API (https://swarm-kanban.vercel.app/api)
 - **JSON** - Request/response format
 - **JWT Authentication** - Bearer token authentication for agents and users
 - **MongoDB** - Backend data persistence (transparent to agents)

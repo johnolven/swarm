@@ -12,7 +12,6 @@ const SCALE = 2;
 const SCALED_TILE = TILE_SIZE * SCALE;
 
 // Cute RPG sprite sheet: 384x96 = 16 cols × 4 rows of 24x24 frames
-// Layout: 4 skin variants × 4 walk frames per row, 4 direction rows (down, left, right, up)
 const CHAR_FRAME_W = 24;
 const CHAR_FRAME_H = 24;
 const CHAR_COLS = 16;
@@ -37,6 +36,9 @@ interface CharSprite {
   container: Phaser.GameObjects.Container;
 }
 
+// Track loaded sprite sheets to avoid duplicate loads
+const loadedSpriteKeys = new Set<string>();
+
 export class OfficeScene extends Phaser.Scene {
   private socket: SocketLike | null = null;
   private teamId = '';
@@ -57,17 +59,6 @@ export class OfficeScene extends Phaser.Scene {
   private zones: ZoneData[] = [];
   private currentZone: ZoneData | null = null;
   private moveTimeout = 0;
-  private mockAgents: Array<{
-    id: string;
-    name: string;
-    tileX: number;
-    tileY: number;
-    direction: 'up' | 'down' | 'left' | 'right';
-    char: CharSprite | null;
-    lastMoveTime: number;
-    moveInterval: number;
-    spriteKey: string;
-  }> = [];
   // Native keyboard tracking (bypasses Phaser keyboard plugin issues)
   private keysDown = new Set<string>();
   private keydownHandler: ((e: KeyboardEvent) => void) | null = null;
@@ -77,6 +68,9 @@ export class OfficeScene extends Phaser.Scene {
   private tileY = 0;
   private isMoving = false;
   private characterId = 1;
+  // Sprite key counter for dynamically loaded remote user sprites
+  private remoteCharCounter = 0;
+  private remoteCharSpriteKeys = new Map<string, string>();
 
   constructor() {
     super({ key: 'OfficeScene' });
@@ -114,16 +108,7 @@ export class OfficeScene extends Phaser.Scene {
       frameWidth: CHAR_FRAME_W,
       frameHeight: CHAR_FRAME_H,
     });
-    // Load mock agent sprites (random, excluding player's character)
-    const available = Array.from({ length: 41 }, (_, i) => i + 1).filter(id => id !== this.characterId);
-    for (let i = 0; i < 2; i++) {
-      const pick = available.splice(Math.floor(Math.random() * available.length), 1)[0];
-      const mockId = String(pick).padStart(3, '0');
-      this.load.spritesheet(`mock-agent-${i}`, `/space/sprites/characters/Character_${mockId}.png`, {
-        frameWidth: CHAR_FRAME_W,
-        frameHeight: CHAR_FRAME_H,
-      });
-    }
+    loadedSpriteKeys.add('player-char');
   }
 
   create() {
@@ -140,7 +125,7 @@ export class OfficeScene extends Phaser.Scene {
     this.defineZones();
 
     // Create character animations for 24x24 spritesheet (16 cols × 4 rows)
-    this.createPlayerAnimations();
+    this.createAnimationsForKey('player-char');
 
     // Setup keyboard using native DOM events (more reliable than Phaser's keyboard plugin)
     const emoteMap: Record<string, string> = {
@@ -177,12 +162,7 @@ export class OfficeScene extends Phaser.Scene {
     this.onReady?.();
   }
 
-  private createPlayerAnimations() {
-    // Sprite sheet: 16 cols × 4 rows of 24x24 frames
-    // Row 0: down, Row 1: left (unused, we flip right), Row 2: right, Row 3: up
-    // Each row: 4 skin variants × 4 walk frames. Variant 0 = cols 0-3.
-    // "left" reuses "right" frames with flipX
-    const key = 'player-char';
+  private createAnimationsForKey(key: string) {
     const dirs = [
       { key: 'down', row: 0 },
       { key: 'right', row: 2 },
@@ -191,9 +171,11 @@ export class OfficeScene extends Phaser.Scene {
 
     for (const dir of dirs) {
       const base = dir.row * CHAR_COLS;
-      if (!this.anims.exists(`walk-${dir.key}`)) {
+      const walkKey = `${key}-walk-${dir.key}`;
+      const idleKey = `${key}-idle-${dir.key}`;
+      if (!this.anims.exists(walkKey)) {
         this.anims.create({
-          key: `walk-${dir.key}`,
+          key: walkKey,
           frames: this.anims.generateFrameNumbers(key, {
             frames: [base, base + 1, base + 2, base + 3],
           }),
@@ -201,19 +183,21 @@ export class OfficeScene extends Phaser.Scene {
           repeat: -1,
         });
       }
-      if (!this.anims.exists(`idle-${dir.key}`)) {
+      if (!this.anims.exists(idleKey)) {
         this.anims.create({
-          key: `idle-${dir.key}`,
+          key: idleKey,
           frames: [{ key, frame: base }],
           frameRate: 1,
         });
       }
     }
     // "left" animations = same as "right" (flipX handled in update)
-    if (!this.anims.exists('walk-left')) {
-      const rightBase = 2 * CHAR_COLS;
+    const rightBase = 2 * CHAR_COLS;
+    const walkLeftKey = `${key}-walk-left`;
+    const idleLeftKey = `${key}-idle-left`;
+    if (!this.anims.exists(walkLeftKey)) {
       this.anims.create({
-        key: 'walk-left',
+        key: walkLeftKey,
         frames: this.anims.generateFrameNumbers(key, {
           frames: [rightBase, rightBase + 1, rightBase + 2, rightBase + 3],
         }),
@@ -221,230 +205,73 @@ export class OfficeScene extends Phaser.Scene {
         repeat: -1,
       });
     }
-    if (!this.anims.exists('idle-left')) {
+    if (!this.anims.exists(idleLeftKey)) {
       this.anims.create({
-        key: 'idle-left',
-        frames: [{ key, frame: 2 * CHAR_COLS }],
+        key: idleLeftKey,
+        frames: [{ key, frame: rightBase }],
         frameRate: 1,
       });
     }
   }
 
-  private createMockAnimations(spriteKey: string) {
-    const dirs = [
-      { key: 'down', row: 0 },
-      { key: 'right', row: 2 },
-      { key: 'up', row: 3 },
-    ];
-    for (const dir of dirs) {
-      const base = dir.row * CHAR_COLS;
-      if (!this.anims.exists(`${spriteKey}-walk-${dir.key}`)) {
-        this.anims.create({
-          key: `${spriteKey}-walk-${dir.key}`,
-          frames: this.anims.generateFrameNumbers(spriteKey, {
-            frames: [base, base + 1, base + 2, base + 3],
-          }),
-          frameRate: 8,
-          repeat: -1,
-        });
-      }
-      if (!this.anims.exists(`${spriteKey}-idle-${dir.key}`)) {
-        this.anims.create({
-          key: `${spriteKey}-idle-${dir.key}`,
-          frames: [{ key: spriteKey, frame: base }],
-          frameRate: 1,
-        });
-      }
+  /**
+   * Get or load a sprite key for a remote user.
+   * Assigns a random character sprite (different from the player's).
+   * Returns the sprite key if already loaded, or loads it and returns once ready.
+   */
+  private getRemoteSpriteKey(userId: string): string {
+    if (this.remoteCharSpriteKeys.has(userId)) {
+      return this.remoteCharSpriteKeys.get(userId)!;
     }
-    // "left" = same frames as "right" (flipX handled in updateMockAgents)
-    const rightBase = 2 * CHAR_COLS;
-    if (!this.anims.exists(`${spriteKey}-walk-left`)) {
-      this.anims.create({
-        key: `${spriteKey}-walk-left`,
-        frames: this.anims.generateFrameNumbers(spriteKey, {
-          frames: [rightBase, rightBase + 1, rightBase + 2, rightBase + 3],
-        }),
-        frameRate: 8,
-        repeat: -1,
+
+    // Assign a deterministic-ish character based on the userId hash
+    let hash = 0;
+    for (let i = 0; i < userId.length; i++) {
+      hash = ((hash << 5) - hash + userId.charCodeAt(i)) | 0;
+    }
+    // Pick from 1-41, avoiding the player's character
+    let charNum = (Math.abs(hash) % 40) + 1;
+    if (charNum >= this.characterId) charNum++;
+    if (charNum > 41) charNum = 1;
+
+    const spriteKey = `remote-char-${this.remoteCharCounter++}`;
+    this.remoteCharSpriteKeys.set(userId, spriteKey);
+
+    const charId = String(charNum).padStart(3, '0');
+
+    if (!loadedSpriteKeys.has(spriteKey)) {
+      loadedSpriteKeys.add(spriteKey);
+      this.load.spritesheet(spriteKey, `/space/sprites/characters/Character_${charId}.png`, {
+        frameWidth: CHAR_FRAME_W,
+        frameHeight: CHAR_FRAME_H,
       });
-    }
-    if (!this.anims.exists(`${spriteKey}-idle-left`)) {
-      this.anims.create({
-        key: `${spriteKey}-idle-left`,
-        frames: [{ key: spriteKey, frame: rightBase }],
-        frameRate: 1,
+      this.load.once('complete', () => {
+        this.createAnimationsForKey(spriteKey);
+        // If the character was already created with player-char as fallback, update it
+        const char = this.otherChars.get(userId);
+        if (char) {
+          char.sprite.setTexture(spriteKey, 0);
+          char.sprite.play(`${spriteKey}-idle-down`);
+        }
       });
+      this.load.start();
     }
-  }
 
-  private spawnMockAgents() {
-    const mockData = [
-      { id: 'mock-alpha', name: 'AgentAlpha', spriteKey: 'mock-agent-0', startX: 5, startY: 7 },
-      { id: 'mock-beta', name: 'AgentBeta', spriteKey: 'mock-agent-1', startX: 25, startY: 12 },
-    ];
-
-    for (const data of mockData) {
-      this.createMockAnimations(data.spriteKey);
-
-      const px = data.startX * SCALED_TILE + SCALED_TILE / 2;
-      const py = data.startY * SCALED_TILE + SCALED_TILE / 2;
-
-      const CHAR_SCALE = 6;
-      const sprite = this.add.sprite(0, 0, data.spriteKey, 0);
-      sprite.setScale(CHAR_SCALE);
-      sprite.play(`${data.spriteKey}-idle-down`);
-
-      const charHalf = (CHAR_FRAME_H * CHAR_SCALE) / 2;
-      const nameText = this.add.text(0, -charHalf - 6, data.name, {
-        fontSize: '9px',
-        color: '#8b5cf6',
-        fontFamily: 'monospace',
-        fontStyle: 'bold',
-        backgroundColor: '#000000aa',
-        padding: { x: 3, y: 1 },
-      }).setOrigin(0.5);
-
-      const stateIcon = this.add.text(charHalf + 2, -charHalf, '\u{1F916}', { fontSize: '12px' }).setOrigin(0);
-
-      const container = this.add.container(px, py, [sprite, nameText, stateIcon]);
-      container.setDepth(5);
-
-      const charSprite: CharSprite = { sprite, nameText, stateIcon, container };
-
-      // Register in otherChars to prevent duplicates from sync events
-      this.otherChars.set(data.id, charSprite);
-
-      this.mockAgents.push({
-        id: data.id,
-        name: data.name,
-        tileX: data.startX,
-        tileY: data.startY,
-        direction: 'down',
-        char: charSprite,
-        lastMoveTime: 0,
-        moveInterval: 800 + Math.random() * 1200, // 800-2000ms between moves
-        spriteKey: data.spriteKey,
-      });
-
-      // Add to presences so they show in the presence list
-      this.presences.push({
-        id: data.id,
-        type: 'agent',
-        name: data.name,
-        x: data.startX,
-        y: data.startY,
-        direction: 'down',
-        state: 'idle',
-        current_zone: null,
-        current_task_id: null,
-        connected_at: Date.now(),
-        last_move_at: Date.now(),
-        socket_id: 'mock',
-        avatar: { sprite: data.spriteKey, color: '#8b5cf6' },
-      });
-    }
-    this.onPresenceUpdate?.([...this.presences]);
-  }
-
-  private updateMockAgents(time: number) {
-    const directions: Array<'up' | 'down' | 'left' | 'right'> = ['up', 'down', 'left', 'right'];
-    const deltas: Record<string, { dx: number; dy: number }> = {
-      up: { dx: 0, dy: -1 },
-      down: { dx: 0, dy: 1 },
-      left: { dx: -1, dy: 0 },
-      right: { dx: 1, dy: 0 },
-    };
-
-    for (const agent of this.mockAgents) {
-      if (!agent.char) continue;
-      if (time - agent.lastMoveTime < agent.moveInterval) continue;
-
-      agent.lastMoveTime = time;
-
-      // 30% chance to stay idle (looks more natural)
-      if (Math.random() < 0.3) continue;
-
-      // 70% chance to keep same direction, 30% to pick new one
-      const dir = Math.random() < 0.7 ? agent.direction : directions[Math.floor(Math.random() * 4)];
-      const { dx, dy } = deltas[dir];
-      const newX = agent.tileX + dx;
-      const newY = agent.tileY + dy;
-
-      if (this.canMoveTo(newX, newY)) {
-        agent.tileX = newX;
-        agent.tileY = newY;
-        agent.direction = dir;
-
-        agent.char.sprite.setFlipX(dir === 'left');
-        agent.char.sprite.play(`${agent.spriteKey}-walk-${dir}`, true);
-
-        const targetPx = newX * SCALED_TILE + SCALED_TILE / 2;
-        const targetPy = newY * SCALED_TILE + SCALED_TILE / 2;
-
-        this.tweens.add({
-          targets: agent.char.container,
-          x: targetPx,
-          y: targetPy,
-          duration: 200,
-          ease: 'Linear',
-          onComplete: () => {
-            agent.char?.sprite.play(`${agent.spriteKey}-idle-${dir}`, true);
-          },
-        });
-
-        // Update presence
-        const p = this.presences.find(u => u.id === agent.id);
-        if (p) { p.x = newX; p.y = newY; p.direction = dir; }
-      } else {
-        // Hit a wall, pick a new random direction
-        agent.direction = directions[Math.floor(Math.random() * 4)];
-      }
-    }
+    return spriteKey;
   }
 
   private buildCollisionGrid() {
     // Initialize all tiles as blocked (1)
     this.collisionGrid = new Array(MAP_COLS * MAP_ROWS).fill(1);
 
-    // Define walkable rectangular areas (0 = walkable)
-    // Format: [startCol, startRow, endCol, endRow]
     const walkableAreas: number[][] = [
-      // === TOP SECTION: Open office ===
-      // Main horizontal corridor top (between top equipment and first desk row)
-      [1, 3, 30, 4],
-      // Walkways between cubicle rows
-      [1, 7, 30, 8],
-      [1, 11, 30, 12],
-      [1, 15, 30, 16],
-      // Left vertical corridor (connecting horizontal walkways)
-      [1, 1, 3, 18],
-      // Right vertical corridor
-      [28, 1, 30, 18],
-      // Center vertical aisle
-      [14, 1, 17, 19],
-      // Small walkways around desks
-      [4, 3, 13, 4],
-      [18, 3, 27, 4],
-
-      // === TRANSITION AREA (rows 17-20) ===
+      [1, 3, 30, 4], [1, 7, 30, 8], [1, 11, 30, 12], [1, 15, 30, 16],
+      [1, 1, 3, 18], [28, 1, 30, 18], [14, 1, 17, 19],
+      [4, 3, 13, 4], [18, 3, 27, 4],
       [1, 17, 30, 20],
-
-      // === BOTTOM-LEFT: Meeting/Break room ===
-      [1, 21, 12, 33],
-
-      // === BOTTOM-CENTER: Lobby/Reception ===
-      [13, 21, 22, 33],
-
-      // === BOTTOM-RIGHT: Private offices ===
-      [23, 21, 30, 25],
-      [23, 26, 30, 29],
-      [23, 30, 30, 33],
-
-      // Doorways between bottom rooms
-      [12, 24, 14, 26],
-      [21, 24, 24, 26],
-      [12, 29, 14, 31],
-      [21, 29, 24, 31],
+      [1, 21, 12, 33], [13, 21, 22, 33],
+      [23, 21, 30, 25], [23, 26, 30, 29], [23, 30, 30, 33],
+      [12, 24, 14, 26], [21, 24, 24, 26], [12, 29, 14, 31], [21, 29, 24, 31],
     ];
 
     for (const [sc, sr, ec, er] of walkableAreas) {
@@ -455,17 +282,10 @@ export class OfficeScene extends Phaser.Scene {
       }
     }
 
-    // Block specific furniture spots inside walkable areas
     const blockedSpots: number[][] = [
-      // Meeting room furniture
-      [5, 27, 6, 28],
-      [9, 23, 10, 24],
-      // Lobby desk/reception (small block, not the whole area)
+      [5, 27, 6, 28], [9, 23, 10, 24],
       [17, 24, 18, 25],
-      // Private office desks
-      [26, 22, 27, 23],
-      [26, 27, 27, 28],
-      [26, 31, 27, 32],
+      [26, 22, 27, 23], [26, 27, 27, 28], [26, 31, 27, 32],
     ];
 
     for (const [sc, sr, ec, er] of blockedSpots) {
@@ -479,36 +299,11 @@ export class OfficeScene extends Phaser.Scene {
 
   private defineZones() {
     const zoneDefs = [
-      {
-        id: 'open-office',
-        label: 'Open Office',
-        color: '#6366f1',
-        x: 1, y: 1, w: 30, h: 18,
-      },
-      {
-        id: 'meeting-room',
-        label: 'Meeting Room',
-        color: '#059669',
-        x: 1, y: 21, w: 12, h: 13,
-      },
-      {
-        id: 'lobby',
-        label: 'Lobby',
-        color: '#d97706',
-        x: 13, y: 21, w: 10, h: 13,
-      },
-      {
-        id: 'private-office-1',
-        label: 'Office A',
-        color: '#dc2626',
-        x: 23, y: 21, w: 8, h: 6,
-      },
-      {
-        id: 'private-office-2',
-        label: 'Office B',
-        color: '#7c3aed',
-        x: 23, y: 27, w: 8, h: 7,
-      },
+      { id: 'open-office', label: 'Open Office', color: '#6366f1', x: 1, y: 1, w: 30, h: 18 },
+      { id: 'meeting-room', label: 'Meeting Room', color: '#059669', x: 1, y: 21, w: 12, h: 13 },
+      { id: 'lobby', label: 'Lobby', color: '#d97706', x: 13, y: 21, w: 10, h: 13 },
+      { id: 'private-office-1', label: 'Office A', color: '#dc2626', x: 23, y: 21, w: 8, h: 6 },
+      { id: 'private-office-2', label: 'Office B', color: '#7c3aed', x: 23, y: 27, w: 8, h: 7 },
     ];
 
     for (const z of zoneDefs) {
@@ -552,24 +347,28 @@ export class OfficeScene extends Phaser.Scene {
       for (const user of users) {
         if (user.id === this.userId) {
           if (!this.playerChar) {
-            this.playerChar = this.createCharacter(user);
+            this.playerChar = this.createCharacter(user, 'player-char');
             this.tileX = user.x;
             this.tileY = user.y;
             this.cameras.main.startFollow(this.playerChar.container, true, 0.1, 0.1);
-            // Spawn mock agents after player is created
-            this.spawnMockAgents();
           }
         } else if (!this.otherChars.has(user.id)) {
-          this.otherChars.set(user.id, this.createCharacter(user));
+          const spriteKey = this.getRemoteSpriteKey(user.id);
+          const useKey = this.textures.exists(spriteKey) ? spriteKey : 'player-char';
+          this.otherChars.set(user.id, this.createCharacter(user, useKey));
         }
       }
     });
 
     this.socket.on('space:user:joined', ({ user }: { user: UserPresence }) => {
+      // Avoid duplicates
+      if (this.presences.some(p => p.id === user.id)) return;
       this.presences.push(user);
       this.onPresenceUpdate?.([...this.presences]);
       if (user.id !== this.userId && !this.otherChars.has(user.id)) {
-        this.otherChars.set(user.id, this.createCharacter(user));
+        const spriteKey = this.getRemoteSpriteKey(user.id);
+        const useKey = this.textures.exists(spriteKey) ? spriteKey : 'player-char';
+        this.otherChars.set(user.id, this.createCharacter(user, useKey));
       }
     });
 
@@ -588,8 +387,10 @@ export class OfficeScene extends Phaser.Scene {
       ({ userId, x, y, direction }: { userId: string; x: number; y: number; direction: string }) => {
         const char = this.otherChars.get(userId);
         if (char) {
+          const spriteKey = this.remoteCharSpriteKeys.get(userId) || 'player-char';
+          const useKey = this.textures.exists(spriteKey) ? spriteKey : 'player-char';
           char.sprite.setFlipX(direction === 'left');
-          char.sprite.play(`walk-${direction}`, true);
+          char.sprite.play(`${useKey}-walk-${direction}`, true);
           this.tweens.add({
             targets: char.container,
             x: x * SCALED_TILE + SCALED_TILE / 2,
@@ -597,7 +398,7 @@ export class OfficeScene extends Phaser.Scene {
             duration: 150,
             ease: 'Linear',
             onComplete: () => {
-              char.sprite.play(`idle-${direction}`, true);
+              char.sprite.play(`${useKey}-idle-${direction}`, true);
             },
           });
         }
@@ -640,16 +441,75 @@ export class OfficeScene extends Phaser.Scene {
     );
   }
 
-  private createCharacter(user: UserPresence): CharSprite {
+  /**
+   * Sync remote presences from polling data.
+   * Called by the page component when polling /space/presence.
+   * Creates/updates/removes remote characters to match server state.
+   */
+  syncPresences(users: UserPresence[]) {
+    this.presences = users;
+    this.onPresenceUpdate?.(users);
+
+    const remoteIds = new Set<string>();
+
+    for (const user of users) {
+      if (user.id === this.userId) continue;
+      remoteIds.add(user.id);
+
+      const existing = this.otherChars.get(user.id);
+      if (existing) {
+        // Smoothly move to updated position
+        const targetPx = user.x * SCALED_TILE + SCALED_TILE / 2;
+        const targetPy = user.y * SCALED_TILE + SCALED_TILE / 2;
+        const currentX = existing.container.x;
+        const currentY = existing.container.y;
+
+        if (Math.abs(currentX - targetPx) > 2 || Math.abs(currentY - targetPy) > 2) {
+          const spriteKey = this.remoteCharSpriteKeys.get(user.id) || 'player-char';
+          const useKey = this.textures.exists(spriteKey) ? spriteKey : 'player-char';
+          existing.sprite.setFlipX(user.direction === 'left');
+          existing.sprite.play(`${useKey}-walk-${user.direction}`, true);
+          this.tweens.add({
+            targets: existing.container,
+            x: targetPx,
+            y: targetPy,
+            duration: 200,
+            ease: 'Linear',
+            onComplete: () => {
+              existing.sprite.play(`${useKey}-idle-${user.direction}`, true);
+            },
+          });
+        }
+
+        // Update state icon
+        this.updateStateIcon(existing, user.state);
+      } else {
+        // New remote user — create character
+        const spriteKey = this.getRemoteSpriteKey(user.id);
+        const useKey = this.textures.exists(spriteKey) ? spriteKey : 'player-char';
+        this.otherChars.set(user.id, this.createCharacter(user, useKey));
+      }
+    }
+
+    // Remove users who left
+    for (const [id, char] of this.otherChars) {
+      if (!remoteIds.has(id)) {
+        char.container.destroy();
+        this.otherChars.delete(id);
+      }
+    }
+  }
+
+  private createCharacter(user: UserPresence, spriteKey: string): CharSprite {
     const px = user.x * SCALED_TILE + SCALED_TILE / 2;
     const py = user.y * SCALED_TILE + SCALED_TILE / 2;
 
     const CHAR_SCALE = 6;
-    const sprite = this.add.sprite(0, 0, 'player-char', 0);
+    const sprite = this.add.sprite(0, 0, spriteKey, 0);
     sprite.setScale(CHAR_SCALE);
 
     // Play idle animation facing down
-    sprite.play('idle-down');
+    sprite.play(`${spriteKey}-idle-down`);
 
     const charHalf = (CHAR_FRAME_H * CHAR_SCALE) / 2;
     const nameColor = user.type === 'agent' ? '#8b5cf6' : '#3b82f6';
@@ -665,6 +525,7 @@ export class OfficeScene extends Phaser.Scene {
     const stateIcon = this.add.text(
       charHalf + 2, -charHalf, '', { fontSize: '12px' }
     ).setOrigin(0);
+    this.updateStateIcon({ stateIcon } as CharSprite, user.state);
 
     const container = this.add.container(px, py, [sprite, nameText, stateIcon]);
     container.setDepth(user.id === this.userId ? 10 : 5);
@@ -749,9 +610,6 @@ export class OfficeScene extends Phaser.Scene {
   }
 
   update(time: number) {
-    // Always update mock agents, even before player is ready
-    this.updateMockAgents(time);
-
     if (!this.playerChar) return;
 
     // Don't process input while a move tween is running
@@ -782,7 +640,7 @@ export class OfficeScene extends Phaser.Scene {
       this.tileY = newY;
 
       this.playerChar.sprite.setFlipX(direction === 'left');
-      this.playerChar.sprite.play(`walk-${direction}`, true);
+      this.playerChar.sprite.play(`player-char-walk-${direction}`, true);
 
       const targetPx = newX * SCALED_TILE + SCALED_TILE / 2;
       const targetPy = newY * SCALED_TILE + SCALED_TILE / 2;
@@ -795,7 +653,7 @@ export class OfficeScene extends Phaser.Scene {
         ease: 'Linear',
         onComplete: () => {
           this.isMoving = false;
-          this.playerChar?.sprite.play(`idle-${direction}`, true);
+          this.playerChar?.sprite.play(`player-char-idle-${direction}`, true);
         },
       });
 
@@ -813,7 +671,7 @@ export class OfficeScene extends Phaser.Scene {
       }
     } else if (!moved) {
       // Player stopped moving - ensure idle animation
-      const idleKey = `idle-${this.lastDirection}`;
+      const idleKey = `player-char-idle-${this.lastDirection}`;
       if (this.playerChar.sprite.anims.currentAnim?.key !== idleKey) {
         this.playerChar.sprite.play(idleKey, true);
       }
@@ -825,11 +683,13 @@ export class OfficeScene extends Phaser.Scene {
     if (this.keydownHandler) window.removeEventListener('keydown', this.keydownHandler);
     if (this.keyupHandler) window.removeEventListener('keyup', this.keyupHandler);
     this.keysDown.clear();
-    // Clean up mock agents
-    for (const agent of this.mockAgents) {
-      agent.char?.container.destroy();
+
+    // Clean up remote characters
+    for (const [, char] of this.otherChars) {
+      char.container.destroy();
     }
-    this.mockAgents = [];
+    this.otherChars.clear();
+    this.remoteCharSpriteKeys.clear();
 
     this.socket?.emit('space:leave', { teamId: this.teamId });
     this.socket?.off('space:presence:sync');

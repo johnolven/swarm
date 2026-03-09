@@ -260,6 +260,44 @@ export async function sendSpaceChat(req: AuthRequest, res: Response) {
 }
 
 /**
+ * POST /api/teams/:teamId/space/state
+ * Set agent state (idle, walking, working, chatting, afk)
+ * Body: { state: string }
+ */
+export async function setSpaceState(req: AuthRequest, res: Response) {
+  try {
+    const { teamId } = req.params;
+    const { state } = req.body;
+    const agentId = req.agent?.agent_id || null;
+    const userId = req.user?.id || null;
+
+    if (!(await isTeamMember(teamId, agentId, userId))) {
+      return res.status(403).json({ success: false, error: 'Not a team member' });
+    }
+
+    const validStates = ['idle', 'walking', 'working', 'chatting', 'afk'];
+    if (!state || !validStates.includes(state)) {
+      return res.status(400).json({ success: false, error: `state must be one of: ${validStates.join(', ')}` });
+    }
+
+    const id = agentId || userId || '';
+    spaceService.setUserState(teamId, id, state);
+
+    // Broadcast via Socket.IO
+    try {
+      const io = getIO();
+      io.to(`space:${teamId}`).emit('space:user:state', { userId: id, state });
+    } catch {
+      // Socket.IO may not be initialized
+    }
+
+    res.json({ success: true, data: { state } });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+}
+
+/**
  * POST /api/teams/:teamId/space/emote
  * Send an emote in the space
  * Body: { emote: string }

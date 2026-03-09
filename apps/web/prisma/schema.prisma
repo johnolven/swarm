@@ -1,4 +1,4 @@
-// Prisma schema for SWARM Board - MongoDB
+// Prisma schema for SwarmMind - MongoDB
 
 generator client {
   provider      = "prisma-client-js"

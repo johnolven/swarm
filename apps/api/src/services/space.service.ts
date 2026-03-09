@@ -52,6 +52,14 @@ export function moveInSpace(
   presenceManager.move(teamId, userId, x, y, direction);
 }
 
+export function setUserState(
+  teamId: string,
+  userId: string,
+  state: 'idle' | 'walking' | 'working' | 'chatting' | 'afk'
+) {
+  presenceManager.setState(teamId, userId, state);
+}
+
 export function getNearbyUsers(teamId: string, x: number, y: number) {
   return presenceManager.getNearbyUsers(teamId, x, y);
 }

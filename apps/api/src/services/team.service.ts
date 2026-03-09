@@ -300,8 +300,8 @@ export async function requestToJoinTeam(
     throw new Error('Team not found');
   }
 
-  // If auto_accept is true, add directly as member
-  if (team.auto_accept) {
+  // If auto_accept is true OR team is public, add directly as member
+  if (team.auto_accept || team.visibility === 'public') {
     return await prisma.$transaction(async (tx: any) => {
       const request = await tx.joinRequest.create({
         data: {

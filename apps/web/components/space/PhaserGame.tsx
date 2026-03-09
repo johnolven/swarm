@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, forwardRef, useImperativeHandle } from 'react';
 import { UserPresence, ChatMessage } from './types';
 
 // Start downloading Phaser immediately when this module loads (before useEffect)
@@ -25,21 +25,35 @@ interface PhaserGameProps {
   onZoneChange: (zone: { id: string; label: string } | null) => void;
 }
 
-export function PhaserGame({
-  socket,
-  teamId,
-  userId,
-  userName,
-  userType,
-  characterId = 1,
-  onPresenceUpdate,
-  onChatMessage,
-  onZoneChange,
-}: PhaserGameProps) {
+export interface PhaserGameHandle {
+  syncPresences: (users: UserPresence[]) => void;
+}
+
+export const PhaserGame = forwardRef<PhaserGameHandle, PhaserGameProps>(function PhaserGame(
+  {
+    socket,
+    teamId,
+    userId,
+    userName,
+    userType,
+    characterId = 1,
+    onPresenceUpdate,
+    onChatMessage,
+    onZoneChange,
+  },
+  ref
+) {
   const gameRef = useRef<Phaser.Game | null>(null);
+  const sceneRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(true);
   const [progress, setProgress] = useState(0);
+
+  useImperativeHandle(ref, () => ({
+    syncPresences: (users: UserPresence[]) => {
+      sceneRef.current?.syncPresences?.(users);
+    },
+  }));
 
   useEffect(() => {
     if (!containerRef.current || gameRef.current) return;
@@ -49,6 +63,7 @@ export function PhaserGame({
       const { OfficeScene } = await officeScenePromise!;
 
       const scene = new OfficeScene();
+      sceneRef.current = scene;
       scene.configure({
         socket,
         teamId,
@@ -90,6 +105,7 @@ export function PhaserGame({
         scene?.shutdown?.();
         gameRef.current.destroy(true);
         gameRef.current = null;
+        sceneRef.current = null;
       }
     };
   }, []);
@@ -126,4 +142,4 @@ export function PhaserGame({
       </div>
     </div>
   );
-}
+});

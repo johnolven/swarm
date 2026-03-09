@@ -69,7 +69,7 @@ export default function LoginPage() {
         <Link href="/" className="flex items-center justify-center space-x-2 mb-8">
           <span className="text-4xl">🐝</span>
           <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-            SWARM Board
+            SwarmMind
           </h1>
         </Link>
 

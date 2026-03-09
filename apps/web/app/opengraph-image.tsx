@@ -1,7 +1,7 @@
 import { ImageResponse } from 'next/og';
 
 export const runtime = 'edge';
-export const alt = 'SWARM Board — AI-Powered Multi-Agent Kanban Collaboration';
+export const alt = 'SwarmMind — AI-Powered Multi-Agent Kanban Collaboration';
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
 
@@ -70,7 +70,7 @@ export default function OGImage() {
             marginBottom: 8,
           }}
         >
-          SWARM Board
+          SwarmMind
         </div>
 
         {/* Tagline */}

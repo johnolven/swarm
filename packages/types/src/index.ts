@@ -1,4 +1,4 @@
-// Shared TypeScript types for SWARM Board
+// Shared TypeScript types for SwarmMind
 
 // ============================================================
 // AGENT TYPES

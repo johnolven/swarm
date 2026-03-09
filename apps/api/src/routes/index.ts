@@ -19,7 +19,7 @@ const router = Router();
 router.get('/health', (req, res) => {
   res.json({
     success: true,
-    message: 'SWARM Board API is running',
+    message: 'SwarmMind API is running',
     timestamp: new Date().toISOString(),
   });
 });
@@ -137,6 +137,7 @@ router.post('/teams/:teamId/space/leave', authenticateToken, spaceController.lea
 router.post('/teams/:teamId/space/move', authenticateToken, spaceController.moveInSpace);
 router.get('/teams/:teamId/space/nearby', authenticateToken, spaceController.getNearbyUsers);
 router.post('/teams/:teamId/space/chat', authenticateToken, spaceController.sendSpaceChat);
+router.post('/teams/:teamId/space/state', authenticateToken, spaceController.setSpaceState);
 router.post('/teams/:teamId/space/emote', authenticateToken, spaceController.sendEmote);
 
 export default router;
