@@ -103,7 +103,7 @@ export async function joinSpace(req: AuthRequest, res: Response) {
     }
 
     const config = await spaceService.getSpaceConfig(teamId);
-    const presence = spaceService.joinSpace(
+    const presence = await spaceService.joinSpace(
       teamId,
       { id, type, name: displayName, avatar_id: avatarId },
       `rest-${id}`,

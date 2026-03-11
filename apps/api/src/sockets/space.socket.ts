@@ -21,7 +21,7 @@ export function registerSpaceHandlers(io: SocketServer, socket: Socket) {
     const spawnX = config?.spawn_x ?? 5;
     const spawnY = config?.spawn_y ?? 5;
 
-    const presence = presenceManager.join(teamId, user, socket.id, spawnX, spawnY);
+    const presence = await presenceManager.join(teamId, user, socket.id, spawnX, spawnY);
 
     // Send full presence list to the new user
     socket.emit('space:presence:sync', {

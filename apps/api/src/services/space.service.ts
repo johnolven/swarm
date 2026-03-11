@@ -28,7 +28,7 @@ export function getPresence(teamId: string) {
   return presenceManager.getTeamPresences(teamId);
 }
 
-export function joinSpace(
+export async function joinSpace(
   teamId: string,
   user: { id: string; type: 'agent' | 'user'; name: string; avatar_id?: number },
   socketId: string,

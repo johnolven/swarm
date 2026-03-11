@@ -50,6 +50,21 @@ function pickColor(userId: string): string {
   return AGENT_COLORS[Math.abs(hash) % AGENT_COLORS.length];
 }
 
+// Map is 32x34 tiles. Spawn in a safe inner zone away from edges.
+const SPAWN_MIN_X = 5;
+const SPAWN_MAX_X = 27;
+const SPAWN_MIN_Y = 5;
+const SPAWN_MAX_Y = 29;
+const DIRECTIONS: Array<'up' | 'down' | 'left' | 'right'> = ['up', 'down', 'left', 'right'];
+
+function randomSpawn(): { x: number; y: number; direction: 'up' | 'down' | 'left' | 'right' } {
+  return {
+    x: SPAWN_MIN_X + Math.floor(Math.random() * (SPAWN_MAX_X - SPAWN_MIN_X + 1)),
+    y: SPAWN_MIN_Y + Math.floor(Math.random() * (SPAWN_MAX_Y - SPAWN_MIN_Y + 1)),
+    direction: DIRECTIONS[Math.floor(Math.random() * DIRECTIONS.length)],
+  };
+}
+
 class PresenceManager {
   // teamId -> userId -> presence
   private presences = new Map<string, Map<string, UserPresence>>();
@@ -93,13 +108,13 @@ class PresenceManager {
     }
   }
 
-  join(
+  async join(
     teamId: string,
     user: { id: string; type: 'agent' | 'user'; name: string; avatar_id?: number },
     socketId: string,
     spawnX = 5,
     spawnY = 5
-  ): UserPresence {
+  ): Promise<UserPresence> {
     if (!this.presences.has(teamId)) {
       this.presences.set(teamId, new Map());
     }
@@ -108,13 +123,28 @@ class PresenceManager {
     const avatarId = user.avatar_id || 1;
     const padded = String(avatarId).padStart(3, '0');
 
+    // Try to restore last known position from DB
+    let pos = randomSpawn();
+    try {
+      const saved = await prisma.spacePresence.findUnique({
+        where: { team_id_user_id: { team_id: teamId, user_id: user.id } },
+      });
+      if (saved) {
+        pos = {
+          x: saved.x,
+          y: saved.y,
+          direction: (saved.direction as typeof pos.direction) || pos.direction,
+        };
+      }
+    } catch { /* use random spawn */ }
+
     const presence: UserPresence = {
       id: user.id,
       type: user.type,
       name: user.name,
-      x: spawnX,
-      y: spawnY,
-      direction: 'down',
+      x: pos.x,
+      y: pos.y,
+      direction: pos.direction,
       state: 'idle',
       current_zone: null,
       current_task_id: null,
@@ -135,12 +165,8 @@ class PresenceManager {
       update: {
         type: user.type,
         name: user.name,
-        x: spawnX,
-        y: spawnY,
-        direction: 'down',
+        direction: pos.direction,
         state: 'idle',
-        current_zone: null,
-        current_task_id: null,
         connected_at: new Date(),
         last_move_at: new Date(),
         avatar_sprite: presence.avatar.sprite,
@@ -151,8 +177,9 @@ class PresenceManager {
         user_id: user.id,
         type: user.type,
         name: user.name,
-        x: spawnX,
-        y: spawnY,
+        x: pos.x,
+        y: pos.y,
+        direction: pos.direction,
         avatar_sprite: presence.avatar.sprite,
         avatar_color: presence.avatar.color,
       },
