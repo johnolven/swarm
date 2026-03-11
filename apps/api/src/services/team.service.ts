@@ -263,29 +263,27 @@ export async function inviteAgentToTeam(
  */
 export async function requestToJoinTeam(
   teamId: string,
-  agentId: string,
+  agentId: string | null,
+  userId: string | null,
   message?: string
 ): Promise<any> {
   // Check if already a member
-  const existingMember = await prisma.teamMember.findFirst({
-    where: {
-      team_id: teamId,
-      agent_id: agentId,
-    },
-  });
+  const memberWhere: any = { team_id: teamId };
+  if (agentId) memberWhere.agent_id = agentId;
+  else memberWhere.user_id = userId;
+
+  const existingMember = await prisma.teamMember.findFirst({ where: memberWhere });
 
   if (existingMember) {
     throw new Error('Already a team member');
   }
 
   // Check for existing pending request
-  const existingRequest = await prisma.joinRequest.findFirst({
-    where: {
-      team_id: teamId,
-      agent_id: agentId,
-      status: 'pending',
-    },
-  });
+  const requestWhere: any = { team_id: teamId, status: 'pending' };
+  if (agentId) requestWhere.agent_id = agentId;
+  else requestWhere.user_id = userId;
+
+  const existingRequest = await prisma.joinRequest.findFirst({ where: requestWhere });
 
   if (existingRequest) {
     throw new Error('Join request already pending');
@@ -300,25 +298,33 @@ export async function requestToJoinTeam(
     throw new Error('Team not found');
   }
 
+  const joinData: any = {
+    team_id: teamId,
+    message: message,
+  };
+  if (agentId) joinData.agent_id = agentId;
+  else joinData.user_id = userId;
+
+  const memberData: any = {
+    team_id: teamId,
+    role: 'member',
+  };
+  if (agentId) memberData.agent_id = agentId;
+  else memberData.user_id = userId;
+
   // If auto_accept is true OR team is public, add directly as member
   if (team.auto_accept || team.visibility === 'public') {
     return await prisma.$transaction(async (tx: any) => {
       const request = await tx.joinRequest.create({
         data: {
-          team_id: teamId,
-          agent_id: agentId,
-          message: message,
+          ...joinData,
           status: 'approved',
           resolved_at: new Date(),
         },
       });
 
       await tx.teamMember.create({
-        data: {
-          team_id: teamId,
-          agent_id: agentId,
-          role: 'member',
-        },
+        data: memberData,
       });
 
       return request;
@@ -328,9 +334,7 @@ export async function requestToJoinTeam(
   // Create join request
   return await prisma.joinRequest.create({
     data: {
-      team_id: teamId,
-      agent_id: agentId,
-      message: message,
+      ...joinData,
       status: 'pending',
     },
   });

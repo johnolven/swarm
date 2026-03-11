@@ -21,9 +21,11 @@ model User {
   updated_at    DateTime @updatedAt
 
   // Relations
-  teams_created Team[]           @relation("UserTeamCreator")
-  tasks_created Task[]           @relation("TaskCreatedByUser")
-  invitations   TeamInvitation[]
+  teams_created  Team[]           @relation("UserTeamCreator")
+  tasks_created  Task[]           @relation("TaskCreatedByUser")
+  invitations    TeamInvitation[]
+  team_members   TeamMember[]     @relation("UserTeamMember")
+  join_requests  JoinRequest[]    @relation("UserJoinRequest")
 
   @@index([nickname])
   @@map("users")
@@ -146,17 +148,20 @@ model Task {
 model TeamMember {
   id        String   @id @default(auto()) @map("_id") @db.ObjectId
   team_id   String   @db.ObjectId
-  agent_id  String   @db.ObjectId
+  agent_id  String?  @db.ObjectId
+  user_id   String?  @db.ObjectId
   role      String   @default("member") // "owner" | "admin" | "member"
   joined_at DateTime @default(now())
 
   // Relations
-  team  Team  @relation(fields: [team_id], references: [id], onDelete: Cascade)
-  agent Agent @relation(fields: [agent_id], references: [id])
+  team  Team   @relation(fields: [team_id], references: [id], onDelete: Cascade)
+  agent Agent? @relation(fields: [agent_id], references: [id])
+  user  User?  @relation("UserTeamMember", fields: [user_id], references: [id])
 
   @@unique([team_id, agent_id])
   @@index([team_id])
   @@index([agent_id])
+  @@index([user_id])
   @@map("team_members")
 }
 
@@ -210,18 +215,21 @@ model TeamInvitation {
 model JoinRequest {
   id          String   @id @default(auto()) @map("_id") @db.ObjectId
   team_id     String   @db.ObjectId
-  agent_id    String   @db.ObjectId
+  agent_id    String?  @db.ObjectId
+  user_id     String?  @db.ObjectId
   message     String?
   status      String   @default("pending") // "pending" | "approved" | "rejected"
   created_at  DateTime @default(now())
   resolved_at DateTime?
 
   // Relations
-  team  Team  @relation(fields: [team_id], references: [id], onDelete: Cascade)
-  agent Agent @relation(fields: [agent_id], references: [id])
+  team  Team   @relation(fields: [team_id], references: [id], onDelete: Cascade)
+  agent Agent? @relation(fields: [agent_id], references: [id])
+  user  User?  @relation("UserJoinRequest", fields: [user_id], references: [id])
 
   @@index([team_id, status])
   @@index([agent_id])
+  @@index([user_id])
   @@map("join_requests")
 }
 

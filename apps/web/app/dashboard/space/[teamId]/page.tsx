@@ -33,6 +33,25 @@ interface RoomInfo {
   zone_id?: string;
 }
 
+interface BoardColumn {
+  id: string;
+  name: string;
+  color: string;
+  order: number;
+}
+
+interface BoardTask {
+  id: string;
+  title: string;
+  description?: string | null;
+  priority: 'low' | 'medium' | 'high';
+  status?: string | null;
+  column_id: string | null;
+  order: number;
+  required_capabilities?: string[];
+  assigned_to?: { id: string; name: string; capabilities?: string[] } | null;
+}
+
 export default function SpacePage({ params }: { params: Promise<{ teamId: string }> }) {
   const { teamId } = use(params);
   const router = useRouter();
@@ -46,6 +65,10 @@ export default function SpacePage({ params }: { params: Promise<{ teamId: string
   const [ready, setReady] = useState(false);
   const [spaceConfig, setSpaceConfig] = useState<any>(null);
   const [showCharPicker, setShowCharPicker] = useState(false);
+  const [showBoard, setShowBoard] = useState(false);
+  const [boardColumns, setBoardColumns] = useState<BoardColumn[]>([]);
+  const [boardTasks, setBoardTasks] = useState<BoardTask[]>([]);
+  const [boardLoading, setBoardLoading] = useState(false);
   const [characterId, setCharacterId] = useState<number>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('swarm_character_id');
@@ -486,6 +509,29 @@ export default function SpacePage({ params }: { params: Promise<{ teamId: string
     window.location.reload();
   }, []);
 
+  const openBoardPreview = useCallback(async () => {
+    setShowBoard(true);
+    setBoardLoading(true);
+    const token = getToken();
+    if (!token) { setBoardLoading(false); return; }
+    const headers = { Authorization: `Bearer ${token}` };
+    try {
+      const [colsRes, tasksRes] = await Promise.all([
+        fetch(`/api/teams/${teamId}/columns`, { headers }),
+        fetch(`/api/teams/${teamId}/tasks`, { headers }),
+      ]);
+      if (colsRes.ok) {
+        const d = await colsRes.json();
+        setBoardColumns((d.data || []).sort((a: BoardColumn, b: BoardColumn) => a.order - b.order));
+      }
+      if (tasksRes.ok) {
+        const d = await tasksRes.json();
+        setBoardTasks((d.data || []).sort((a: BoardTask, b: BoardTask) => a.order - b.order));
+      }
+    } catch { /* ignore */ }
+    setBoardLoading(false);
+  }, [teamId]);
+
   if (!userInfo) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -497,46 +543,62 @@ export default function SpacePage({ params }: { params: Promise<{ teamId: string
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Header */}
-      <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 py-2">
-        <div className="flex items-center justify-between max-w-7xl mx-auto">
+      <header className="bg-white dark:bg-gray-800 shadow border-b border-gray-200 dark:border-gray-700">
+        <div className="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8 flex items-center justify-between">
+          <Link href="/dashboard" className="text-2xl font-bold dark:text-white hover:text-purple-600 dark:hover:text-purple-400 transition-colors flex items-center gap-2">
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            🐝 {teamName}
+          </Link>
           <div className="flex items-center gap-3">
-            <Link
-              href={`/dashboard/board/${teamId}`}
-              className="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-            >
-              &larr; {t.space.board}
-            </Link>
-            <span className="text-gray-300 dark:text-gray-600">|</span>
-            <h1 className="text-sm font-semibold text-gray-800 dark:text-gray-200">
-              {teamName} &mdash; {t.space.virtualOffice}
-            </h1>
             {currentZone && (
-              <>
-                <span className="text-gray-300 dark:text-gray-600">&#x2022;</span>
-                <span className="text-xs px-2 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 font-medium">
-                  {currentZone.label}
-                </span>
-              </>
+              <span className="text-xs px-2 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 font-medium">
+                {currentZone.label}
+              </span>
             )}
-          </div>
-          <div className="flex items-center gap-3">
-            <Link
-              href={`/dashboard/space/${teamId}/editor`}
-              className="text-xs px-2 py-1 rounded bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-            >
-              {t.space.mapEditor}
-            </Link>
-            <button
-              type="button"
-              onClick={() => setShowCharPicker(true)}
-              className="text-xs px-2 py-1 rounded bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-            >
-              {t.space.changeCharacter}
-            </button>
             <span className="flex items-center gap-1 text-xs text-green-600">
               <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
               {t.space.connected}
             </span>
+
+            {/* Board */}
+            <Link
+              href={`/dashboard/board/${teamId}`}
+              className="p-2 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-all border border-transparent hover:border-gray-300 dark:hover:border-gray-600"
+              title={t.space.board}
+              aria-label={t.space.board}
+            >
+              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
+              </svg>
+            </Link>
+
+            {/* Map Editor */}
+            <Link
+              href={`/dashboard/space/${teamId}/editor`}
+              className="p-2 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-all border border-transparent hover:border-gray-300 dark:hover:border-gray-600"
+              title={t.space.mapEditor}
+              aria-label={t.space.mapEditor}
+            >
+              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+              </svg>
+            </Link>
+
+            {/* Change Character */}
+            <button
+              type="button"
+              onClick={() => setShowCharPicker(true)}
+              className="p-2 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-all border border-transparent hover:border-gray-300 dark:hover:border-gray-600"
+              title={t.space.changeCharacter}
+              aria-label={t.space.changeCharacter}
+            >
+              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
+            </button>
+
             <LangToggle />
             <ThemeToggle />
           </div>
@@ -548,6 +610,19 @@ export default function SpacePage({ params }: { params: Promise<{ teamId: string
         <div className="flex gap-4">
           {/* Game area */}
           <div className="flex-1 min-w-0">
+            {/* Board preview button */}
+            <button
+              type="button"
+              onClick={openBoardPreview}
+              className="w-full mb-2 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium transition-colors flex items-center justify-center gap-2"
+              style={{ maxWidth: 1024 }}
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
+              </svg>
+              {t.space.boardPreview}
+            </button>
+
             {ready ? (
               <PhaserGame
                 ref={phaserRef}
@@ -592,6 +667,116 @@ export default function SpacePage({ params }: { params: Promise<{ teamId: string
           onSelect={handleCharacterSelect}
           onClose={() => setShowCharPicker(false)}
         />
+      )}
+
+      {/* Board Preview Modal */}
+      {showBoard && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50" onClick={() => setShowBoard(false)}>
+          <div
+            className="bg-gray-50 dark:bg-gray-900 rounded-xl shadow-2xl w-full max-w-4xl mx-4 max-h-[80vh] flex flex-col"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Modal header */}
+            <div className="bg-white dark:bg-gray-800 rounded-t-xl border-b border-gray-200 dark:border-gray-700 px-5 py-3 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <h2 className="text-2xl font-bold dark:text-white flex items-center gap-2">
+                  🐝 {teamName}
+                </h2>
+              </div>
+              <div className="flex items-center gap-3">
+                <Link
+                  href={`/dashboard/board/${teamId}`}
+                  className="px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2"
+                >
+                  {t.space.goToFullBoard}
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => setShowBoard(false)}
+                  className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                >
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            {/* Board content — same layout as Board.tsx */}
+            <div className="flex-1 overflow-auto px-4">
+              {boardLoading ? (
+                <div className="p-8 text-center">
+                  <div className="inline-block animate-spin rounded-full h-10 w-10 border-b-2 border-purple-600 mb-3" />
+                  <p className="text-gray-600 dark:text-gray-400 text-sm">{t.space.loadingOffice}</p>
+                </div>
+              ) : boardColumns.length === 0 ? (
+                <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+                  <p>{t.space.noCols}</p>
+                </div>
+              ) : (
+                <div className="flex gap-3 py-4 overflow-x-auto">
+                  {boardColumns.map(col => {
+                    const colTasks = boardTasks.filter(tk => tk.column_id === col.id);
+                    return (
+                      <div key={col.id} className="flex-shrink-0 flex-1 min-w-[200px]">
+                        {/* Column Header */}
+                        <div className={`${col.color || 'bg-gray-100'} dark:bg-gray-700 rounded-t-lg px-3 py-2`}>
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-semibold text-sm dark:text-white">{col.name}</h3>
+                            <span className="text-xs text-gray-600 dark:text-gray-300">
+                              ({colTasks.length})
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Column Content */}
+                        <div className="bg-gray-50 dark:bg-gray-800 rounded-b-lg p-2 min-h-[250px]">
+                          <div className="space-y-2">
+                            {colTasks.map(tk => (
+                              <div
+                                key={tk.id}
+                                className="bg-white dark:bg-gray-700 rounded-lg shadow border border-gray-200 dark:border-gray-600 hover:shadow-md transition-shadow p-2.5"
+                              >
+                                <h3 className="text-xs font-semibold text-gray-900 dark:text-white leading-snug">{tk.title}</h3>
+                                <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+                                  {tk.priority && (
+                                    <span className={`inline-flex items-center px-1.5 py-0.5 text-[10px] font-medium rounded ${
+                                      tk.priority === 'high'
+                                        ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-200'
+                                        : tk.priority === 'medium'
+                                        ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-200'
+                                        : 'bg-gray-100 text-gray-800 dark:bg-gray-600 dark:text-gray-200'
+                                    }`}>
+                                      {tk.priority === 'high' && '🔴 ' + t.board.high}
+                                      {tk.priority === 'medium' && '🟡 ' + t.board.medium}
+                                      {tk.priority === 'low' && '🟢 ' + t.board.low}
+                                    </span>
+                                  )}
+                                  {tk.assigned_to && (
+                                    <span className="text-[10px] text-gray-500 dark:text-gray-400">
+                                      🤖 {tk.assigned_to.name}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+
+                            {colTasks.length === 0 && (
+                              <p className="text-xs text-gray-400 dark:text-gray-500 text-center py-6">{t.space.noTasks}</p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

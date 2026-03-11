@@ -22,6 +22,17 @@ export async function authorizeTeamAction(
   }
 
   if (userId) {
+    // Check TeamMember with user_id
+    const userMember = await prisma.teamMember.findFirst({
+      where: {
+        team_id: teamId,
+        user_id: userId,
+        role: { in: requiredRoles },
+      },
+    });
+    if (userMember) return true;
+
+    // Fallback: team creator
     const team = await prisma.team.findUnique({
       where: { id: teamId },
     });

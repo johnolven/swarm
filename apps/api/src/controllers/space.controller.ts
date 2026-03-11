@@ -86,6 +86,21 @@ export async function joinSpace(req: AuthRequest, res: Response) {
       return res.status(403).json({ success: false, error: 'Not a team member' });
     }
 
+    // Auto-join public teams if not yet an explicit member
+    const team = await prisma.team.findUnique({ where: { id: teamId }, select: { visibility: true } });
+    if (team?.visibility === 'public') {
+      const memberWhere: any = { team_id: teamId };
+      if (agentId) memberWhere.agent_id = agentId;
+      else memberWhere.user_id = userId;
+      const existing = await prisma.teamMember.findFirst({ where: memberWhere });
+      if (!existing) {
+        const memberData: any = { team_id: teamId, role: 'member' };
+        if (agentId) memberData.agent_id = agentId;
+        else memberData.user_id = userId;
+        await prisma.teamMember.create({ data: memberData });
+      }
+    }
+
     const id = agentId || userId || '';
     const type = req.agent ? 'agent' : 'user';
 
@@ -124,7 +139,96 @@ export async function joinSpace(req: AuthRequest, res: Response) {
       // Socket.IO may not be initialized
     }
 
-    res.status(201).json({ success: true, data: presence });
+    // Build enriched response: who's here, zones, profiles, tasks
+    const allPresences = spaceService.getPresence(teamId);
+
+    // Zone definitions with center coordinates
+    const zones = (config.zones as any[] || []).map((z: any) => ({
+      id: z.id,
+      name: z.name,
+      type: z.type,
+      x: z.x,
+      y: z.y,
+      w: z.w,
+      h: z.h,
+      center_x: Math.round(z.x + z.w / 2),
+      center_y: Math.round(z.y + z.h / 2),
+    }));
+
+    // Fetch profiles (descriptions/capabilities) for all present users/agents
+    const agentIds = allPresences.filter(p => p.type === 'agent').map(p => p.id);
+    const userIds = allPresences.filter(p => p.type === 'user').map(p => p.id);
+
+    const [agents, users, tasks] = await Promise.all([
+      agentIds.length > 0
+        ? prisma.agent.findMany({
+            where: { id: { in: agentIds } },
+            select: { id: true, name: true, capabilities: true, personality: true },
+          })
+        : Promise.resolve([]),
+      userIds.length > 0
+        ? prisma.user.findMany({
+            where: { id: { in: userIds } },
+            select: { id: true, name: true, nickname: true },
+          })
+        : Promise.resolve([]),
+      // Fetch tasks assigned to present users/agents in this team
+      prisma.task.findMany({
+        where: {
+          team_id: teamId,
+          assigned_to_id: { in: [...agentIds, ...userIds] },
+          completed_at: null,
+        },
+        select: {
+          id: true,
+          title: true,
+          priority: true,
+          column_id: true,
+          assigned_to_id: true,
+          status: true,
+        },
+      }),
+    ]);
+
+    // Build profile map
+    const profileMap: Record<string, any> = {};
+    for (const a of agents) {
+      profileMap[a.id] = { capabilities: a.capabilities, personality: a.personality };
+    }
+    for (const u of users) {
+      profileMap[u.id] = { nickname: u.nickname };
+    }
+
+    // Group tasks by assigned user
+    const tasksByUser: Record<string, any[]> = {};
+    for (const t of tasks) {
+      if (t.assigned_to_id) {
+        if (!tasksByUser[t.assigned_to_id]) tasksByUser[t.assigned_to_id] = [];
+        tasksByUser[t.assigned_to_id].push({
+          id: t.id,
+          title: t.title,
+          priority: t.priority,
+          status: t.status,
+          column_id: t.column_id,
+        });
+      }
+    }
+
+    // Enrich presences with profile + tasks
+    const members = allPresences.map(p => ({
+      ...p,
+      profile: profileMap[p.id] || null,
+      tasks: tasksByUser[p.id] || [],
+    }));
+
+    res.status(201).json({
+      success: true,
+      data: {
+        self: presence,
+        members,
+        zones,
+      },
+    });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });
   }

@@ -147,9 +147,15 @@ export async function requestJoin(req: AuthRequest, res: Response): Promise<void
   try {
     const { id: teamId } = req.params;
     const { message } = req.body;
-    const agentId = req.agent!.agent_id;
+    const agentId = req.agent?.agent_id || null;
+    const userId = req.user?.id || null;
 
-    const request = await teamService.requestToJoinTeam(teamId, agentId, message);
+    if (!agentId && !userId) {
+      res.status(401).json({ success: false, error: 'Authentication required' });
+      return;
+    }
+
+    const request = await teamService.requestToJoinTeam(teamId, agentId, userId, message);
 
     res.status(201).json({
       success: true,
