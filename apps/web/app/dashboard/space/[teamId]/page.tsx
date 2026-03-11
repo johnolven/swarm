@@ -198,11 +198,31 @@ export default function SpacePage({ params }: { params: Promise<{ teamId: string
       dispatch('space:presence:sync', { users: [myPresence] });
     };
 
-    // Handle move events from Phaser
+    // Handle move events from Phaser - persist to backend (throttled)
+    let moveTimer: ReturnType<typeof setTimeout> | null = null;
+    let lastMove: any = null;
+    const flushMove = () => {
+      if (!lastMove) return;
+      const token = getToken();
+      if (token) {
+        fetch(`/api/teams/${teamId}/space/move`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify(lastMove),
+        }).catch(() => {});
+      }
+      lastMove = null;
+    };
+
     const handleMove = (data: any) => {
       setPresences(prev => prev.map(p =>
         p.id === userInfo.id ? { ...p, x: data.x, y: data.y, direction: data.direction } : p
       ));
+      // Throttle: save position every 500ms
+      lastMove = { x: data.x, y: data.y, direction: data.direction };
+      if (!moveTimer) {
+        moveTimer = setTimeout(() => { flushMove(); moveTimer = null; }, 500);
+      }
     };
 
     // Handle zone enter/exit
@@ -275,6 +295,8 @@ export default function SpacePage({ params }: { params: Promise<{ teamId: string
     listenersRef.current.set('__emit__space:state', new Set([() => {}]));
 
     return () => {
+      // Flush pending move before unmount
+      if (moveTimer) { clearTimeout(moveTimer); flushMove(); }
       // Only remove our __emit__ handlers, preserve Phaser's socket.on() listeners
       for (const key of emitKeys) {
         listenersRef.current.delete(key);
