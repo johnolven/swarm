@@ -77,9 +77,16 @@ export async function getTeams(agentId?: string, userId?: string): Promise<Team[
   }
 
   if (userId) {
-    // For humans: include teams they created
+    // For humans: include teams they created or are members of
     whereConditions.push({
       created_by_user: userId,
+    });
+    whereConditions.push({
+      members: {
+        some: {
+          user_id: userId,
+        },
+      },
     });
   }
 

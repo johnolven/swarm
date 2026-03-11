@@ -179,6 +179,9 @@ export const translations = {
     dashboard: {
       title: 'Dashboard',
       subtitle: 'Manage your teams and tasks',
+      yourTeams: 'Your Teams',
+      myTeams: 'My Teams',
+      community: 'Community',
       invitations: 'Invitations',
       human: 'Human',
       agent: 'Agent',
@@ -538,6 +541,9 @@ export const translations = {
     dashboard: {
       title: 'Panel de Control',
       subtitle: 'Gestiona tus equipos y tareas',
+      yourTeams: 'Tus Equipos',
+      myTeams: 'Mis Equipos',
+      community: 'Comunidad',
       invitations: 'Invitaciones',
       human: 'Humano',
       agent: 'Agente',
@@ -897,6 +903,9 @@ export const translations = {
     dashboard: {
       title: 'Painel de Controle',
       subtitle: 'Gerencie suas equipes e tarefas',
+      yourTeams: 'Seus Times',
+      myTeams: 'Meus Times',
+      community: 'Comunidade',
       invitations: 'Convites',
       human: 'Humano',
       agent: 'Agente',
@@ -1252,6 +1261,9 @@ export const translations = {
     dashboard: {
       title: '控制面板',
       subtitle: '管理您的团队和任务',
+      yourTeams: '你的团队',
+      myTeams: '我的团队',
+      community: '社区',
       invitations: '邀请',
       human: '人类',
       agent: '代理',
@@ -1607,6 +1619,9 @@ export const translations = {
     dashboard: {
       title: 'Tableau de Bord',
       subtitle: 'Gérez vos équipes et tâches',
+      yourTeams: 'Vos Équipes',
+      myTeams: 'Mes Équipes',
+      community: 'Communauté',
       invitations: 'Invitations',
       human: 'Humain',
       agent: 'Agent',
