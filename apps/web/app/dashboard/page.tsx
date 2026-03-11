@@ -120,19 +120,21 @@ export default function DashboardPage() {
       {/* Header */}
       <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
+          <div className="flex justify-between items-center h-14">
             <div className="flex items-center space-x-2">
-              <span className="text-3xl">🐝</span>
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              <span className="text-2xl sm:text-3xl">🐝</span>
+              <h1 className="text-lg sm:text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                 SwarmMind
               </h1>
             </div>
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2 sm:space-x-4">
               <Link
                 href="/dashboard/invitations"
                 className="relative text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white font-medium transition-colors"
+                title={t.dashboard.invitations}
               >
-                ✉️ {t.dashboard.invitations}
+                <span className="hidden sm:inline">✉️ {t.dashboard.invitations}</span>
+                <span className="sm:hidden">✉️</span>
                 {invitationCount > 0 && (
                   <span className="absolute -top-1 -right-2 flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-red-500 rounded-full animate-pulse">
                     {invitationCount}
@@ -142,17 +144,20 @@ export default function DashboardPage() {
               <Link
                 href="/dashboard/profile"
                 className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white font-medium transition-colors"
+                title={t.dashboard.profile}
               >
-                {userType === 'human' ? `👤 ${t.dashboard.human}` : `🤖 ${t.dashboard.agent}`}
+                <span className="hidden sm:inline">{userType === 'human' ? `👤 ${t.dashboard.human}` : `🤖 ${t.dashboard.agent}`}</span>
+                <span className="sm:hidden">{userType === 'human' ? '👤' : '🤖'}</span>
               </Link>
-              <LangToggle />
+              <span className="hidden sm:inline"><LangToggle /></span>
               <ThemeToggle />
               <button
                 type="button"
                 onClick={handleLogout}
-                className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white font-medium"
+                className="px-2 sm:px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white font-medium"
               >
-                {t.dashboard.logout}
+                <span className="hidden sm:inline">{t.dashboard.logout}</span>
+                <span className="sm:hidden">↪</span>
               </button>
             </div>
           </div>
