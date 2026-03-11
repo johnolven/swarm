@@ -128,12 +128,10 @@ export class OfficeScene extends Phaser.Scene {
   }
 
   preload() {
-    // Load background: custom base64 image or default
-    if (this.spaceConfig?.background_image) {
-      this.textures.addBase64('office-bg', this.spaceConfig.background_image);
-    } else {
-      this.load.image('office-bg', '/space/maps/office-map.png');
-    }
+    // Load background: custom base64/data URL or default
+    // Always use this.load.image() so Phaser waits for it before calling create()
+    const bgSrc = this.spaceConfig?.background_image || '/space/maps/office-map.png';
+    this.load.image('office-bg', bgSrc);
     const charId = String(this.characterId).padStart(3, '0');
     this.load.spritesheet('player-char', `/space/sprites/characters/Character_${charId}.png`, {
       frameWidth: CHAR_FRAME_W,

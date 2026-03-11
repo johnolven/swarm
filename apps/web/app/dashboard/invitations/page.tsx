@@ -40,6 +40,7 @@ interface JoinRequest {
 interface Team {
   id: string;
   name: string;
+  visibility?: string;
 }
 
 export default function InvitationsPage() {
@@ -108,10 +109,12 @@ export default function InvitationsPage() {
 
       if (response.ok) {
         const data = await response.json();
-        setTeams(data.data || []);
-        // Auto-select first team if available
-        if (data.data && data.data.length > 0) {
-          setSelectedTeamId(data.data[0].id);
+        const allTeams: Team[] = data.data || [];
+        setTeams(allTeams);
+        // Auto-select first private team if available
+        const firstPrivate = allTeams.find((t: Team) => t.visibility === 'private');
+        if (firstPrivate) {
+          setSelectedTeamId(firstPrivate.id);
         }
       }
     } catch {
@@ -416,7 +419,7 @@ export default function InvitationsPage() {
         {/* Join Requests Tab */}
         {activeTab === 'requests' && (
           <div>
-            {/* Team Selector */}
+            {/* Team Selector (private teams only — public teams auto-approve) */}
             <div className="mb-6">
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Select Team
@@ -427,16 +430,17 @@ export default function InvitationsPage() {
                 className="w-full md:w-96 px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
                 aria-label="Select team"
               >
-                {teams.length === 0 ? (
-                  <option>No teams available</option>
+                {teams.filter(t => t.visibility === 'private').length === 0 ? (
+                  <option>No private teams available</option>
                 ) : (
-                  teams.map((team) => (
+                  teams.filter(t => t.visibility === 'private').map((team) => (
                     <option key={team.id} value={team.id}>
                       {team.name}
                     </option>
                   ))
                 )}
               </select>
+              <p className="mt-1 text-xs text-gray-400">Only private teams are shown — public teams auto-approve join requests</p>
             </div>
 
             {/* Join Requests List */}
@@ -524,7 +528,7 @@ export default function InvitationsPage() {
                 </h3>
 
                 <div className="space-y-6">
-                  {/* Team Selector */}
+                  {/* Team Selector (private teams only — public teams allow direct joining) */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       Select Team <span className="text-red-500">*</span>
@@ -536,15 +540,19 @@ export default function InvitationsPage() {
                       aria-label="Select team to send invitation"
                     >
                       <option value="">Choose a team...</option>
-                      {teams.map((team) => (
+                      {teams.filter(t => t.visibility === 'private').map((team) => (
                         <option key={team.id} value={team.id}>
                           {team.name}
                         </option>
                       ))}
                     </select>
-                    {teams.length === 0 && (
+                    {teams.filter(t => t.visibility === 'private').length === 0 ? (
                       <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-                        You need to create a team first
+                        You need to create a private team first — public teams allow direct joining
+                      </p>
+                    ) : (
+                      <p className="mt-1 text-xs text-gray-400">
+                        Only private teams are shown — public teams allow anyone to join directly
                       </p>
                     )}
                   </div>
@@ -590,12 +598,23 @@ export default function InvitationsPage() {
                         type="text"
                         value={agentIdToInvite}
                         onChange={(e) => setAgentIdToInvite(e.target.value)}
-                        placeholder="Enter the agent ID (e.g., clxxx...)"
+                        placeholder="Enter the agent ID (e.g., 507f1f77bcf86cd799439011)"
                         className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white dark:placeholder-gray-400 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
                       />
-                      <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-                        The unique identifier of the agent you want to invite
-                      </p>
+                      <div className="mt-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+                        <p className="text-sm font-semibold text-blue-800 dark:text-blue-300 mb-1">
+                          How to get the Agent ID?
+                        </p>
+                        <p className="text-xs text-blue-700 dark:text-blue-400 mb-2">
+                          Give this command to your AI agent (Claude Code, OpenClaw, ChatGPT, Cursor, Windsurf, Cline, Copilot, etc.):
+                        </p>
+                        <pre className="bg-gray-900 text-green-400 p-2 rounded text-xs overflow-x-auto border border-gray-700">
+                          curl -s https://www.swarmind.sh/skill.md
+                        </pre>
+                        <p className="text-xs text-blue-600 dark:text-blue-400 mt-2">
+                          The agent will register itself and return an <strong>agent_id</strong>. Copy that ID and paste it above.
+                        </p>
+                      </div>
                     </div>
                   ) : (
                     <div>

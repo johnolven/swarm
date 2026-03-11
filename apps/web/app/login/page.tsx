@@ -237,21 +237,61 @@ export default function LoginPage() {
             ) : (
               <div>
                 <h2 className="text-2xl font-bold mb-2 dark:text-white">{t.login.agentRegistration}</h2>
-                <p className="text-gray-600 dark:text-gray-400 mb-6">
+                <p className="text-gray-600 dark:text-gray-400 mb-4">
                   {t.login.agentDesc}
                 </p>
 
-                <div className="space-y-6">
+                <div className="space-y-5">
+                  {/* Step 1 */}
                   <div>
-                    <pre className="bg-gray-900 dark:bg-black text-green-400 p-4 rounded-lg overflow-x-auto text-sm border border-gray-700">
-                      {installCommand}
-                    </pre>
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="w-6 h-6 rounded-full bg-purple-600 text-white text-xs font-bold flex items-center justify-center shrink-0">1</span>
+                      <span className="text-sm font-semibold text-gray-800 dark:text-gray-200">{t.login.agentStep1}</span>
+                    </div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 ml-8 mb-2">
+                      {t.login.agentStep1Desc}
+                    </p>
+                    <div className="ml-8">
+                      <pre className="bg-gray-900 dark:bg-black text-green-400 p-3 rounded-lg overflow-x-auto text-xs border border-gray-700">
+                        {installCommand}
+                      </pre>
+                    </div>
                   </div>
 
-                  <div className="text-center pt-4">
+                  {/* Step 2 */}
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="w-6 h-6 rounded-full bg-purple-600 text-white text-xs font-bold flex items-center justify-center shrink-0">2</span>
+                      <span className="text-sm font-semibold text-gray-800 dark:text-gray-200">{t.login.agentStep2}</span>
+                    </div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 ml-8">
+                      {t.login.agentStep2Desc}
+                    </p>
+                  </div>
+
+                  {/* Step 3 */}
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="w-6 h-6 rounded-full bg-purple-600 text-white text-xs font-bold flex items-center justify-center shrink-0">3</span>
+                      <span className="text-sm font-semibold text-gray-800 dark:text-gray-200">{t.login.agentStep3}</span>
+                    </div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 ml-8">
+                      {t.login.agentStep3Desc}
+                    </p>
+                  </div>
+
+                  {/* Compatible agents */}
+                  <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
+                    <p className="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1.5">{t.login.compatibleWith}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      Claude Code, OpenClaw, ChatGPT, Cursor, Windsurf, Cline, Copilot, Devin, Codex
+                    </p>
+                  </div>
+
+                  <div className="text-center pt-2">
                     <Link
                       href="/dashboard"
-                      className="text-purple-600 dark:text-purple-400 hover:underline font-medium"
+                      className="text-purple-600 dark:text-purple-400 hover:underline font-medium text-sm"
                     >
                       {t.login.alreadyHaveToken} →
                     </Link>

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useLanguage } from '@/components/LanguageProvider';
 
-type Tool = 'walk' | 'block' | 'zone' | 'spawn' | 'erase';
+type Tool = 'walk' | 'block' | 'zone' | 'spawn' | 'erase' | 'select';
 
 interface ZoneDef {
   id: string;
@@ -45,6 +45,45 @@ const ZONE_COLORS = [
 const DEFAULT_COLS = 32;
 const DEFAULT_ROWS = 34;
 const EDITOR_TILE = 20; // pixel size of each tile in the editor canvas
+const DEFAULT_BG_URL = '/space/maps/office-map.png';
+
+// Default office collision grid (matches OfficeScene hardcoded walkable/blocked)
+function buildDefaultGrid(): number[] {
+  const grid = new Array(DEFAULT_COLS * DEFAULT_ROWS).fill(1);
+  const walkable = [
+    [1, 3, 30, 4], [1, 7, 30, 8], [1, 11, 30, 12], [1, 15, 30, 16],
+    [1, 1, 3, 18], [28, 1, 30, 18], [14, 1, 17, 19],
+    [4, 3, 13, 4], [18, 3, 27, 4],
+    [1, 17, 30, 20],
+    [1, 21, 12, 33], [13, 21, 22, 33],
+    [23, 21, 30, 25], [23, 26, 30, 29], [23, 30, 30, 33],
+    [12, 24, 14, 26], [21, 24, 24, 26], [12, 29, 14, 31], [21, 29, 24, 31],
+  ];
+  for (const [sc, sr, ec, er] of walkable) {
+    for (let r = sr; r <= er && r < DEFAULT_ROWS; r++)
+      for (let c = sc; c <= ec && c < DEFAULT_COLS; c++)
+        grid[r * DEFAULT_COLS + c] = 0;
+  }
+  const blocked = [
+    [5, 27, 6, 28], [9, 23, 10, 24],
+    [17, 24, 18, 25],
+    [26, 22, 27, 23], [26, 27, 27, 28], [26, 31, 27, 32],
+  ];
+  for (const [sc, sr, ec, er] of blocked) {
+    for (let r = sr; r <= er && r < DEFAULT_ROWS; r++)
+      for (let c = sc; c <= ec && c < DEFAULT_COLS; c++)
+        grid[r * DEFAULT_COLS + c] = 1;
+  }
+  return grid;
+}
+
+const DEFAULT_ZONES: ZoneDef[] = [
+  { id: 'open-office', label: 'Open Office', color: '#6366f1', x: 1, y: 1, w: 30, h: 18 },
+  { id: 'meeting-room', label: 'Meeting Room', color: '#059669', x: 1, y: 21, w: 12, h: 13 },
+  { id: 'lobby', label: 'Lobby', color: '#d97706', x: 13, y: 21, w: 10, h: 13 },
+  { id: 'private-office-1', label: 'Office A', color: '#dc2626', x: 23, y: 21, w: 8, h: 6 },
+  { id: 'private-office-2', label: 'Office B', color: '#7c3aed', x: 23, y: 27, w: 8, h: 7 },
+];
 
 export function MapEditor({ teamId, initialConfig, onSave }: MapEditorProps) {
   const { t } = useLanguage();
@@ -53,22 +92,26 @@ export function MapEditor({ teamId, initialConfig, onSave }: MapEditorProps) {
   const [tool, setTool] = useState<Tool>('walk');
   const [cols, setCols] = useState(initialConfig?.map_cols || DEFAULT_COLS);
   const [rows, setRows] = useState(initialConfig?.map_rows || DEFAULT_ROWS);
+  const hasCustomBg = !!initialConfig?.background_image;
   const [grid, setGrid] = useState<number[]>(() => {
     if (initialConfig?.collision_grid) {
       try {
         return JSON.parse(initialConfig.collision_grid);
       } catch { /* fallback */ }
     }
-    return new Array(cols * rows).fill(1); // all blocked by default
+    return buildDefaultGrid();
   });
   const [bgImage, setBgImage] = useState<HTMLImageElement | null>(null);
-  const [bgDataUrl, setBgDataUrl] = useState<string | null>(initialConfig?.background_image || null);
+  const [bgDataUrl, setBgDataUrl] = useState<string | null>(
+    hasCustomBg ? initialConfig.background_image! : DEFAULT_BG_URL
+  );
+  const [isDefaultBg, setIsDefaultBg] = useState(!hasCustomBg);
   const [zones, setZones] = useState<ZoneDef[]>(() => {
     if (initialConfig?.zones) {
       const z = typeof initialConfig.zones === 'string' ? JSON.parse(initialConfig.zones) : initialConfig.zones;
-      return Array.isArray(z) ? z : [];
+      if (Array.isArray(z) && z.length > 0) return z;
     }
-    return [];
+    return [...DEFAULT_ZONES];
   });
   const [spawnX, setSpawnX] = useState(initialConfig?.spawn_x ?? 5);
   const [spawnY, setSpawnY] = useState(initialConfig?.spawn_y ?? 5);
@@ -82,6 +125,9 @@ export function MapEditor({ teamId, initialConfig, onSave }: MapEditorProps) {
   const [pendingZoneRect, setPendingZoneRect] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
   const [selectedZone, setSelectedZone] = useState<string | null>(null);
   const [scale, setScale] = useState(1);
+  // Zone drag state (move / resize)
+  const [zoneDragMode, setZoneDragMode] = useState<'move' | 'resize-br' | null>(null);
+  const [zoneDragOffset, setZoneDragOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
 
   const canvasW = cols * EDITOR_TILE;
   const canvasH = rows * EDITOR_TILE;
@@ -141,14 +187,29 @@ export function MapEditor({ teamId, initialConfig, onSave }: MapEditorProps) {
     // Draw zones
     for (const z of zones) {
       const hex = z.color || '#6366f1';
-      ctx.fillStyle = hex + '30';
+      const isSelected = selectedZone === z.id;
+      ctx.fillStyle = hex + (isSelected ? '40' : '30');
       ctx.fillRect(z.x * EDITOR_TILE, z.y * EDITOR_TILE, z.w * EDITOR_TILE, z.h * EDITOR_TILE);
       ctx.strokeStyle = hex;
-      ctx.lineWidth = selectedZone === z.id ? 3 : 1.5;
+      ctx.lineWidth = isSelected ? 3 : 1.5;
+      if (isSelected) {
+        ctx.setLineDash([6, 3]);
+      }
       ctx.strokeRect(z.x * EDITOR_TILE, z.y * EDITOR_TILE, z.w * EDITOR_TILE, z.h * EDITOR_TILE);
+      ctx.setLineDash([]);
       ctx.fillStyle = hex;
       ctx.font = 'bold 11px monospace';
       ctx.fillText(z.label, z.x * EDITOR_TILE + 4, z.y * EDITOR_TILE + 14);
+      // Resize handle on selected zone (bottom-right corner)
+      if (isSelected) {
+        const hx = (z.x + z.w) * EDITOR_TILE - 8;
+        const hy = (z.y + z.h) * EDITOR_TILE - 8;
+        ctx.fillStyle = hex;
+        ctx.fillRect(hx, hy, 8, 8);
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(hx, hy, 8, 8);
+      }
     }
 
     // Draw zone draft (while dragging)
@@ -219,11 +280,41 @@ export function MapEditor({ teamId, initialConfig, onSave }: MapEditorProps) {
     }
   };
 
+  // Find zone at a tile position
+  const findZoneAt = (tx: number, ty: number): ZoneDef | null => {
+    // Search in reverse so topmost zones are found first
+    for (let i = zones.length - 1; i >= 0; i--) {
+      const z = zones[i];
+      if (tx >= z.x && tx < z.x + z.w && ty >= z.y && ty < z.y + z.h) return z;
+    }
+    return null;
+  };
+
+  // Check if tile is near bottom-right corner of a zone (for resize)
+  const isNearResizeHandle = (z: ZoneDef, tx: number, ty: number): boolean => {
+    return tx >= z.x + z.w - 2 && tx < z.x + z.w && ty >= z.y + z.h - 2 && ty < z.y + z.h;
+  };
+
   const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
     const tile = getTile(e);
     if (!tile) return;
 
-    if (tool === 'zone') {
+    if (tool === 'select') {
+      // Check if clicking on a zone
+      const zone = findZoneAt(tile.x, tile.y);
+      if (zone) {
+        setSelectedZone(zone.id);
+        if (isNearResizeHandle(zone, tile.x, tile.y)) {
+          setZoneDragMode('resize-br');
+          setZoneDragOffset({ x: tile.x, y: tile.y });
+        } else {
+          setZoneDragMode('move');
+          setZoneDragOffset({ x: tile.x - zone.x, y: tile.y - zone.y });
+        }
+      } else {
+        setSelectedZone(null);
+      }
+    } else if (tool === 'zone') {
       setZoneStart(tile);
       setZoneDraft({ x: tile.x, y: tile.y, w: 1, h: 1 });
     } else {
@@ -236,7 +327,21 @@ export function MapEditor({ teamId, initialConfig, onSave }: MapEditorProps) {
     const tile = getTile(e);
     if (!tile) return;
 
-    if (tool === 'zone' && zoneStart) {
+    if (tool === 'select' && zoneDragMode && selectedZone) {
+      setZones(prev => prev.map(z => {
+        if (z.id !== selectedZone) return z;
+        if (zoneDragMode === 'move') {
+          const nx = Math.max(0, Math.min(cols - z.w, tile.x - zoneDragOffset.x));
+          const ny = Math.max(0, Math.min(rows - z.h, tile.y - zoneDragOffset.y));
+          return { ...z, x: nx, y: ny };
+        } else if (zoneDragMode === 'resize-br') {
+          const nw = Math.max(2, tile.x - z.x + 1);
+          const nh = Math.max(2, tile.y - z.y + 1);
+          return { ...z, w: Math.min(nw, cols - z.x), h: Math.min(nh, rows - z.y) };
+        }
+        return z;
+      }));
+    } else if (tool === 'zone' && zoneStart) {
       const x = Math.min(zoneStart.x, tile.x);
       const y = Math.min(zoneStart.y, tile.y);
       const w = Math.abs(tile.x - zoneStart.x) + 1;
@@ -244,6 +349,17 @@ export function MapEditor({ teamId, initialConfig, onSave }: MapEditorProps) {
       setZoneDraft({ x, y, w, h });
     } else if (isPainting) {
       paintTile(tile.x, tile.y);
+    }
+
+    // Update cursor for resize handle
+    if (tool === 'select' && !zoneDragMode) {
+      const canvas = canvasRef.current;
+      if (canvas) {
+        const zone = findZoneAt(tile.x, tile.y);
+        canvas.style.cursor = zone && isNearResizeHandle(zone, tile.x, tile.y)
+          ? 'nwse-resize'
+          : zone ? 'grab' : 'default';
+      }
     }
   };
 
@@ -255,6 +371,7 @@ export function MapEditor({ teamId, initialConfig, onSave }: MapEditorProps) {
     setIsPainting(false);
     setZoneStart(null);
     setZoneDraft(null);
+    setZoneDragMode(null);
   };
 
   const confirmZone = () => {
@@ -283,6 +400,7 @@ export function MapEditor({ teamId, initialConfig, onSave }: MapEditorProps) {
     reader.onload = (ev) => {
       const dataUrl = ev.target?.result as string;
       setBgDataUrl(dataUrl);
+      setIsDefaultBg(false);
       // Auto-detect dimensions from image
       const img = new Image();
       img.onload = () => {
@@ -327,7 +445,8 @@ export function MapEditor({ teamId, initialConfig, onSave }: MapEditorProps) {
         map_rows: rows,
         tile_size: initialConfig?.tile_size || 16,
         collision_grid: JSON.stringify(grid),
-        background_image: bgDataUrl,
+        // Don't store the default bg URL - OfficeScene loads it automatically
+        background_image: isDefaultBg ? null : bgDataUrl,
         zones: zones,
         spawn_x: spawnX,
         spawn_y: spawnY,
@@ -339,7 +458,65 @@ export function MapEditor({ teamId, initialConfig, onSave }: MapEditorProps) {
     }
   };
 
+  const handleExport = () => {
+    const mapData = {
+      version: 1,
+      map_cols: cols,
+      map_rows: rows,
+      tile_size: initialConfig?.tile_size || 16,
+      collision_grid: grid,
+      zones: zones,
+      spawn_x: spawnX,
+      spawn_y: spawnY,
+      background_image: isDefaultBg ? null : bgDataUrl,
+    };
+    const json = JSON.stringify(mapData, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `swarmmind-map-${Date.now()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const data = JSON.parse(ev.target?.result as string);
+        if (!data.map_cols || !data.map_rows || !Array.isArray(data.collision_grid)) {
+          alert('Invalid map file');
+          return;
+        }
+        setCols(data.map_cols);
+        setRows(data.map_rows);
+        setGrid(data.collision_grid);
+        setZones(Array.isArray(data.zones) ? data.zones : []);
+        setSpawnX(data.spawn_x ?? 5);
+        setSpawnY(data.spawn_y ?? 5);
+        if (data.background_image) {
+          setBgDataUrl(data.background_image);
+          setIsDefaultBg(false);
+        } else {
+          setBgDataUrl(DEFAULT_BG_URL);
+          setIsDefaultBg(true);
+        }
+      } catch {
+        alert('Invalid map file');
+      }
+    };
+    reader.readAsText(file);
+    // Reset input so same file can be re-imported
+    e.target.value = '';
+  };
+
+  const importRef = useRef<HTMLInputElement>(null);
+
   const tools: { id: Tool; label: string; icon: string; desc: string }[] = [
+    { id: 'select', label: te.selectTool, icon: '\u{1F446}', desc: te.selectDesc },
     { id: 'walk', label: te.walkable, icon: '\u2705', desc: te.paintWalkable },
     { id: 'block', label: te.blocked, icon: '\u26D4', desc: te.paintBlocked },
     { id: 'zone', label: te.zone, icon: '\u{1F4CD}', desc: te.drawZone },
@@ -410,7 +587,7 @@ export function MapEditor({ teamId, initialConfig, onSave }: MapEditorProps) {
               onMouseMove={handleMouseMove}
               onMouseUp={handleMouseUp}
               onMouseLeave={handleMouseUp}
-              className="cursor-crosshair"
+              className={tool === 'select' ? '' : 'cursor-crosshair'}
               style={{
                 imageRendering: 'pixelated',
                 width: canvasW * scale,
@@ -433,24 +610,56 @@ export function MapEditor({ teamId, initialConfig, onSave }: MapEditorProps) {
           {/* Background */}
           <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-gray-200 dark:border-gray-700">
             <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">{te.background}</h3>
-            <label className="block">
-              <span className="text-xs text-gray-500 dark:text-gray-400 block mb-1">{te.uploadImage}</span>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleImageUpload}
-                className="block w-full text-xs text-gray-500 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:bg-indigo-50 file:text-indigo-600 dark:file:bg-indigo-900/30 dark:file:text-indigo-300 hover:file:bg-indigo-100"
-              />
-            </label>
-            {bgDataUrl && (
+            {isDefaultBg && (
+              <p className="text-xs text-green-600 dark:text-green-400 mb-2">{te.usingDefault}</p>
+            )}
+            <div className="space-y-2">
+              {!isDefaultBg && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setBgDataUrl(DEFAULT_BG_URL);
+                    setBgImage(null);
+                    setIsDefaultBg(true);
+                    setCols(DEFAULT_COLS);
+                    setRows(DEFAULT_ROWS);
+                    setGrid(buildDefaultGrid());
+                    setZones([...DEFAULT_ZONES]);
+                    setSpawnX(5);
+                    setSpawnY(5);
+                  }}
+                  className="w-full text-xs px-2 py-1.5 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-300 rounded hover:bg-indigo-100 dark:hover:bg-indigo-900/50"
+                >
+                  {te.restoreDefault}
+                </button>
+              )}
               <button
                 type="button"
-                onClick={() => { setBgDataUrl(null); setBgImage(null); }}
-                className="mt-2 text-xs text-red-500 hover:text-red-700"
+                onClick={() => {
+                  setBgDataUrl(null);
+                  setBgImage(null);
+                  setIsDefaultBg(false);
+                  setCols(DEFAULT_COLS);
+                  setRows(DEFAULT_ROWS);
+                  setGrid(new Array(DEFAULT_COLS * DEFAULT_ROWS).fill(1));
+                  setZones([]);
+                  setSpawnX(5);
+                  setSpawnY(5);
+                }}
+                className="w-full text-xs px-2 py-1.5 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded hover:bg-gray-200 dark:hover:bg-gray-600"
               >
-                {te.removeBackground}
+                {te.newBlankMap}
               </button>
-            )}
+              <label className="block">
+                <span className="text-xs text-gray-500 dark:text-gray-400 block mb-1">{te.uploadImage}</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  className="block w-full text-xs text-gray-500 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:bg-indigo-50 file:text-indigo-600 dark:file:bg-indigo-900/30 dark:file:text-indigo-300 hover:file:bg-indigo-100"
+                />
+              </label>
+            </div>
           </div>
 
           {/* Grid Size */}
@@ -502,7 +711,7 @@ export function MapEditor({ teamId, initialConfig, onSave }: MapEditorProps) {
                     className={`flex items-center justify-between text-xs p-1.5 rounded cursor-pointer ${
                       selectedZone === z.id ? 'bg-indigo-50 dark:bg-indigo-900/30' : 'hover:bg-gray-50 dark:hover:bg-gray-700'
                     }`}
-                    onClick={() => setSelectedZone(z.id === selectedZone ? null : z.id)}
+                    onClick={() => { setSelectedZone(z.id === selectedZone ? null : z.id); setTool('select'); }}
                   >
                     <div className="flex items-center gap-1.5">
                       <span className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ backgroundColor: z.color }} />
@@ -519,6 +728,40 @@ export function MapEditor({ teamId, initialConfig, onSave }: MapEditorProps) {
                 ))}
               </div>
             )}
+
+            {/* Edit selected zone */}
+            {selectedZone && (() => {
+              const sz = zones.find(z => z.id === selectedZone);
+              if (!sz) return null;
+              return (
+                <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 space-y-2">
+                  <div>
+                    <label className="text-xs text-gray-500 dark:text-gray-400">{te.zoneName}</label>
+                    <input
+                      type="text"
+                      value={sz.label}
+                      onChange={e => setZones(prev => prev.map(z => z.id === selectedZone ? { ...z, label: e.target.value } : z))}
+                      className="w-full mt-0.5 px-2 py-1 text-sm bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-500 dark:text-gray-400">{te.zoneColor}</label>
+                    <div className="flex gap-1.5 mt-1 flex-wrap">
+                      {ZONE_COLORS.map(c => (
+                        <button
+                          key={c}
+                          type="button"
+                          onClick={() => setZones(prev => prev.map(z => z.id === selectedZone ? { ...z, color: c } : z))}
+                          className={`w-5 h-5 rounded-sm border-2 ${sz.color === c ? 'border-white ring-1 ring-gray-400' : 'border-transparent'}`}
+                          style={{ backgroundColor: c }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-gray-400">{te.zoneMoveHint}</p>
+                </div>
+              );
+            })()}
           </div>
 
           {/* Spawn */}
@@ -538,6 +781,31 @@ export function MapEditor({ teamId, initialConfig, onSave }: MapEditorProps) {
           >
             {saving ? te.saving : te.saveMap}
           </button>
+
+          {/* Export / Import */}
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={handleExport}
+              className="flex-1 py-1.5 text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+            >
+              {te.exportMap}
+            </button>
+            <button
+              type="button"
+              onClick={() => importRef.current?.click()}
+              className="flex-1 py-1.5 text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+            >
+              {te.importMap}
+            </button>
+            <input
+              ref={importRef}
+              type="file"
+              accept=".json"
+              onChange={handleImport}
+              className="hidden"
+            />
+          </div>
 
           {/* Legend */}
           <div className="text-xs text-gray-400 space-y-0.5">
