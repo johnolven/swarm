@@ -156,9 +156,10 @@ export default function SpacePage({ params }: { params: Promise<{ teamId: string
   useEffect(() => {
     if (!userInfo || !ready) return;
 
-    // When Phaser emits space:join, we create a local presence and respond
-    const handleJoin = () => {
-      const myPresence: UserPresence = {
+    // When Phaser emits space:join, call backend to get saved position
+    const handleJoin = async () => {
+      const token = getToken();
+      let myPresence: UserPresence = {
         id: userInfo.id,
         type: userInfo.type,
         name: userInfo.name,
@@ -176,8 +177,24 @@ export default function SpacePage({ params }: { params: Promise<{ teamId: string
           color: userInfo.type === 'agent' ? '#8b5cf6' : '#3b82f6',
         },
       };
+
+      // Call backend join to restore last position
+      if (token) {
+        try {
+          const res = await fetch(`/api/teams/${teamId}/space/join`, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+          });
+          if (res.ok) {
+            const data = await res.json();
+            if (data.data) {
+              myPresence = { ...myPresence, ...data.data, socket_id: 'local' };
+            }
+          }
+        } catch { /* use default position */ }
+      }
+
       setPresences([myPresence]);
-      // Send presence sync back to Phaser
       dispatch('space:presence:sync', { users: [myPresence] });
     };
 
