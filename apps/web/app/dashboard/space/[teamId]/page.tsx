@@ -188,12 +188,14 @@ export default function SpacePage({ params }: { params: Promise<{ teamId: string
     // When Phaser emits space:join, call backend to get saved position
     const handleJoin = async () => {
       const token = getToken();
+      const defaultX = spaceConfig?.spawn_x ?? 5;
+      const defaultY = spaceConfig?.spawn_y ?? 5;
       let myPresence: UserPresence = {
         id: userInfo.id,
         type: userInfo.type,
         name: userInfo.name,
-        x: 17,
-        y: 28,
+        x: defaultX,
+        y: defaultY,
         direction: 'down',
         state: 'idle',
         current_zone: null,
@@ -542,7 +544,7 @@ export default function SpacePage({ params }: { params: Promise<{ teamId: string
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="h-screen flex flex-col bg-gray-50 dark:bg-gray-900 overflow-hidden lg:overflow-auto lg:h-auto lg:min-h-screen">
       {/* Header */}
       <header className="bg-white dark:bg-gray-800 shadow border-b border-gray-200 dark:border-gray-700">
         <div className="max-w-7xl mx-auto px-3 py-2 sm:py-4 sm:px-6 lg:px-8 flex items-center justify-between">
@@ -608,10 +610,10 @@ export default function SpacePage({ params }: { params: Promise<{ teamId: string
       </header>
 
       {/* Main content */}
-      <div className="max-w-7xl mx-auto p-4">
-        <div className="flex flex-col lg:flex-row gap-4">
+      <div className="max-w-7xl mx-auto p-2 sm:p-4 flex-1 overflow-hidden lg:overflow-visible">
+        <div className="flex flex-col lg:flex-row gap-2 sm:gap-4 h-full">
           {/* Game area */}
-          <div className="flex-1 min-w-0">
+          <div className="flex-1 min-w-0 flex flex-col">
             {/* Board preview button */}
             <button
               type="button"
@@ -650,7 +652,7 @@ export default function SpacePage({ params }: { params: Promise<{ teamId: string
           </div>
 
           {/* Sidebar */}
-          <div className="w-full lg:w-72 shrink-0 space-y-4">
+          <div className="w-full lg:w-72 shrink-0 space-y-2 sm:space-y-4 overflow-y-auto">
             <PresenceList users={presences} />
             <ChatPanel
               teamId={teamId}

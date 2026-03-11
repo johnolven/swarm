@@ -146,7 +146,7 @@ export const PhaserGame = forwardRef<PhaserGameHandle, PhaserGameProps>(function
       <div
         ref={containerRef}
         onClick={() => gameRef.current?.canvas.focus()}
-        className="rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 cursor-pointer"
+        className="rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 cursor-pointer touch-none"
         style={{ width: '100%', maxWidth: 1024, aspectRatio: '1024/800' }}
       />
       <div className="mt-1.5 flex flex-wrap gap-3 text-[10px] text-gray-400 hidden sm:flex">
