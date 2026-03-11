@@ -442,12 +442,12 @@ export default function SpacePage({ params }: { params: Promise<{ teamId: string
           const data = await res.json();
           const users: UserPresence[] = data.data || [];
           if (users.length > 0) {
-            phaserRef.current?.syncPresences(users);
+            // Only sync remote users to Phaser - never overwrite local player position
+            const remoteOnly = users.filter(u => u.id !== userInfo!.id);
+            phaserRef.current?.syncPresences(remoteOnly);
             setPresences(prev => {
-              // Merge: keep local player, add remote users
               const localPlayer = prev.find(p => p.id === userInfo!.id);
-              const remoteUsers = users.filter(u => u.id !== userInfo!.id);
-              return localPlayer ? [localPlayer, ...remoteUsers] : users;
+              return localPlayer ? [localPlayer, ...remoteOnly] : users;
             });
           }
         }

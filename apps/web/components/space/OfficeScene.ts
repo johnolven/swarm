@@ -144,6 +144,10 @@ export class OfficeScene extends Phaser.Scene {
     };
     this.keyupHandler = (e: KeyboardEvent) => {
       this.keysDown.delete(e.key);
+      // Go idle when all movement keys released and not mid-tween
+      if (this.keysDown.size === 0 && !this.isMoving && this.playerChar) {
+        this.playerChar.sprite.play(`player-char-idle-${this.lastDirection}`, true);
+      }
     };
     window.addEventListener('keydown', this.keydownHandler);
     window.addEventListener('keyup', this.keyupHandler);
@@ -179,7 +183,7 @@ export class OfficeScene extends Phaser.Scene {
           frames: this.anims.generateFrameNumbers(key, {
             frames: [base, base + 1, base + 2, base + 3],
           }),
-          frameRate: 8,
+          frameRate: 12,
           repeat: -1,
         });
       }
@@ -615,7 +619,7 @@ export class OfficeScene extends Phaser.Scene {
     // Don't process input while a move tween is running
     if (this.isMoving) return;
 
-    if (time - this.moveTimeout < 125) return;
+    if (time - this.moveTimeout < 80) return;
 
     let newX = this.tileX;
     let newY = this.tileY;
@@ -649,11 +653,14 @@ export class OfficeScene extends Phaser.Scene {
         targets: this.playerChar.container,
         x: targetPx,
         y: targetPy,
-        duration: 120,
+        duration: 130,
         ease: 'Linear',
         onComplete: () => {
           this.isMoving = false;
-          this.playerChar?.sprite.play(`player-char-idle-${direction}`, true);
+          // Only go idle if no arrow keys are held down (prevents stutter between tiles)
+          if (this.keysDown.size === 0) {
+            this.playerChar?.sprite.play(`player-char-idle-${direction}`, true);
+          }
         },
       });
 
