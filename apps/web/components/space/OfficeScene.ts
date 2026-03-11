@@ -305,40 +305,8 @@ export class OfficeScene extends Phaser.Scene {
       } catch { /* fall through to default */ }
     }
 
-    // Default hardcoded collision grid for the default office map
-    this.collisionGrid = new Array(this.mapCols * this.mapRows).fill(1);
-
-    const walkableAreas: number[][] = [
-      [1, 3, 30, 4], [1, 7, 30, 8], [1, 11, 30, 12], [1, 15, 30, 16],
-      [1, 1, 3, 18], [28, 1, 30, 18], [14, 1, 17, 19],
-      [4, 3, 13, 4], [18, 3, 27, 4],
-      [1, 17, 30, 20],
-      [1, 21, 12, 33], [13, 21, 22, 33],
-      [23, 21, 30, 25], [23, 26, 30, 29], [23, 30, 30, 33],
-      [12, 24, 14, 26], [21, 24, 24, 26], [12, 29, 14, 31], [21, 29, 24, 31],
-    ];
-
-    for (const [sc, sr, ec, er] of walkableAreas) {
-      for (let r = sr; r <= er && r < this.mapRows; r++) {
-        for (let c = sc; c <= ec && c < this.mapCols; c++) {
-          this.collisionGrid[r * this.mapCols + c] = 0;
-        }
-      }
-    }
-
-    const blockedSpots: number[][] = [
-      [5, 27, 6, 28], [9, 23, 10, 24],
-      [17, 24, 18, 25],
-      [26, 22, 27, 23], [26, 27, 27, 28], [26, 31, 27, 32],
-    ];
-
-    for (const [sc, sr, ec, er] of blockedSpots) {
-      for (let r = sr; r <= er && r < this.mapRows; r++) {
-        for (let c = sc; c <= ec && c < this.mapCols; c++) {
-          this.collisionGrid[r * this.mapCols + c] = 1;
-        }
-      }
-    }
+    // Default: everything walkable
+    this.collisionGrid = new Array(this.mapCols * this.mapRows).fill(0);
   }
 
   private defineZones() {

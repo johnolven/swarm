@@ -53,20 +53,27 @@ export function Board({ teamId }: BoardProps) {
 
   // Touch drag and drop
   const touchDragTask = useRef<Task | null>(null);
+  const touchDragCol = useRef<Column | null>(null);
   const touchCloneRef = useRef<HTMLElement | null>(null);
   const touchStartPos = useRef<{ x: number; y: number } | null>(null);
   const touchDragging = useRef(false);
   const columnRefs = useRef<Map<string, HTMLElement>>(new Map());
+  const columnHeaderRefs = useRef<Map<string, HTMLElement>>(new Map());
+  const touchTargetTask = useRef<{ id: string; position: 'top' | 'bottom' } | null>(null);
+  const touchTargetCol = useRef<{ id: string; position: 'left' | 'right' } | null>(null);
 
+  // --- Task touch handlers ---
   const handleTouchStart = useCallback((e: React.TouchEvent, task: Task) => {
     const touch = e.touches[0];
     touchStartPos.current = { x: touch.clientX, y: touch.clientY };
     touchDragTask.current = task;
+    touchDragCol.current = null;
     touchDragging.current = false;
   }, []);
 
   const handleTouchMove = useCallback((e: React.TouchEvent) => {
-    if (!touchDragTask.current || !touchStartPos.current) return;
+    if (!touchStartPos.current) return;
+    if (!touchDragTask.current && !touchDragCol.current) return;
     const touch = e.touches[0];
     const dx = Math.abs(touch.clientX - touchStartPos.current.x);
     const dy = Math.abs(touch.clientY - touchStartPos.current.y);
@@ -74,8 +81,8 @@ export function Board({ teamId }: BoardProps) {
     // Start drag after 10px movement
     if (!touchDragging.current && (dx > 10 || dy > 10)) {
       touchDragging.current = true;
-      setDraggedTask(touchDragTask.current);
-      // Create floating clone
+      if (touchDragTask.current) setDraggedTask(touchDragTask.current);
+      if (touchDragCol.current) setDraggedColumn(touchDragCol.current);
       const el = e.currentTarget as HTMLElement;
       const clone = el.cloneNode(true) as HTMLElement;
       clone.style.position = 'fixed';
@@ -94,49 +101,156 @@ export function Board({ teamId }: BoardProps) {
       touchCloneRef.current.style.left = (touch.clientX - 40) + 'px';
       touchCloneRef.current.style.top = (touch.clientY - 20) + 'px';
 
-      // Detect which column we're over
-      let foundColumn: string | null = null;
-      columnRefs.current.forEach((el, colId) => {
-        const rect = el.getBoundingClientRect();
-        if (touch.clientX >= rect.left && touch.clientX <= rect.right &&
-            touch.clientY >= rect.top && touch.clientY <= rect.bottom) {
-          foundColumn = colId;
-        }
-      });
-      setDragOverColumn(foundColumn);
+      if (touchDragTask.current) {
+        // Detect column and task position
+        let foundColumn: string | null = null;
+        let foundTask: { id: string; position: 'top' | 'bottom' } | null = null;
+
+        columnRefs.current.forEach((el, colId) => {
+          const rect = el.getBoundingClientRect();
+          if (touch.clientX >= rect.left && touch.clientX <= rect.right &&
+              touch.clientY >= rect.top && touch.clientY <= rect.bottom) {
+            foundColumn = colId;
+
+            // Find which task card we're over
+            const taskEls = el.querySelectorAll('[data-task-id]');
+            taskEls.forEach((taskEl) => {
+              const taskRect = taskEl.getBoundingClientRect();
+              if (touch.clientY >= taskRect.top && touch.clientY <= taskRect.bottom) {
+                const mid = taskRect.top + taskRect.height / 2;
+                const taskId = taskEl.getAttribute('data-task-id')!;
+                if (taskId !== touchDragTask.current?.id) {
+                  foundTask = { id: taskId, position: touch.clientY < mid ? 'top' : 'bottom' };
+                }
+              }
+            });
+          }
+        });
+        setDragOverColumn(foundColumn);
+        touchTargetTask.current = foundTask;
+        setTaskDropIndicator(foundTask);
+      }
+
+      if (touchDragCol.current) {
+        // Detect column drop position
+        let foundTarget: { id: string; position: 'left' | 'right' } | null = null;
+        columnHeaderRefs.current.forEach((el, colId) => {
+          if (colId === touchDragCol.current?.id) return;
+          const rect = el.getBoundingClientRect();
+          if (touch.clientX >= rect.left && touch.clientX <= rect.right &&
+              touch.clientY >= rect.top - 50 && touch.clientY <= rect.bottom + 50) {
+            const mid = rect.left + rect.width / 2;
+            foundTarget = { id: colId, position: touch.clientX < mid ? 'left' : 'right' };
+          }
+        });
+        touchTargetCol.current = foundTarget;
+        setDropIndicator(foundTarget);
+      }
     }
   }, []);
 
   const handleTouchEnd = useCallback(async () => {
-    // Clean up clone
     if (touchCloneRef.current) {
       document.body.removeChild(touchCloneRef.current);
       touchCloneRef.current = null;
     }
 
-    if (touchDragging.current && touchDragTask.current && dragOverColumn) {
-      // Drop task in the column we're over
+    // --- Task drop ---
+    if (touchDragging.current && touchDragTask.current) {
       const task = touchDragTask.current;
       const draggedColumnId = (task as any).column_id;
-      if (draggedColumnId !== dragOverColumn) {
+      const targetTask = touchTargetTask.current;
+      const targetColumnId = dragOverColumn;
+
+      if (targetTask) {
+        // Dropping on a specific task (reorder or cross-column with position)
+        const allTasks = tasks || [];
+        const dropTask = allTasks.find(tk => tk.id === targetTask.id);
+        if (dropTask) {
+          const dropColumnId = (dropTask as any).column_id;
+          try {
+            const token = getToken();
+            if (draggedColumnId !== dropColumnId) {
+              // Move to other column first
+              await fetch(`/api/tasks/${task.id}`, {
+                method: 'PUT',
+                headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ column_id: dropColumnId }),
+              });
+            }
+            // Reorder within target column
+            const columnTasks = (allTasks as any[])
+              .filter(tk => tk.column_id === dropColumnId && tk.id !== task.id)
+              .sort((a, b) => (a.order || 0) - (b.order || 0));
+            let insertIndex = columnTasks.findIndex(tk => tk.id === targetTask.id);
+            if (targetTask.position === 'bottom') insertIndex += 1;
+            columnTasks.splice(insertIndex, 0, task);
+            const taskOrders = columnTasks.map((tk, i) => ({ id: tk.id, order: i }));
+            await fetch(`/api/columns/${dropColumnId}/tasks/reorder`, {
+              method: 'POST',
+              headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+              body: JSON.stringify({ taskOrders }),
+            });
+            mutateTasks();
+          } catch { /* ignore */ }
+        }
+      } else if (targetColumnId && draggedColumnId !== targetColumnId) {
+        // Drop on empty area of different column
         try {
           const token = getToken();
           await fetch(`/api/tasks/${task.id}`, {
             method: 'PUT',
             headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ column_id: dragOverColumn }),
+            body: JSON.stringify({ column_id: targetColumnId }),
           });
           mutateTasks();
         } catch { /* ignore */ }
       }
     }
 
+    // --- Column drop ---
+    if (touchDragging.current && touchDragCol.current && touchTargetCol.current) {
+      const draggedCol = touchDragCol.current;
+      const target = touchTargetCol.current;
+      try {
+        const sortedCols = [...(columns || [])].sort((a, b) => a.order - b.order);
+        const dragIdx = sortedCols.findIndex(c => c.id === draggedCol.id);
+        sortedCols.splice(dragIdx, 1);
+        let targetIdx = sortedCols.findIndex(c => c.id === target.id);
+        if (target.position === 'right') targetIdx += 1;
+        sortedCols.splice(targetIdx, 0, draggedCol);
+        const columnOrders = sortedCols.map((col, i) => ({ id: col.id, order: i }));
+        const token = getToken();
+        await fetch(`/api/teams/${teamId}/columns/reorder`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ columnOrders }),
+        });
+        mutateColumns();
+      } catch { /* ignore */ }
+    }
+
     touchDragTask.current = null;
+    touchDragCol.current = null;
     touchStartPos.current = null;
     touchDragging.current = false;
+    touchTargetTask.current = null;
+    touchTargetCol.current = null;
     setDraggedTask(null);
+    setDraggedColumn(null);
     setDragOverColumn(null);
-  }, [dragOverColumn, mutateTasks]);
+    setTaskDropIndicator(null);
+    setDropIndicator(null);
+  }, [dragOverColumn, tasks, columns, mutateTasks, mutateColumns, teamId]);
+
+  // --- Column touch handlers ---
+  const handleColumnTouchStart = useCallback((e: React.TouchEvent, column: Column) => {
+    const touch = e.touches[0];
+    touchStartPos.current = { x: touch.clientX, y: touch.clientY };
+    touchDragCol.current = column;
+    touchDragTask.current = null;
+    touchDragging.current = false;
+  }, []);
 
   // Listen for task updates
   React.useEffect(() => {
@@ -553,7 +667,14 @@ export function Board({ teamId }: BoardProps) {
             )}
 
             {/* Column Header */}
-            <div className={`${column.color} dark:bg-gray-700 rounded-t-lg px-4 py-3 cursor-move`}>
+            <div
+              ref={(el) => { if (el) columnHeaderRefs.current.set(column.id, el); }}
+              className={`${column.color} dark:bg-gray-700 rounded-t-lg px-4 py-3 cursor-move`}
+              onTouchStart={(e) => handleColumnTouchStart(e, column)}
+              onTouchMove={(e) => handleTouchMove(e)}
+              onTouchEnd={() => handleTouchEnd()}
+              onTouchCancel={() => handleTouchEnd()}
+            >
               <div className="flex items-center justify-between">
                 {editingColumn === column.id ? (
                   <input
@@ -618,6 +739,7 @@ export function Board({ teamId }: BoardProps) {
                   <div
                     key={task.id}
                     className="relative"
+                    data-task-id={task.id}
                   >
                     {/* Drop indicator - top */}
                     {taskDropIndicator?.taskId === task.id && taskDropIndicator.position === 'top' && (

@@ -16,9 +16,13 @@ export function ChatPanel({ messages, roomName, onSendMessage }: ChatPanelProps)
   const { t } = useLanguage();
   const [input, setInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    // Scroll only within the chat container, not the whole page
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+    }
   }, [messages]);
 
   const sendMessage = () => {
@@ -61,7 +65,7 @@ export function ChatPanel({ messages, roomName, onSendMessage }: ChatPanelProps)
         )}
       </div>
 
-      <div className="flex-1 overflow-y-auto px-2 py-1">
+      <div ref={chatContainerRef} className="flex-1 overflow-y-auto px-2 py-1">
         {messages.map((msg, i) => (
           <div key={i} className="text-xs leading-tight group flex items-baseline gap-1">
             <span className="text-[10px] text-gray-400 dark:text-gray-500 shrink-0">
