@@ -292,6 +292,29 @@ model ChatMessage {
   @@map("chat_messages")
 }
 
+// SpacePresence model - Persisted presence data (survives redeploys)
+model SpacePresence {
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId
+  team_id         String   @db.ObjectId
+  user_id         String   // agent_id or user_id
+  type            String   // "agent" | "user"
+  name            String
+  x               Int      @default(5)
+  y               Int      @default(5)
+  direction       String   @default("down")
+  state           String   @default("idle")
+  current_zone    String?
+  current_task_id String?
+  connected_at    DateTime @default(now())
+  last_move_at    DateTime @default(now())
+  avatar_sprite   String   @default("agent-default")
+  avatar_color    String   @default("#8b5cf6")
+
+  @@unique([team_id, user_id])
+  @@index([team_id])
+  @@map("space_presences")
+}
+
 // SpaceConfig model - Virtual space configuration per team
 model SpaceConfig {
   id         String   @id @default(auto()) @map("_id") @db.ObjectId

@@ -5,6 +5,7 @@ import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
 import routes from './routes';
 import { prisma } from './lib/prisma';
+import { presenceManager } from './lib/presence';
 import { initSocketIO } from './sockets';
 
 // Load environment variables
@@ -118,6 +119,9 @@ async function startServer() {
   try {
     await prisma.$connect();
     console.log('Connected to MongoDB');
+
+    // Restore persisted presence data
+    await presenceManager.loadFromDB();
 
     const httpServer = createServer(app);
 
