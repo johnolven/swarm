@@ -4,14 +4,31 @@ import { generateUserToken, verifyToken } from '../lib/jwt';
 
 const BCRYPT_ROUNDS = 12;
 
+/**
+ * Check that a nickname is not already used by any User or Agent.
+ */
+async function ensureNicknameUnique(nickname: string, excludeUserId?: string) {
+  const existingUser = await prisma.user.findFirst({ where: { nickname } });
+  if (existingUser && existingUser.id !== excludeUserId) {
+    throw new Error('Nickname already taken');
+  }
+  // Agent.name acts as their nickname
+  const existingAgent = await prisma.agent.findUnique({ where: { name: nickname } });
+  if (existingAgent) {
+    throw new Error('Nickname already taken');
+  }
+}
+
 interface CreateUserInput {
   email: string;
   password: string;
   name?: string;
+  nickname?: string;
+  avatar_id?: number;
 }
 
 export async function createUser(input: CreateUserInput) {
-  const { email, password, name } = input;
+  const { email, password, name, nickname, avatar_id } = input;
 
   const existingUser = await prisma.user.findUnique({
     where: { email },
@@ -21,6 +38,10 @@ export async function createUser(input: CreateUserInput) {
     throw new Error('User with this email already exists');
   }
 
+  if (nickname) {
+    await ensureNicknameUnique(nickname);
+  }
+
   const hashedPassword = await bcrypt.hash(password, BCRYPT_ROUNDS);
 
   const user = await prisma.user.create({
@@ -28,6 +49,8 @@ export async function createUser(input: CreateUserInput) {
       email,
       password: hashedPassword,
       name: name || email.split('@')[0],
+      nickname: nickname || null,
+      avatar_id: avatar_id || 1,
     },
   });
 
@@ -43,6 +66,8 @@ export async function createUser(input: CreateUserInput) {
       id: user.id,
       email: user.email,
       name: user.name,
+      nickname: user.nickname,
+      avatar_id: user.avatar_id,
       type: 'human',
     },
   };
@@ -74,6 +99,8 @@ export async function loginUser(email: string, password: string) {
       id: user.id,
       email: user.email,
       name: user.name,
+      nickname: user.nickname,
+      avatar_id: user.avatar_id,
       type: 'human',
     },
   };
@@ -124,6 +151,8 @@ export async function updateUserEmail(userId: string, newEmail: string) {
       id: user.id,
       email: user.email,
       name: user.name,
+      nickname: user.nickname,
+      avatar_id: user.avatar_id,
       type: 'human',
     },
   };
@@ -174,7 +203,67 @@ export async function updateUserName(userId: string, newName: string) {
       id: user.id,
       email: user.email,
       name: user.name,
+      nickname: user.nickname,
+      avatar_id: user.avatar_id,
       type: 'human',
     },
+  };
+}
+
+export async function updateUserNickname(userId: string, nickname: string) {
+  await ensureNicknameUnique(nickname, userId);
+
+  const user = await prisma.user.update({
+    where: { id: userId },
+    data: { nickname },
+  });
+
+  const token = generateUserToken({
+    user_id: user.id,
+    email: user.email,
+    name: user.name || '',
+  });
+
+  return {
+    token,
+    user: {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      nickname: user.nickname,
+      avatar_id: user.avatar_id,
+      type: 'human',
+    },
+  };
+}
+
+export async function updateUserAvatar(userId: string, avatar_id: number) {
+  const user = await prisma.user.update({
+    where: { id: userId },
+    data: { avatar_id },
+  });
+
+  return {
+    user: {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      nickname: user.nickname,
+      avatar_id: user.avatar_id,
+      type: 'human',
+    },
+  };
+}
+
+export async function getUserProfile(userId: string) {
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user) throw new Error('User not found');
+  return {
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    nickname: user.nickname,
+    avatar_id: user.avatar_id,
+    type: 'human',
   };
 }

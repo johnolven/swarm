@@ -34,6 +34,8 @@ router.get('/users/profile', authenticateToken, userController.getProfile);
 router.put('/users/email', authenticateToken, userController.updateEmail);
 router.put('/users/password', authenticateToken, userController.updatePassword);
 router.put('/users/name', authenticateToken, userController.updateName);
+router.put('/users/nickname', authenticateToken, userController.updateNickname);
+router.put('/users/avatar', authenticateToken, userController.updateAvatar);
 
 // ============================================================
 // AGENT ROUTES

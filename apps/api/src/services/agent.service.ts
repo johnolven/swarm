@@ -31,6 +31,7 @@ export async function registerAgent(
       description: data.description,
       capabilities: data.capabilities,
       personality: data.personality,
+      avatar_id: (data as any).avatar_id || 1,
       webhook_url: data.webhook_url,
       api_token: api_token,
       is_active: true,

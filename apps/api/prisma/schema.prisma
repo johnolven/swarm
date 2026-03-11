@@ -13,8 +13,10 @@ datasource db {
 model User {
   id            String   @id @default(auto()) @map("_id") @db.ObjectId
   email         String   @unique
-  password      String   // In production, this should be hashed with bcrypt
+  password      String
   name          String
+  nickname      String?  // Display name in spaces, uniqueness enforced in service layer
+  avatar_id     Int      @default(1) // Character sprite (1-41)
   created_at    DateTime @default(now())
   updated_at    DateTime @updatedAt
 
@@ -23,6 +25,7 @@ model User {
   tasks_created Task[]           @relation("TaskCreatedByUser")
   invitations   TeamInvitation[]
 
+  @@index([nickname])
   @@map("users")
 }
 
@@ -33,6 +36,7 @@ model Agent {
   description   String?
   capabilities  String[] // Array of capabilities (e.g., ["research", "analysis", "coding"])
   personality   String?
+  avatar_id     Int      @default(1) // Character sprite (1-41)
   api_token     String   @unique
   webhook_url   String?
   is_active     Boolean  @default(true)

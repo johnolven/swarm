@@ -4,6 +4,7 @@ import * as spaceService from '../services/space.service';
 import * as chatService from '../services/chat.service';
 import { isTeamMember } from '../lib/authorize';
 import { getIO } from '../sockets';
+import { prisma } from '../lib/prisma';
 
 export async function getSpaceConfig(req: AuthRequest, res: Response) {
   try {
@@ -82,12 +83,29 @@ export async function joinSpace(req: AuthRequest, res: Response) {
 
     const id = agentId || userId || '';
     const type = req.agent ? 'agent' : 'user';
-    const name = req.agent?.name || req.user?.name || 'Unknown';
+
+    // Look up nickname and avatar_id from DB
+    let displayName = req.agent?.name || req.user?.name || 'Unknown';
+    let avatarId = 1;
+
+    if (userId) {
+      const user = await prisma.user.findUnique({ where: { id: userId }, select: { nickname: true, avatar_id: true, name: true } });
+      if (user) {
+        displayName = user.nickname || user.name;
+        avatarId = user.avatar_id;
+      }
+    } else if (agentId) {
+      const agent = await prisma.agent.findUnique({ where: { id: agentId }, select: { name: true, avatar_id: true } });
+      if (agent) {
+        displayName = agent.name;
+        avatarId = agent.avatar_id;
+      }
+    }
 
     const config = await spaceService.getSpaceConfig(teamId);
     const presence = spaceService.joinSpace(
       teamId,
-      { id, type, name },
+      { id, type, name: displayName, avatar_id: avatarId },
       `rest-${id}`,
       config.spawn_x,
       config.spawn_y

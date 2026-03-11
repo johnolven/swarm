@@ -6,6 +6,29 @@ import Link from 'next/link';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { LangToggle } from '@/components/LangToggle';
 import { useLanguage } from '@/components/LanguageProvider';
+import { CharacterPicker } from '@/components/space/CharacterPicker';
+
+const FRAME_W = 24;
+const FRAME_H = 24;
+const SHEET_W = 384;
+const SHEET_H = 96;
+const PREVIEW_SCALE = 3;
+
+function CharacterPreview({ charId }: { charId: number }) {
+  const padded = String(charId).padStart(3, '0');
+  return (
+    <div
+      style={{
+        width: FRAME_W * PREVIEW_SCALE,
+        height: FRAME_H * PREVIEW_SCALE,
+        backgroundImage: `url(/space/sprites/characters/Character_${padded}.png)`,
+        backgroundPosition: '0px 0px',
+        backgroundSize: `${SHEET_W * PREVIEW_SCALE}px ${SHEET_H * PREVIEW_SCALE}px`,
+        imageRendering: 'pixelated',
+      }}
+    />
+  );
+}
 
 export default function LoginPage() {
   const router = useRouter();
@@ -13,6 +36,9 @@ export default function LoginPage() {
   const [activeTab, setActiveTab] = useState<'human' | 'agent'>('human');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [nickname, setNickname] = useState('');
+  const [avatarId, setAvatarId] = useState(1);
+  const [showCharPicker, setShowCharPicker] = useState(false);
   const [isSignup, setIsSignup] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -24,15 +50,16 @@ export default function LoginPage() {
 
     try {
       const endpoint = isSignup ? '/users/signup' : '/users/login';
+      const body: any = { email, password };
+      if (isSignup) {
+        if (nickname.trim()) body.nickname = nickname.trim();
+        body.avatar_id = avatarId;
+      }
+
       const response = await fetch(`/api${endpoint}`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email,
-          password,
-        }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
       });
 
       const data = await response.json();
@@ -45,8 +72,9 @@ export default function LoginPage() {
       localStorage.setItem('swarm_token', data.data.token);
       localStorage.setItem('user_type', 'human');
       localStorage.setItem('user_email', data.data.user.email);
+      if (data.data.user.nickname) localStorage.setItem('user_nickname', data.data.user.nickname);
+      if (data.data.user.avatar_id) localStorage.setItem('swarm_character_id', String(data.data.user.avatar_id));
 
-      // Redirect to dashboard
       router.push('/dashboard');
     } catch (err: any) {
       setError(err.message || 'Authentication failed');
@@ -86,7 +114,7 @@ export default function LoginPage() {
                   : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
               }`}
             >
-              👤 {t.login.imHuman}
+              {t.login.imHuman}
             </button>
             <button
               type="button"
@@ -97,7 +125,7 @@ export default function LoginPage() {
                   : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
               }`}
             >
-              🤖 {t.login.imAgent}
+              {t.login.imAgent}
             </button>
           </div>
 
@@ -146,6 +174,47 @@ export default function LoginPage() {
                       required
                     />
                   </div>
+
+                  {isSignup && (
+                    <>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                          Nickname
+                        </label>
+                        <input
+                          type="text"
+                          value={nickname}
+                          onChange={(e) => setNickname(e.target.value)}
+                          className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+                          placeholder="my-unique-nick"
+                          pattern="^[a-zA-Z0-9_-]+$"
+                          minLength={2}
+                          maxLength={30}
+                        />
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                          Letters, numbers, _ and - only. Must be unique.
+                        </p>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                          Avatar
+                        </label>
+                        <div className="flex items-center gap-4">
+                          <div className="p-2 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
+                            <CharacterPreview charId={avatarId} />
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setShowCharPicker(true)}
+                            className="px-4 py-2 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                          >
+                            Choose Character
+                          </button>
+                        </div>
+                      </div>
+                    </>
+                  )}
 
                   <button
                     type="submit"
@@ -199,6 +268,14 @@ export default function LoginPage() {
           </Link>
         </p>
       </div>
+
+      {showCharPicker && (
+        <CharacterPicker
+          currentCharId={avatarId}
+          onSelect={(id) => setAvatarId(id)}
+          onClose={() => setShowCharPicker(false)}
+        />
+      )}
     </div>
   );
 }

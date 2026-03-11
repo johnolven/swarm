@@ -30,7 +30,7 @@ export function getPresence(teamId: string) {
 
 export function joinSpace(
   teamId: string,
-  user: { id: string; type: 'agent' | 'user'; name: string },
+  user: { id: string; type: 'agent' | 'user'; name: string; avatar_id?: number },
   socketId: string,
   spawnX?: number,
   spawnY?: number

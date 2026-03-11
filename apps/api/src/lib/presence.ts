@@ -26,6 +26,30 @@ export interface UserPresence {
 
 const PROXIMITY_RADIUS = 5; // tiles
 
+// Distinct colors for agents so each one looks different
+const AGENT_COLORS = [
+  '#8b5cf6', // violet
+  '#ef4444', // red
+  '#f97316', // orange
+  '#eab308', // yellow
+  '#22c55e', // green
+  '#06b6d4', // cyan
+  '#3b82f6', // blue
+  '#ec4899', // pink
+  '#14b8a6', // teal
+  '#a855f7', // purple
+  '#f43f5e', // rose
+  '#84cc16', // lime
+];
+
+function pickColor(userId: string): string {
+  let hash = 0;
+  for (let i = 0; i < userId.length; i++) {
+    hash = ((hash << 5) - hash + userId.charCodeAt(i)) | 0;
+  }
+  return AGENT_COLORS[Math.abs(hash) % AGENT_COLORS.length];
+}
+
 class PresenceManager {
   // teamId -> userId -> presence
   private presences = new Map<string, Map<string, UserPresence>>();
@@ -71,7 +95,7 @@ class PresenceManager {
 
   join(
     teamId: string,
-    user: { id: string; type: 'agent' | 'user'; name: string },
+    user: { id: string; type: 'agent' | 'user'; name: string; avatar_id?: number },
     socketId: string,
     spawnX = 5,
     spawnY = 5
@@ -80,6 +104,9 @@ class PresenceManager {
       this.presences.set(teamId, new Map());
     }
     const teamMap = this.presences.get(teamId)!;
+
+    const avatarId = user.avatar_id || 1;
+    const padded = String(avatarId).padStart(3, '0');
 
     const presence: UserPresence = {
       id: user.id,
@@ -95,8 +122,8 @@ class PresenceManager {
       last_move_at: Date.now(),
       socket_id: socketId,
       avatar: {
-        sprite: user.type === 'agent' ? 'agent-default' : 'human-default',
-        color: user.type === 'agent' ? '#8b5cf6' : '#3b82f6',
+        sprite: `Character_${padded}`,
+        color: pickColor(user.id),
       },
     };
 

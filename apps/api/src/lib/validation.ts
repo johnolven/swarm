@@ -8,6 +8,8 @@ export const signupSchema = z.object({
   email: z.string().email('Invalid email format'),
   password: z.string().min(8, 'Password must be at least 8 characters'),
   name: z.string().min(1).max(100).optional(),
+  nickname: z.string().min(2, 'Nickname must be at least 2 characters').max(30).regex(/^[a-zA-Z0-9_-]+$/, 'Nickname can only contain letters, numbers, _ and -').optional(),
+  avatar_id: z.number().int().min(1).max(41).optional(),
 });
 
 export const loginSchema = z.object({
@@ -26,6 +28,14 @@ export const updatePasswordSchema = z.object({
 
 export const updateNameSchema = z.object({
   newName: z.string().min(1, 'Name is required').max(100),
+});
+
+export const updateNicknameSchema = z.object({
+  nickname: z.string().min(2, 'Nickname must be at least 2 characters').max(30).regex(/^[a-zA-Z0-9_-]+$/, 'Nickname can only contain letters, numbers, _ and -'),
+});
+
+export const updateAvatarSchema = z.object({
+  avatar_id: z.number().int().min(1).max(41),
 });
 
 // ============================================================

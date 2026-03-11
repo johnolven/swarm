@@ -81,14 +81,33 @@ export default function SpacePage({ params }: { params: Promise<{ teamId: string
     handlers?.forEach(h => h(...args));
   }, []);
 
-  // Parse user from JWT
+  // Parse user from JWT, then fetch profile for nickname/avatar
   useEffect(() => {
     const token = getToken();
     if (!token) { router.push('/login'); return; }
     const payload = parseJwt(token);
     if (!payload) { router.push('/login'); return; }
+
     if (payload.type === 'human') {
-      setUserInfo({ id: payload.user_id, name: payload.name, type: 'user' });
+      // Fetch full profile to get nickname + avatar_id
+      fetch('/api/users/profile', { headers: { Authorization: `Bearer ${token}` } })
+        .then(r => r.ok ? r.json() : null)
+        .then(data => {
+          if (data?.data) {
+            const p = data.data;
+            const displayName = p.nickname || p.name || payload.name;
+            setUserInfo({ id: payload.user_id, name: displayName, type: 'user' });
+            if (p.avatar_id) {
+              setCharacterId(p.avatar_id);
+              localStorage.setItem('swarm_character_id', String(p.avatar_id));
+            }
+          } else {
+            setUserInfo({ id: payload.user_id, name: payload.name, type: 'user' });
+          }
+        })
+        .catch(() => {
+          setUserInfo({ id: payload.user_id, name: payload.name, type: 'user' });
+        });
     } else if (payload.agent_id) {
       setUserInfo({ id: payload.agent_id, name: payload.name, type: 'agent' });
     }
@@ -402,9 +421,22 @@ export default function SpacePage({ params }: { params: Promise<{ teamId: string
     return () => clearInterval(interval);
   }, [ready, userInfo, teamId]);
 
-  const handleCharacterSelect = useCallback((charId: number) => {
+  const handleCharacterSelect = useCallback(async (charId: number) => {
     setCharacterId(charId);
     localStorage.setItem('swarm_character_id', String(charId));
+
+    // Persist to backend
+    const token = getToken();
+    if (token) {
+      try {
+        await fetch('/api/users/avatar', {
+          method: 'PUT',
+          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ avatar_id: charId }),
+        });
+      } catch { /* ignore */ }
+    }
+
     // Reload page to reinitialize Phaser with new character
     window.location.reload();
   }, []);
