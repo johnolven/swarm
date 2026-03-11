@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { authenticateToken } from '@/lib/server/auth';
 import * as chatService from '@/lib/server/services/chat.service';
 
+export const maxDuration = 30;
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const auth = await authenticateToken(request);
   if ('error' in auth) return NextResponse.json({ success: false, error: auth.error }, { status: 401 });

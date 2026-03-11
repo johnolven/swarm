@@ -26,7 +26,7 @@ export async function getSpaceConfig(req: AuthRequest, res: Response) {
 export async function updateSpaceConfig(req: AuthRequest, res: Response) {
   try {
     const { teamId } = req.params;
-    const { map_key, zones, spawn_x, spawn_y } = req.body;
+    const { map_key, zones, spawn_x, spawn_y, map_cols, map_rows, tile_size, collision_grid, background_image } = req.body;
     const agentId = req.agent?.agent_id || null;
     const userId = req.user?.id || null;
 
@@ -39,6 +39,11 @@ export async function updateSpaceConfig(req: AuthRequest, res: Response) {
       zones,
       spawn_x,
       spawn_y,
+      map_cols,
+      map_rows,
+      tile_size,
+      collision_grid,
+      background_image,
     });
     res.json({ success: true, data: config });
   } catch (error: any) {

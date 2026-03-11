@@ -41,6 +41,7 @@ export default function SpacePage({ params }: { params: Promise<{ teamId: string
   const [currentRoom, setCurrentRoom] = useState<RoomInfo | null>(null);
   const [rooms, setRooms] = useState<RoomInfo[]>([]);
   const [ready, setReady] = useState(false);
+  const [spaceConfig, setSpaceConfig] = useState<any>(null);
   const [showCharPicker, setShowCharPicker] = useState(false);
   const [characterId, setCharacterId] = useState<number>(() => {
     if (typeof window !== 'undefined') {
@@ -122,8 +123,10 @@ export default function SpacePage({ params }: { params: Promise<{ teamId: string
     Promise.all([
       fetch(`/api/teams/${teamId}`, { headers }).then(r => r.ok ? r.json() : null),
       fetch(`/api/teams/${teamId}/rooms`, { headers }).then(r => r.ok ? r.json() : null),
-    ]).then(async ([teamData, roomsData]) => {
+      fetch(`/api/teams/${teamId}/space/config`, { headers }).then(r => r.ok ? r.json() : null),
+    ]).then(async ([teamData, roomsData, configData]) => {
       if (teamData?.data) setTeamName(teamData.data.name);
+      if (configData?.data) setSpaceConfig(configData.data);
 
       let roomList = roomsData?.data || [];
 
@@ -514,6 +517,12 @@ export default function SpacePage({ params }: { params: Promise<{ teamId: string
             )}
           </div>
           <div className="flex items-center gap-3">
+            <Link
+              href={`/dashboard/space/${teamId}/editor`}
+              className="text-xs px-2 py-1 rounded bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+            >
+              Map Editor
+            </Link>
             <button
               type="button"
               onClick={() => setShowCharPicker(true)}
@@ -544,6 +553,7 @@ export default function SpacePage({ params }: { params: Promise<{ teamId: string
                 userName={userInfo.name}
                 userType={userInfo.type}
                 characterId={characterId}
+                spaceConfig={spaceConfig}
                 onPresenceUpdate={setPresences}
                 onChatMessage={handleChatMessage}
                 onZoneChange={handleZoneChange}

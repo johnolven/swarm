@@ -7,18 +7,17 @@ interface SocketLike {
   off: (event: string, handler?: (...args: any[]) => void) => void;
 }
 
-const TILE_SIZE = 16;
+const DEFAULT_TILE_SIZE = 16;
 const SCALE = 2;
-const SCALED_TILE = TILE_SIZE * SCALE;
 
 // Cute RPG sprite sheet: 384x96 = 16 cols × 4 rows of 24x24 frames
 const CHAR_FRAME_W = 24;
 const CHAR_FRAME_H = 24;
 const CHAR_COLS = 16;
 
-// Map dimensions in tiles (matches office-map.png: 512x544 = 32x34 tiles)
-const MAP_COLS = 32;
-const MAP_ROWS = 34;
+// Default map dimensions (used when no custom config)
+const DEFAULT_MAP_COLS = 32;
+const DEFAULT_MAP_ROWS = 34;
 
 interface ZoneData {
   id: string;
@@ -38,6 +37,17 @@ interface CharSprite {
 
 // Track loaded sprite sheets to avoid duplicate loads
 const loadedSpriteKeys = new Set<string>();
+
+export interface SpaceConfig {
+  map_cols?: number;
+  map_rows?: number;
+  tile_size?: number;
+  collision_grid?: string | null;
+  background_image?: string | null;
+  zones?: any;
+  spawn_x?: number;
+  spawn_y?: number;
+}
 
 export class OfficeScene extends Phaser.Scene {
   private socket: SocketLike | null = null;
@@ -71,6 +81,12 @@ export class OfficeScene extends Phaser.Scene {
   // Sprite key counter for dynamically loaded remote user sprites
   private remoteCharCounter = 0;
   private remoteCharSpriteKeys = new Map<string, string>();
+  // Dynamic map config
+  private mapCols = DEFAULT_MAP_COLS;
+  private mapRows = DEFAULT_MAP_ROWS;
+  private tileSize = DEFAULT_TILE_SIZE;
+  private scaledTile = DEFAULT_TILE_SIZE * SCALE;
+  private spaceConfig: SpaceConfig | null = null;
 
   constructor() {
     super({ key: 'OfficeScene' });
@@ -84,6 +100,7 @@ export class OfficeScene extends Phaser.Scene {
     userName: string;
     userType: 'agent' | 'user';
     characterId?: number;
+    spaceConfig?: SpaceConfig;
     onPresenceUpdate: (users: UserPresence[]) => void;
     onChatMessage: (msg: any) => void;
     onZoneChange: (zone: { id: string; label: string } | null) => void;
@@ -95,14 +112,28 @@ export class OfficeScene extends Phaser.Scene {
     this.userName = data.userName;
     this.userType = data.userType;
     this.characterId = data.characterId || 1;
+    this.spaceConfig = data.spaceConfig || null;
     this.onPresenceUpdate = data.onPresenceUpdate;
     this.onChatMessage = data.onChatMessage;
     this.onZoneChange = data.onZoneChange;
     this.onReady = data.onReady;
+
+    // Apply config
+    if (this.spaceConfig) {
+      this.mapCols = this.spaceConfig.map_cols || DEFAULT_MAP_COLS;
+      this.mapRows = this.spaceConfig.map_rows || DEFAULT_MAP_ROWS;
+      this.tileSize = this.spaceConfig.tile_size || DEFAULT_TILE_SIZE;
+      this.scaledTile = this.tileSize * SCALE;
+    }
   }
 
   preload() {
-    this.load.image('office-bg', '/space/maps/office-map.png');
+    // Load background: custom base64 image or default
+    if (this.spaceConfig?.background_image) {
+      this.textures.addBase64('office-bg', this.spaceConfig.background_image);
+    } else {
+      this.load.image('office-bg', '/space/maps/office-map.png');
+    }
     const charId = String(this.characterId).padStart(3, '0');
     this.load.spritesheet('player-char', `/space/sprites/characters/Character_${charId}.png`, {
       frameWidth: CHAR_FRAME_W,
@@ -159,8 +190,8 @@ export class OfficeScene extends Phaser.Scene {
     this.socket?.emit('space:join', { teamId: this.teamId });
 
     // Camera setup - world is the scaled map size
-    const worldW = MAP_COLS * SCALED_TILE;
-    const worldH = MAP_ROWS * SCALED_TILE;
+    const worldW = this.mapCols * this.scaledTile;
+    const worldH = this.mapRows * this.scaledTile;
     this.cameras.main.setBounds(0, 0, worldW, worldH);
 
     this.onReady?.();
@@ -265,8 +296,19 @@ export class OfficeScene extends Phaser.Scene {
   }
 
   private buildCollisionGrid() {
-    // Initialize all tiles as blocked (1)
-    this.collisionGrid = new Array(MAP_COLS * MAP_ROWS).fill(1);
+    // Try to load custom collision grid from config
+    if (this.spaceConfig?.collision_grid) {
+      try {
+        const parsed = JSON.parse(this.spaceConfig.collision_grid);
+        if (Array.isArray(parsed) && parsed.length === this.mapCols * this.mapRows) {
+          this.collisionGrid = parsed;
+          return;
+        }
+      } catch { /* fall through to default */ }
+    }
+
+    // Default hardcoded collision grid for the default office map
+    this.collisionGrid = new Array(this.mapCols * this.mapRows).fill(1);
 
     const walkableAreas: number[][] = [
       [1, 3, 30, 4], [1, 7, 30, 8], [1, 11, 30, 12], [1, 15, 30, 16],
@@ -279,9 +321,9 @@ export class OfficeScene extends Phaser.Scene {
     ];
 
     for (const [sc, sr, ec, er] of walkableAreas) {
-      for (let r = sr; r <= er && r < MAP_ROWS; r++) {
-        for (let c = sc; c <= ec && c < MAP_COLS; c++) {
-          this.collisionGrid[r * MAP_COLS + c] = 0;
+      for (let r = sr; r <= er && r < this.mapRows; r++) {
+        for (let c = sc; c <= ec && c < this.mapCols; c++) {
+          this.collisionGrid[r * this.mapCols + c] = 0;
         }
       }
     }
@@ -293,28 +335,45 @@ export class OfficeScene extends Phaser.Scene {
     ];
 
     for (const [sc, sr, ec, er] of blockedSpots) {
-      for (let r = sr; r <= er && r < MAP_ROWS; r++) {
-        for (let c = sc; c <= ec && c < MAP_COLS; c++) {
-          this.collisionGrid[r * MAP_COLS + c] = 1;
+      for (let r = sr; r <= er && r < this.mapRows; r++) {
+        for (let c = sc; c <= ec && c < this.mapCols; c++) {
+          this.collisionGrid[r * this.mapCols + c] = 1;
         }
       }
     }
   }
 
   private defineZones() {
-    const zoneDefs = [
-      { id: 'open-office', label: 'Open Office', color: '#6366f1', x: 1, y: 1, w: 30, h: 18 },
-      { id: 'meeting-room', label: 'Meeting Room', color: '#059669', x: 1, y: 21, w: 12, h: 13 },
-      { id: 'lobby', label: 'Lobby', color: '#d97706', x: 13, y: 21, w: 10, h: 13 },
-      { id: 'private-office-1', label: 'Office A', color: '#dc2626', x: 23, y: 21, w: 8, h: 6 },
-      { id: 'private-office-2', label: 'Office B', color: '#7c3aed', x: 23, y: 27, w: 8, h: 7 },
-    ];
+    // Load zones from config if available
+    let zoneDefs: Array<{ id: string; label: string; color: string; x: number; y: number; w: number; h: number }> = [];
+
+    if (this.spaceConfig?.zones) {
+      try {
+        const parsed = typeof this.spaceConfig.zones === 'string'
+          ? JSON.parse(this.spaceConfig.zones)
+          : this.spaceConfig.zones;
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          zoneDefs = parsed;
+        }
+      } catch { /* fall through */ }
+    }
+
+    // Default zones for default office
+    if (zoneDefs.length === 0) {
+      zoneDefs = [
+        { id: 'open-office', label: 'Open Office', color: '#6366f1', x: 1, y: 1, w: 30, h: 18 },
+        { id: 'meeting-room', label: 'Meeting Room', color: '#059669', x: 1, y: 21, w: 12, h: 13 },
+        { id: 'lobby', label: 'Lobby', color: '#d97706', x: 13, y: 21, w: 10, h: 13 },
+        { id: 'private-office-1', label: 'Office A', color: '#dc2626', x: 23, y: 21, w: 8, h: 6 },
+        { id: 'private-office-2', label: 'Office B', color: '#7c3aed', x: 23, y: 27, w: 8, h: 7 },
+      ];
+    }
 
     for (const z of zoneDefs) {
-      const sx = z.x * SCALED_TILE;
-      const sy = z.y * SCALED_TILE;
-      const sw = z.w * SCALED_TILE;
-      const sh = z.h * SCALED_TILE;
+      const sx = z.x * this.scaledTile;
+      const sy = z.y * this.scaledTile;
+      const sw = z.w * this.scaledTile;
+      const sh = z.h * this.scaledTile;
 
       const hexColor = parseInt(z.color.replace('#', ''), 16);
       const graphics = this.add.rectangle(sx + sw / 2, sy + sh / 2, sw, sh, hexColor, 0.06);
@@ -397,8 +456,8 @@ export class OfficeScene extends Phaser.Scene {
           char.sprite.play(`${useKey}-walk-${direction}`, true);
           this.tweens.add({
             targets: char.container,
-            x: x * SCALED_TILE + SCALED_TILE / 2,
-            y: y * SCALED_TILE + SCALED_TILE / 2,
+            x: x * this.scaledTile + this.scaledTile / 2,
+            y: y * this.scaledTile + this.scaledTile / 2,
             duration: 150,
             ease: 'Linear',
             onComplete: () => {
@@ -463,8 +522,8 @@ export class OfficeScene extends Phaser.Scene {
       const existing = this.otherChars.get(user.id);
       if (existing) {
         // Smoothly move to updated position
-        const targetPx = user.x * SCALED_TILE + SCALED_TILE / 2;
-        const targetPy = user.y * SCALED_TILE + SCALED_TILE / 2;
+        const targetPx = user.x * this.scaledTile + this.scaledTile / 2;
+        const targetPy = user.y * this.scaledTile + this.scaledTile / 2;
         const currentX = existing.container.x;
         const currentY = existing.container.y;
 
@@ -505,8 +564,8 @@ export class OfficeScene extends Phaser.Scene {
   }
 
   private createCharacter(user: UserPresence, spriteKey: string): CharSprite {
-    const px = user.x * SCALED_TILE + SCALED_TILE / 2;
-    const py = user.y * SCALED_TILE + SCALED_TILE / 2;
+    const px = user.x * this.scaledTile + this.scaledTile / 2;
+    const py = user.y * this.scaledTile + this.scaledTile / 2;
 
     const CHAR_SCALE = 6;
     const sprite = this.add.sprite(0, 0, spriteKey, 0);
@@ -608,9 +667,9 @@ export class OfficeScene extends Phaser.Scene {
   }
 
   private canMoveTo(tileX: number, tileY: number): boolean {
-    if (tileX < 0 || tileX >= MAP_COLS) return false;
-    if (tileY < 0 || tileY >= MAP_ROWS) return false;
-    return this.collisionGrid[tileY * MAP_COLS + tileX] === 0;
+    if (tileX < 0 || tileX >= this.mapCols) return false;
+    if (tileY < 0 || tileY >= this.mapRows) return false;
+    return this.collisionGrid[tileY * this.mapCols + tileX] === 0;
   }
 
   update(time: number) {
@@ -646,8 +705,8 @@ export class OfficeScene extends Phaser.Scene {
       this.playerChar.sprite.setFlipX(direction === 'left');
       this.playerChar.sprite.play(`player-char-walk-${direction}`, true);
 
-      const targetPx = newX * SCALED_TILE + SCALED_TILE / 2;
-      const targetPy = newY * SCALED_TILE + SCALED_TILE / 2;
+      const targetPx = newX * this.scaledTile + this.scaledTile / 2;
+      const targetPy = newY * this.scaledTile + this.scaledTile / 2;
 
       this.tweens.add({
         targets: this.playerChar.container,

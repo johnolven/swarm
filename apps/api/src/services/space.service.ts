@@ -15,7 +15,17 @@ export async function getSpaceConfig(teamId: string) {
 
 export async function updateSpaceConfig(
   teamId: string,
-  data: { map_key?: string; zones?: any; spawn_x?: number; spawn_y?: number }
+  data: {
+    map_key?: string;
+    zones?: any;
+    spawn_x?: number;
+    spawn_y?: number;
+    map_cols?: number;
+    map_rows?: number;
+    tile_size?: number;
+    collision_grid?: string;
+    background_image?: string;
+  }
 ) {
   return prisma.spaceConfig.upsert({
     where: { team_id: teamId },

@@ -321,14 +321,19 @@ model SpacePresence {
 
 // SpaceConfig model - Virtual space configuration per team
 model SpaceConfig {
-  id         String   @id @default(auto()) @map("_id") @db.ObjectId
-  team_id    String   @unique @db.ObjectId
-  map_key    String   @default("default-office")
-  zones      Json     @default("[]")
-  spawn_x    Int      @default(5)
-  spawn_y    Int      @default(5)
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
+  id               String   @id @default(auto()) @map("_id") @db.ObjectId
+  team_id          String   @unique @db.ObjectId
+  map_key          String   @default("default-office")
+  zones            Json     @default("[]")
+  spawn_x          Int      @default(5)
+  spawn_y          Int      @default(5)
+  map_cols         Int      @default(32)
+  map_rows         Int      @default(34)
+  tile_size        Int      @default(16)
+  collision_grid   String?  // JSON string of 0/1 array (walkable/blocked)
+  background_image String?  // Base64 data URL for custom background
+  created_at       DateTime @default(now())
+  updated_at       DateTime @updatedAt
 
   @@map("space_configs")
 }

@@ -20,6 +20,7 @@ interface PhaserGameProps {
   userName: string;
   userType: 'agent' | 'user';
   characterId?: number;
+  spaceConfig?: any;
   onPresenceUpdate: (users: UserPresence[]) => void;
   onChatMessage: (msg: ChatMessage) => void;
   onZoneChange: (zone: { id: string; label: string } | null) => void;
@@ -37,6 +38,7 @@ export const PhaserGame = forwardRef<PhaserGameHandle, PhaserGameProps>(function
     userName,
     userType,
     characterId = 1,
+    spaceConfig,
     onPresenceUpdate,
     onChatMessage,
     onZoneChange,
@@ -71,6 +73,7 @@ export const PhaserGame = forwardRef<PhaserGameHandle, PhaserGameProps>(function
         userName,
         userType,
         characterId,
+        spaceConfig,
         onPresenceUpdate,
         onChatMessage,
         onZoneChange,
