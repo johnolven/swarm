@@ -544,7 +544,7 @@ export default function SpacePage({ params }: { params: Promise<{ teamId: string
   }
 
   return (
-    <div className="h-screen flex flex-col bg-gray-50 dark:bg-gray-900 overflow-hidden lg:overflow-auto lg:h-auto lg:min-h-screen">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Header */}
       <header className="bg-white dark:bg-gray-800 shadow border-b border-gray-200 dark:border-gray-700">
         <div className="max-w-7xl mx-auto px-3 py-2 sm:py-4 sm:px-6 lg:px-8 flex items-center justify-between">
@@ -610,10 +610,10 @@ export default function SpacePage({ params }: { params: Promise<{ teamId: string
       </header>
 
       {/* Main content */}
-      <div className="max-w-7xl mx-auto p-2 sm:p-4 flex-1 overflow-hidden lg:overflow-visible">
-        <div className="flex flex-col lg:flex-row gap-2 sm:gap-4 h-full">
+      <div className="max-w-7xl mx-auto p-2 sm:p-4">
+        <div className="flex flex-col lg:flex-row gap-2 sm:gap-4">
           {/* Game area */}
-          <div className="flex-1 min-w-0 flex flex-col">
+          <div className="flex-1 min-w-0">
             {/* Board preview button */}
             <button
               type="button"
@@ -652,7 +652,7 @@ export default function SpacePage({ params }: { params: Promise<{ teamId: string
           </div>
 
           {/* Sidebar */}
-          <div className="w-full lg:w-72 shrink-0 space-y-2 sm:space-y-4 overflow-y-auto">
+          <div className="w-full lg:w-72 shrink-0 space-y-2 sm:space-y-4">
             <PresenceList users={presences} />
             <ChatPanel
               teamId={teamId}

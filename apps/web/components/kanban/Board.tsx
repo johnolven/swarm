@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import useSWR from 'swr';
 import { Task } from '@swarm/types';
 import { TaskCard } from './TaskCard';
@@ -50,6 +50,93 @@ export function Board({ teamId }: BoardProps) {
   const [taskDropIndicator, setTaskDropIndicator] = useState<{ taskId: string; position: 'top' | 'bottom' } | null>(null);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [mouseDownPos, setMouseDownPos] = useState<{ x: number; y: number } | null>(null);
+
+  // Touch drag and drop
+  const touchDragTask = useRef<Task | null>(null);
+  const touchCloneRef = useRef<HTMLElement | null>(null);
+  const touchStartPos = useRef<{ x: number; y: number } | null>(null);
+  const touchDragging = useRef(false);
+  const columnRefs = useRef<Map<string, HTMLElement>>(new Map());
+
+  const handleTouchStart = useCallback((e: React.TouchEvent, task: Task) => {
+    const touch = e.touches[0];
+    touchStartPos.current = { x: touch.clientX, y: touch.clientY };
+    touchDragTask.current = task;
+    touchDragging.current = false;
+  }, []);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (!touchDragTask.current || !touchStartPos.current) return;
+    const touch = e.touches[0];
+    const dx = Math.abs(touch.clientX - touchStartPos.current.x);
+    const dy = Math.abs(touch.clientY - touchStartPos.current.y);
+
+    // Start drag after 10px movement
+    if (!touchDragging.current && (dx > 10 || dy > 10)) {
+      touchDragging.current = true;
+      setDraggedTask(touchDragTask.current);
+      // Create floating clone
+      const el = e.currentTarget as HTMLElement;
+      const clone = el.cloneNode(true) as HTMLElement;
+      clone.style.position = 'fixed';
+      clone.style.width = el.offsetWidth + 'px';
+      clone.style.opacity = '0.85';
+      clone.style.zIndex = '1000';
+      clone.style.pointerEvents = 'none';
+      clone.style.transform = 'rotate(2deg) scale(1.02)';
+      clone.style.boxShadow = '0 8px 25px rgba(0,0,0,0.3)';
+      document.body.appendChild(clone);
+      touchCloneRef.current = clone;
+    }
+
+    if (touchDragging.current && touchCloneRef.current) {
+      e.preventDefault();
+      touchCloneRef.current.style.left = (touch.clientX - 40) + 'px';
+      touchCloneRef.current.style.top = (touch.clientY - 20) + 'px';
+
+      // Detect which column we're over
+      let foundColumn: string | null = null;
+      columnRefs.current.forEach((el, colId) => {
+        const rect = el.getBoundingClientRect();
+        if (touch.clientX >= rect.left && touch.clientX <= rect.right &&
+            touch.clientY >= rect.top && touch.clientY <= rect.bottom) {
+          foundColumn = colId;
+        }
+      });
+      setDragOverColumn(foundColumn);
+    }
+  }, []);
+
+  const handleTouchEnd = useCallback(async () => {
+    // Clean up clone
+    if (touchCloneRef.current) {
+      document.body.removeChild(touchCloneRef.current);
+      touchCloneRef.current = null;
+    }
+
+    if (touchDragging.current && touchDragTask.current && dragOverColumn) {
+      // Drop task in the column we're over
+      const task = touchDragTask.current;
+      const draggedColumnId = (task as any).column_id;
+      if (draggedColumnId !== dragOverColumn) {
+        try {
+          const token = getToken();
+          await fetch(`/api/tasks/${task.id}`, {
+            method: 'PUT',
+            headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ column_id: dragOverColumn }),
+          });
+          mutateTasks();
+        } catch { /* ignore */ }
+      }
+    }
+
+    touchDragTask.current = null;
+    touchStartPos.current = null;
+    touchDragging.current = false;
+    setDraggedTask(null);
+    setDragOverColumn(null);
+  }, [dragOverColumn, mutateTasks]);
 
   // Listen for task updates
   React.useEffect(() => {
@@ -515,6 +602,7 @@ export function Board({ teamId }: BoardProps) {
 
             {/* Column Content - Drop Zone for Tasks */}
             <div
+              ref={(el) => { if (el) columnRefs.current.set(column.id, el); }}
               className={`bg-gray-50 dark:bg-gray-800 rounded-b-lg p-4 min-h-[600px] transition-colors ${
                 dragOverColumn === column.id ? 'bg-purple-100 dark:bg-purple-900/20' : ''
               }`}
@@ -544,44 +632,15 @@ export function Board({ teamId }: BoardProps) {
                       onDrop={() => handleTaskDropOnTask(task)}
                       onMouseDown={(e) => handleTaskMouseDown(e, task)}
                       onMouseUp={(e) => handleTaskMouseUp(e, task)}
+                      onTouchStart={(e) => handleTouchStart(e, task)}
+                      onTouchMove={(e) => handleTouchMove(e)}
+                      onTouchEnd={() => handleTouchEnd()}
+                      onTouchCancel={() => handleTouchEnd()}
                       className={`cursor-pointer ${draggedTask?.id === task.id ? 'opacity-50' : ''}`}
                     >
                       <TaskCard
                         task={task}
                         onUpdate={() => mutateTasks()}
-                        columns={sortedColumns.map(c => ({ id: c.id, name: c.name }))}
-                        onMoveUp={(() => {
-                          const colTasks = getTasksByColumn(column.id);
-                          const idx = colTasks.findIndex(t => t.id === task.id);
-                          if (idx <= 0) return undefined;
-                          return async () => {
-                            const ordered = colTasks.map(t => t.id);
-                            [ordered[idx - 1], ordered[idx]] = [ordered[idx], ordered[idx - 1]];
-                            const token = getToken();
-                            await fetch(`/api/columns/${column.id}/tasks/reorder`, {
-                              method: 'POST',
-                              headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-                              body: JSON.stringify({ task_ids: ordered }),
-                            });
-                            mutateTasks();
-                          };
-                        })()}
-                        onMoveDown={(() => {
-                          const colTasks = getTasksByColumn(column.id);
-                          const idx = colTasks.findIndex(t => t.id === task.id);
-                          if (idx < 0 || idx >= colTasks.length - 1) return undefined;
-                          return async () => {
-                            const ordered = colTasks.map(t => t.id);
-                            [ordered[idx], ordered[idx + 1]] = [ordered[idx + 1], ordered[idx]];
-                            const token = getToken();
-                            await fetch(`/api/columns/${column.id}/tasks/reorder`, {
-                              method: 'POST',
-                              headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-                              body: JSON.stringify({ task_ids: ordered }),
-                            });
-                            mutateTasks();
-                          };
-                        })()}
                       />
                     </div>
 
