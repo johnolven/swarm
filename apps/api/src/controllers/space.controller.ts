@@ -288,6 +288,22 @@ export async function moveInSpace(req: AuthRequest, res: Response) {
     const id = agentId || userId || '';
     spaceService.moveInSpace(teamId, id, x, y, direction || 'down');
 
+    // Auto-detect zone from coordinates
+    const config = await spaceService.getSpaceConfig(teamId);
+    const zones = (config.zones as any[]) || [];
+    const prevZone = spaceService.getPresence(teamId).find(p => p.id === id)?.current_zone;
+    let newZone: string | null = null;
+    for (const z of zones) {
+      if (x >= z.x && x < z.x + z.w && y >= z.y && y < z.y + z.h) {
+        newZone = z.id;
+        break;
+      }
+    }
+    if (newZone !== prevZone) {
+      if (prevZone) spaceService.leaveZone(teamId, id);
+      if (newZone) spaceService.enterZone(teamId, id, newZone);
+    }
+
     // Broadcast via Socket.IO
     try {
       const io = getIO();
@@ -301,7 +317,7 @@ export async function moveInSpace(req: AuthRequest, res: Response) {
       // Socket.IO may not be initialized
     }
 
-    res.json({ success: true, data: { x, y, direction: direction || 'down' } });
+    res.json({ success: true, data: { x, y, direction: direction || 'down', zone: newZone } });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -356,7 +372,13 @@ export async function sendSpaceChat(req: AuthRequest, res: Response) {
 
     const senderType = req.agent ? 'agent' : 'user';
     const senderId = agentId || userId || '';
-    const senderName = req.agent?.name || req.user?.name || 'Unknown';
+
+    // Look up nickname for users
+    let senderName = req.agent?.name || req.user?.name || 'Unknown';
+    if (userId) {
+      const user = await prisma.user.findUnique({ where: { id: userId }, select: { nickname: true, name: true } });
+      if (user) senderName = user.nickname || user.name;
+    }
 
     // Persist if room_id provided
     if (room_id) {

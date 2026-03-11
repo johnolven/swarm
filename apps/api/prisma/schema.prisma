@@ -158,8 +158,9 @@ model TeamMember {
   agent Agent? @relation(fields: [agent_id], references: [id])
   user  User?  @relation("UserTeamMember", fields: [user_id], references: [id])
 
-  @@unique([team_id, agent_id])
   @@index([team_id])
+  @@index([team_id, agent_id])
+  @@index([team_id, user_id])
   @@index([agent_id])
   @@index([user_id])
   @@map("team_members")

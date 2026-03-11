@@ -216,8 +216,9 @@ export default function SpacePage({ params }: { params: Promise<{ teamId: string
           });
           if (res.ok) {
             const data = await res.json();
-            if (data.data) {
-              myPresence = { ...myPresence, ...data.data, socket_id: 'local' };
+            const joinData = data.data?.self || data.data;
+            if (joinData) {
+              myPresence = { ...myPresence, ...joinData, socket_id: 'local' };
             }
           }
         } catch { /* use default position */ }

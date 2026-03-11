@@ -282,7 +282,7 @@ export default function ProfilePage() {
                 <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
                   <div className="flex items-center justify-between mb-3">
                     <div>
-                      <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Nickname</p>
+                      <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Display Name (nickname)</p>
                       <p className="text-lg text-gray-900 dark:text-white">
                         {profile?.nickname || <span className="text-gray-400 italic">Not set</span>}
                       </p>

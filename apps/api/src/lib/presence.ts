@@ -25,6 +25,7 @@ export interface UserPresence {
 }
 
 const PROXIMITY_RADIUS = 5; // tiles
+const PRESENCE_TTL_MS = 30 * 60 * 1000; // 30 minutes - presences older than this are considered stale
 
 // Distinct colors for agents so each one looks different
 const AGENT_COLORS = [
@@ -77,7 +78,17 @@ class PresenceManager {
     if (this.loaded) return;
     try {
       const rows = await prisma.spacePresence.findMany();
+      const staleThreshold = Date.now() - PRESENCE_TTL_MS;
+      const staleIds: string[] = [];
+      let loadedCount = 0;
+
       for (const row of rows) {
+        // Skip and mark stale presences for cleanup
+        if (row.last_move_at.getTime() < staleThreshold) {
+          staleIds.push(row.id);
+          continue;
+        }
+
         if (!this.presences.has(row.team_id)) {
           this.presences.set(row.team_id, new Map());
         }
@@ -100,9 +111,19 @@ class PresenceManager {
             color: row.avatar_color,
           },
         });
+        loadedCount++;
       }
+
+      // Clean up stale presences from DB
+      if (staleIds.length > 0) {
+        prisma.spacePresence.deleteMany({
+          where: { id: { in: staleIds } },
+        }).catch((err: any) => console.error('[presence] Failed to clean stale:', err?.message));
+        console.log(`[presence] Cleaned ${staleIds.length} stale presences`);
+      }
+
       this.loaded = true;
-      console.log(`[presence] Loaded ${rows.length} presences from DB`);
+      console.log(`[presence] Loaded ${loadedCount} active presences from DB`);
     } catch (err: any) {
       console.error('[presence] Failed to load from DB:', err?.message);
     }
@@ -300,6 +321,36 @@ class PresenceManager {
   getOnlineCount(teamId: string): number {
     return this.presences.get(teamId)?.size ?? 0;
   }
+
+  /**
+   * Remove stale presences (REST agents/users that haven't moved in PRESENCE_TTL_MS).
+   * Called periodically to prevent zombie presences.
+   */
+  cleanupStale(): void {
+    const threshold = Date.now() - PRESENCE_TTL_MS;
+    const staleUserIds: Array<{ teamId: string; userId: string }> = [];
+
+    for (const [teamId, teamMap] of this.presences) {
+      for (const [userId, presence] of teamMap) {
+        if (presence.last_move_at < threshold) {
+          staleUserIds.push({ teamId, userId });
+          teamMap.delete(userId);
+        }
+      }
+    }
+
+    if (staleUserIds.length > 0) {
+      console.log(`[presence] Cleaned ${staleUserIds.length} stale presences`);
+      // Remove from DB
+      const ids = staleUserIds.map(s => s.userId);
+      prisma.spacePresence.deleteMany({
+        where: { user_id: { in: ids } },
+      }).catch((err: any) => console.error('[presence] DB stale cleanup failed:', err?.message));
+    }
+  }
 }
 
 export const presenceManager = new PresenceManager();
+
+// Periodic cleanup every 5 minutes
+setInterval(() => presenceManager.cleanupStale(), 5 * 60 * 1000);

@@ -3,6 +3,7 @@ import { AuthRequest } from '../middleware/auth';
 import * as chatService from '../services/chat.service';
 import { isTeamMember } from '../lib/authorize';
 import { getIO } from '../sockets';
+import { prisma } from '../lib/prisma';
 
 export async function getTeamRooms(req: AuthRequest, res: Response) {
   try {
@@ -59,7 +60,12 @@ export async function sendRoomMessage(req: AuthRequest, res: Response) {
 
     const senderType = req.agent ? 'agent' : 'user';
     const senderId = req.agent?.agent_id || req.user?.id || '';
-    const senderName = req.agent?.name || req.user?.name || 'Unknown';
+
+    let senderName = req.agent?.name || req.user?.name || 'Unknown';
+    if (req.user?.id) {
+      const user = await prisma.user.findUnique({ where: { id: req.user.id }, select: { nickname: true, name: true } });
+      if (user) senderName = user.nickname || user.name;
+    }
 
     const message = await chatService.sendMessage(
       roomId,

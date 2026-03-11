@@ -574,13 +574,14 @@ export class OfficeScene extends Phaser.Scene {
 
     const charHalf = (CHAR_FRAME_H * CHAR_SCALE) / 2;
     const nameColor = user.type === 'agent' ? '#8b5cf6' : '#3b82f6';
-    const nameText = this.add.text(0, -charHalf - 6, user.name, {
-      fontSize: '9px',
+    const displayLabel = user.type === 'agent' ? `🤖 ${user.name}` : user.name;
+    const nameText = this.add.text(0, -charHalf + 16, displayLabel, {
+      fontSize: '14px',
       color: nameColor,
-      fontFamily: 'monospace',
+      fontFamily: 'Arial, sans-serif',
       fontStyle: 'bold',
       backgroundColor: '#000000aa',
-      padding: { x: 3, y: 1 },
+      padding: { x: 4, y: 2 },
     }).setOrigin(0.5);
 
     const stateIcon = this.add.text(

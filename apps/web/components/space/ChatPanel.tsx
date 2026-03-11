@@ -37,7 +37,12 @@ export function ChatPanel({ messages, roomName, onSendMessage }: ChatPanelProps)
   const formatTime = (dateStr: string) => {
     try {
       const d = new Date(dateStr);
-      return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const now = new Date();
+      const isToday = d.toDateString() === now.toDateString();
+      if (isToday) {
+        return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      }
+      return d.toLocaleDateString([], { month: 'short', day: 'numeric' }) + ' ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     } catch {
       return '';
     }
@@ -56,19 +61,19 @@ export function ChatPanel({ messages, roomName, onSendMessage }: ChatPanelProps)
         )}
       </div>
 
-      <div className="flex-1 overflow-y-auto px-3 py-2 space-y-1.5">
+      <div className="flex-1 overflow-y-auto px-2 py-1">
         {messages.map((msg, i) => (
-          <div key={i} className="text-sm group">
-            <span className="text-[10px] text-gray-300 dark:text-gray-600 mr-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <div key={i} className="text-xs leading-tight group flex items-baseline gap-1">
+            <span className="text-[10px] text-gray-400 dark:text-gray-500 shrink-0">
               {formatTime(msg.created_at)}
             </span>
             <span
-              className="font-medium"
+              className="font-semibold shrink-0"
               style={{ color: msg.sender_type === 'agent' ? '#8b5cf6' : '#3b82f6' }}
             >
               {msg.sender_name}
             </span>
-            <span className="text-gray-600 dark:text-gray-400 ml-1">
+            <span className="text-gray-700 dark:text-gray-300" style={{ fontFamily: 'system-ui, -apple-system, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif' }}>
               {msg.content}
             </span>
           </div>

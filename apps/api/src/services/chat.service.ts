@@ -8,6 +8,19 @@ export async function getTeamRooms(teamId: string) {
 }
 
 export async function createRoom(teamId: string, name: string, type: string, zoneId?: string) {
+  // Prevent duplicate rooms: check if one already exists for this team+type+zone
+  if (type === 'general') {
+    const existing = await prisma.chatRoom.findFirst({
+      where: { team_id: teamId, type: 'general' },
+    });
+    if (existing) return existing;
+  } else if (type === 'zone' && zoneId) {
+    const existing = await prisma.chatRoom.findFirst({
+      where: { team_id: teamId, zone_id: zoneId },
+    });
+    if (existing) return existing;
+  }
+
   return prisma.chatRoom.create({
     data: {
       team_id: teamId,
