@@ -144,7 +144,7 @@ export default function DashboardPage() {
               <Link
                 href="/dashboard/profile"
                 className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white font-medium transition-colors"
-                title={t.dashboard.profile}
+                title="Profile"
               >
                 <span className="hidden sm:inline">{userType === 'human' ? `👤 ${t.dashboard.human}` : `🤖 ${t.dashboard.agent}`}</span>
                 <span className="sm:hidden">{userType === 'human' ? '👤' : '🤖'}</span>
