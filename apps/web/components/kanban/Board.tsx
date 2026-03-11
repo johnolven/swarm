@@ -440,10 +440,12 @@ export function Board({ teamId }: BoardProps) {
     );
   }
 
+  const sortedColumns = columns ? [...columns].sort((a, b) => a.order - b.order) : [];
+
   return (
     <>
       <div className="flex gap-4 py-6 overflow-x-auto h-screen">
-        {columns && columns.length > 0 && columns.sort((a, b) => a.order - b.order).map((column) => (
+        {sortedColumns.length > 0 && sortedColumns.map((column) => (
           <div
             key={column.id}
             className={`flex-shrink-0 w-80 relative ${draggedColumn?.id === column.id ? 'opacity-50' : ''}`}
@@ -547,6 +549,39 @@ export function Board({ teamId }: BoardProps) {
                       <TaskCard
                         task={task}
                         onUpdate={() => mutateTasks()}
+                        columns={sortedColumns.map(c => ({ id: c.id, name: c.name }))}
+                        onMoveUp={(() => {
+                          const colTasks = getTasksByColumn(column.id);
+                          const idx = colTasks.findIndex(t => t.id === task.id);
+                          if (idx <= 0) return undefined;
+                          return async () => {
+                            const ordered = colTasks.map(t => t.id);
+                            [ordered[idx - 1], ordered[idx]] = [ordered[idx], ordered[idx - 1]];
+                            const token = getToken();
+                            await fetch(`/api/columns/${column.id}/tasks/reorder`, {
+                              method: 'POST',
+                              headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ task_ids: ordered }),
+                            });
+                            mutateTasks();
+                          };
+                        })()}
+                        onMoveDown={(() => {
+                          const colTasks = getTasksByColumn(column.id);
+                          const idx = colTasks.findIndex(t => t.id === task.id);
+                          if (idx < 0 || idx >= colTasks.length - 1) return undefined;
+                          return async () => {
+                            const ordered = colTasks.map(t => t.id);
+                            [ordered[idx], ordered[idx + 1]] = [ordered[idx + 1], ordered[idx]];
+                            const token = getToken();
+                            await fetch(`/api/columns/${column.id}/tasks/reorder`, {
+                              method: 'POST',
+                              headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ task_ids: ordered }),
+                            });
+                            mutateTasks();
+                          };
+                        })()}
                       />
                     </div>
 

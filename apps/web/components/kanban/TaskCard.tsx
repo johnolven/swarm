@@ -1,19 +1,41 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Task } from '@swarm/types';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { useLanguage } from '@/components/LanguageProvider';
 import { getToken } from '@/lib/auth';
 
+interface ColumnInfo {
+  id: string;
+  name: string;
+}
+
 interface TaskCardProps {
   task: Task;
   onUpdate: () => void;
+  columns?: ColumnInfo[];
+  onMoveUp?: () => void;
+  onMoveDown?: () => void;
 }
 
-export function TaskCard({ task, onUpdate }: TaskCardProps) {
+export function TaskCard({ task, onUpdate, columns, onMoveUp, onMoveDown }: TaskCardProps) {
   const { t } = useLanguage();
+  const [showMoveMenu, setShowMoveMenu] = useState(false);
+
+  const handleMoveToColumn = async (columnId: string) => {
+    setShowMoveMenu(false);
+    try {
+      const token = getToken();
+      await fetch(`/api/tasks/${task.id}`, {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ column_id: columnId }),
+      });
+      onUpdate();
+    } catch { /* ignore */ }
+  };
   const handleClaim = async (e: React.MouseEvent) => {
     e.stopPropagation();
     try {
@@ -118,6 +140,48 @@ export function TaskCard({ task, onUpdate }: TaskCardProps) {
             </button>
           )}
         </div>
+
+        {/* Mobile move controls */}
+        {columns && columns.length > 0 && (
+          <div className="mt-2 flex items-center gap-1 sm:hidden">
+            {onMoveUp && (
+              <button type="button" onClick={(e) => { e.stopPropagation(); onMoveUp(); }} className="p-1 text-xs bg-gray-100 dark:bg-gray-700 rounded hover:bg-gray-200 dark:hover:bg-gray-600">
+                ▲
+              </button>
+            )}
+            {onMoveDown && (
+              <button type="button" onClick={(e) => { e.stopPropagation(); onMoveDown(); }} className="p-1 text-xs bg-gray-100 dark:bg-gray-700 rounded hover:bg-gray-200 dark:hover:bg-gray-600">
+                ▼
+              </button>
+            )}
+            <div className="relative flex-1">
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); setShowMoveMenu(!showMoveMenu); }}
+                className="w-full px-2 py-1 text-xs bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded hover:bg-purple-200 dark:hover:bg-purple-900/50"
+              >
+                Move to...
+              </button>
+              {showMoveMenu && (
+                <>
+                  <div className="fixed inset-0 z-10" onClick={() => setShowMoveMenu(false)} />
+                  <div className="absolute bottom-full left-0 mb-1 w-full bg-white dark:bg-gray-700 rounded-lg shadow-lg border border-gray-200 dark:border-gray-600 z-20 overflow-hidden">
+                    {columns.filter(c => c.id !== (task as any).column_id).map(col => (
+                      <button
+                        key={col.id}
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); handleMoveToColumn(col.id); }}
+                        className="w-full px-3 py-2 text-left text-xs text-gray-700 dark:text-gray-200 hover:bg-purple-50 dark:hover:bg-purple-900/30"
+                      >
+                        {col.name}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
