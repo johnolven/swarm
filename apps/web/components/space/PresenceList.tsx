@@ -1,5 +1,6 @@
 'use client';
 
+import { useLanguage } from '@/components/LanguageProvider';
 import { UserPresence } from './types';
 
 interface PresenceListProps {
@@ -15,7 +16,6 @@ const stateColors: Record<string, string> = {
 };
 
 function MiniAvatar({ sprite, color, type }: { sprite: string; color: string; type: string }) {
-  // If sprite is a Character_XXX reference, show the spritesheet preview
   const match = sprite.match(/Character_(\d+)/);
   if (match) {
     const padded = match[1];
@@ -35,7 +35,6 @@ function MiniAvatar({ sprite, color, type }: { sprite: string; color: string; ty
     );
   }
 
-  // Fallback: colored circle
   return (
     <span
       className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] text-white font-bold flex-shrink-0"
@@ -47,10 +46,12 @@ function MiniAvatar({ sprite, color, type }: { sprite: string; color: string; ty
 }
 
 export function PresenceList({ users }: PresenceListProps) {
+  const { t } = useLanguage();
+
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3">
       <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-        Online ({users.length})
+        {t.space.online} ({users.length})
       </h3>
       <div className="space-y-1.5 max-h-60 overflow-y-auto">
         {users.map((user) => (
@@ -73,7 +74,7 @@ export function PresenceList({ users }: PresenceListProps) {
           </div>
         ))}
         {users.length === 0 && (
-          <p className="text-xs text-gray-400 text-center py-2">No one online</p>
+          <p className="text-xs text-gray-400 text-center py-2">{t.space.noOneOnline}</p>
         )}
       </div>
     </div>

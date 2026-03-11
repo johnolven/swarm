@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, forwardRef, useImperativeHandle } from 'react';
+import { useLanguage } from '@/components/LanguageProvider';
 import { UserPresence, ChatMessage } from './types';
 
 // Start downloading Phaser immediately when this module loads (before useEffect)
@@ -45,6 +46,7 @@ export const PhaserGame = forwardRef<PhaserGameHandle, PhaserGameProps>(function
   },
   ref
 ) {
+  const { t } = useLanguage();
   const gameRef = useRef<Phaser.Game | null>(null);
   const sceneRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -117,7 +119,7 @@ export const PhaserGame = forwardRef<PhaserGameHandle, PhaserGameProps>(function
     <div className="relative">
       {loading && (
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-900 rounded-lg z-10 gap-3">
-          <div className="text-gray-400 text-sm">Loading office...</div>
+          <div className="text-gray-400 text-sm">{t.space.loadingOffice}</div>
           <div className="w-48 h-1.5 bg-gray-700 rounded-full overflow-hidden">
             <div
               className="h-full bg-indigo-500 rounded-full transition-all duration-200"
@@ -134,13 +136,13 @@ export const PhaserGame = forwardRef<PhaserGameHandle, PhaserGameProps>(function
         style={{ width: '100%', maxWidth: 1024, aspectRatio: '1024/800' }}
       />
       <div className="mt-1.5 flex flex-wrap gap-3 text-[10px] text-gray-400">
-        <span>Arrow keys: move</span>
-        <span>1-5: emotes</span>
+        <span>{t.space.arrowKeysMove}</span>
+        <span>{t.space.emotes}</span>
         <span className="flex items-center gap-1">
-          <span className="w-2 h-2 inline-block rounded-full bg-purple-500" /> Agent
+          <span className="w-2 h-2 inline-block rounded-full bg-purple-500" /> {t.space.agent}
         </span>
         <span className="flex items-center gap-1">
-          <span className="w-2 h-2 inline-block rounded-full bg-blue-500" /> Human
+          <span className="w-2 h-2 inline-block rounded-full bg-blue-500" /> {t.space.human}
         </span>
       </div>
     </div>

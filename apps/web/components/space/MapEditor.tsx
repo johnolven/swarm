@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useLanguage } from '@/components/LanguageProvider';
 
 type Tool = 'walk' | 'block' | 'zone' | 'spawn' | 'erase';
 
@@ -46,6 +47,8 @@ const DEFAULT_ROWS = 34;
 const EDITOR_TILE = 20; // pixel size of each tile in the editor canvas
 
 export function MapEditor({ teamId, initialConfig, onSave }: MapEditorProps) {
+  const { t } = useLanguage();
+  const te = t.space.editor;
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [tool, setTool] = useState<Tool>('walk');
   const [cols, setCols] = useState(initialConfig?.map_cols || DEFAULT_COLS);
@@ -273,7 +276,7 @@ export function MapEditor({ teamId, initialConfig, onSave }: MapEditorProps) {
     const file = e.target.files?.[0];
     if (!file) return;
     if (file.size > 2 * 1024 * 1024) {
-      alert('Image must be under 2MB');
+      alert(te.imageTooLarge);
       return;
     }
     const reader = new FileReader();
@@ -337,31 +340,31 @@ export function MapEditor({ teamId, initialConfig, onSave }: MapEditorProps) {
   };
 
   const tools: { id: Tool; label: string; icon: string; desc: string }[] = [
-    { id: 'walk', label: 'Walkable', icon: '\u2705', desc: 'Paint walkable tiles' },
-    { id: 'block', label: 'Blocked', icon: '\u26D4', desc: 'Paint blocked tiles' },
-    { id: 'zone', label: 'Zone', icon: '\u{1F4CD}', desc: 'Draw chat zone (drag)' },
-    { id: 'spawn', label: 'Spawn', icon: '\u2B50', desc: 'Set spawn point' },
-    { id: 'erase', label: 'Erase', icon: '\u{1F5D1}', desc: 'Erase to blocked' },
+    { id: 'walk', label: te.walkable, icon: '\u2705', desc: te.paintWalkable },
+    { id: 'block', label: te.blocked, icon: '\u26D4', desc: te.paintBlocked },
+    { id: 'zone', label: te.zone, icon: '\u{1F4CD}', desc: te.drawZone },
+    { id: 'spawn', label: te.spawn, icon: '\u2B50', desc: te.setSpawn },
+    { id: 'erase', label: te.erase, icon: '\u{1F5D1}', desc: te.eraseToBlocked },
   ];
 
   return (
     <div className="flex flex-col gap-4">
       {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-2 bg-white dark:bg-gray-800 rounded-lg p-3 border border-gray-200 dark:border-gray-700">
-        {tools.map(t => (
+        {tools.map(tl => (
           <button
-            key={t.id}
+            key={tl.id}
             type="button"
-            onClick={() => setTool(t.id)}
-            title={t.desc}
+            onClick={() => setTool(tl.id)}
+            title={tl.desc}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-              tool === t.id
+              tool === tl.id
                 ? 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 ring-1 ring-indigo-400'
                 : 'bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600'
             }`}
           >
-            <span>{t.icon}</span>
-            <span>{t.label}</span>
+            <span>{tl.icon}</span>
+            <span>{tl.label}</span>
           </button>
         ))}
 
@@ -374,7 +377,7 @@ export function MapEditor({ teamId, initialConfig, onSave }: MapEditorProps) {
             onChange={e => setShowGrid(e.target.checked)}
             className="rounded"
           />
-          Grid
+          {te.grid}
         </label>
 
         <div className="h-6 w-px bg-gray-200 dark:bg-gray-600 mx-1" />
@@ -384,14 +387,14 @@ export function MapEditor({ teamId, initialConfig, onSave }: MapEditorProps) {
           onClick={fillAllWalkable}
           className="px-2 py-1 text-xs bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded hover:bg-green-100 dark:hover:bg-green-900/50"
         >
-          Fill Walkable
+          {te.fillWalkable}
         </button>
         <button
           type="button"
           onClick={fillAllBlocked}
           className="px-2 py-1 text-xs bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded hover:bg-red-100 dark:hover:bg-red-900/50"
         >
-          Fill Blocked
+          {te.fillBlocked}
         </button>
       </div>
 
@@ -429,9 +432,9 @@ export function MapEditor({ teamId, initialConfig, onSave }: MapEditorProps) {
         <div className="w-64 shrink-0 space-y-4">
           {/* Background */}
           <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-gray-200 dark:border-gray-700">
-            <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">Background</h3>
+            <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">{te.background}</h3>
             <label className="block">
-              <span className="text-xs text-gray-500 dark:text-gray-400 block mb-1">Upload image (max 2MB)</span>
+              <span className="text-xs text-gray-500 dark:text-gray-400 block mb-1">{te.uploadImage}</span>
               <input
                 type="file"
                 accept="image/*"
@@ -445,17 +448,17 @@ export function MapEditor({ teamId, initialConfig, onSave }: MapEditorProps) {
                 onClick={() => { setBgDataUrl(null); setBgImage(null); }}
                 className="mt-2 text-xs text-red-500 hover:text-red-700"
               >
-                Remove background
+                {te.removeBackground}
               </button>
             )}
           </div>
 
           {/* Grid Size */}
           <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-gray-200 dark:border-gray-700">
-            <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">Grid Size</h3>
+            <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">{te.gridSize}</h3>
             <div className="flex gap-2 mb-2">
               <div>
-                <label className="text-xs text-gray-500 dark:text-gray-400">Cols</label>
+                <label className="text-xs text-gray-500 dark:text-gray-400">{te.cols}</label>
                 <input
                   type="number"
                   min={10}
@@ -466,7 +469,7 @@ export function MapEditor({ teamId, initialConfig, onSave }: MapEditorProps) {
                 />
               </div>
               <div>
-                <label className="text-xs text-gray-500 dark:text-gray-400">Rows</label>
+                <label className="text-xs text-gray-500 dark:text-gray-400">{te.rows}</label>
                 <input
                   type="number"
                   min={10}
@@ -482,15 +485,15 @@ export function MapEditor({ teamId, initialConfig, onSave }: MapEditorProps) {
               onClick={handleResizeGrid}
               className="w-full text-xs px-2 py-1.5 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded hover:bg-gray-200 dark:hover:bg-gray-600"
             >
-              Apply Size
+              {te.applySize}
             </button>
           </div>
 
           {/* Zones */}
           <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-gray-200 dark:border-gray-700">
-            <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">Chat Zones</h3>
+            <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">{te.chatZones}</h3>
             {zones.length === 0 ? (
-              <p className="text-xs text-gray-400">Use Zone tool to draw zones on the map</p>
+              <p className="text-xs text-gray-400">{te.useZoneTool}</p>
             ) : (
               <div className="space-y-1.5">
                 {zones.map(z => (
@@ -520,9 +523,9 @@ export function MapEditor({ teamId, initialConfig, onSave }: MapEditorProps) {
 
           {/* Spawn */}
           <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-gray-200 dark:border-gray-700">
-            <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">Spawn Point</h3>
+            <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">{te.spawnPoint}</h3>
             <p className="text-xs text-gray-400">
-              ({spawnX}, {spawnY}) - Use Spawn tool to set
+              ({spawnX}, {spawnY}) - {te.useSpawnTool}
             </p>
           </div>
 
@@ -533,22 +536,22 @@ export function MapEditor({ teamId, initialConfig, onSave }: MapEditorProps) {
             disabled={saving}
             className="w-full py-2.5 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors text-sm"
           >
-            {saving ? 'Saving...' : 'Save Map'}
+            {saving ? te.saving : te.saveMap}
           </button>
 
           {/* Legend */}
           <div className="text-xs text-gray-400 space-y-0.5">
             <div className="flex items-center gap-1.5">
               <span className="w-3 h-3 rounded-sm" style={{ backgroundColor: 'rgba(0, 200, 100, 0.6)' }} />
-              Walkable
+              {te.walkable}
             </div>
             <div className="flex items-center gap-1.5">
               <span className="w-3 h-3 rounded-sm" style={{ backgroundColor: 'rgba(200, 50, 50, 0.6)' }} />
-              Blocked
+              {te.blocked}
             </div>
             <div className="flex items-center gap-1.5">
               <span className="w-3 h-3 rounded-full" style={{ backgroundColor: '#fbbf24' }} />
-              Spawn
+              {te.spawn}
             </div>
           </div>
         </div>
@@ -558,13 +561,13 @@ export function MapEditor({ teamId, initialConfig, onSave }: MapEditorProps) {
       {showZoneModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white dark:bg-gray-800 rounded-lg p-5 w-80 shadow-xl">
-            <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-3">Name this zone</h3>
+            <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-3">{te.nameZone}</h3>
             <input
               type="text"
               value={zoneLabel}
               onChange={e => setZoneLabel(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && confirmZone()}
-              placeholder="e.g. Meeting Room"
+              placeholder={te.zoneNamePlaceholder}
               autoFocus
               className="w-full px-3 py-2 text-sm bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-400 outline-none"
             />
@@ -574,7 +577,7 @@ export function MapEditor({ teamId, initialConfig, onSave }: MapEditorProps) {
                 onClick={() => { setShowZoneModal(false); setPendingZoneRect(null); setZoneLabel(''); }}
                 className="px-3 py-1.5 text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
               >
-                Cancel
+                {t.space.cancel}
               </button>
               <button
                 type="button"
@@ -582,7 +585,7 @@ export function MapEditor({ teamId, initialConfig, onSave }: MapEditorProps) {
                 disabled={!zoneLabel.trim()}
                 className="px-3 py-1.5 text-xs bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50"
               >
-                Create
+                {te.create}
               </button>
             </div>
           </div>

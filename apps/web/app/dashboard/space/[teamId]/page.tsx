@@ -10,6 +10,8 @@ import { PresenceList } from '@/components/space/PresenceList';
 import { CharacterPicker } from '@/components/space/CharacterPicker';
 import { UserPresence, ChatMessage } from '@/components/space/types';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { LangToggle } from '@/components/LangToggle';
+import { useLanguage } from '@/components/LanguageProvider';
 
 function parseJwt(token: string) {
   try {
@@ -34,6 +36,7 @@ interface RoomInfo {
 export default function SpacePage({ params }: { params: Promise<{ teamId: string }> }) {
   const { teamId } = use(params);
   const router = useRouter();
+  const { t } = useLanguage();
   const [presences, setPresences] = useState<UserPresence[]>([]);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [teamName, setTeamName] = useState('Space');
@@ -501,11 +504,11 @@ export default function SpacePage({ params }: { params: Promise<{ teamId: string
               href={`/dashboard/board/${teamId}`}
               className="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
             >
-              &larr; Board
+              &larr; {t.space.board}
             </Link>
             <span className="text-gray-300 dark:text-gray-600">|</span>
             <h1 className="text-sm font-semibold text-gray-800 dark:text-gray-200">
-              {teamName} &mdash; Virtual Office
+              {teamName} &mdash; {t.space.virtualOffice}
             </h1>
             {currentZone && (
               <>
@@ -521,19 +524,20 @@ export default function SpacePage({ params }: { params: Promise<{ teamId: string
               href={`/dashboard/space/${teamId}/editor`}
               className="text-xs px-2 py-1 rounded bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
             >
-              Map Editor
+              {t.space.mapEditor}
             </Link>
             <button
               type="button"
               onClick={() => setShowCharPicker(true)}
               className="text-xs px-2 py-1 rounded bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
             >
-              Change Character
+              {t.space.changeCharacter}
             </button>
             <span className="flex items-center gap-1 text-xs text-green-600">
               <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
-              Connected
+              {t.space.connected}
             </span>
+            <LangToggle />
             <ThemeToggle />
           </div>
         </div>
@@ -563,7 +567,7 @@ export default function SpacePage({ params }: { params: Promise<{ teamId: string
                 className="rounded-lg border border-gray-200 dark:border-gray-700 flex items-center justify-center bg-gray-100 dark:bg-gray-800"
                 style={{ width: '100%', maxWidth: 1024, aspectRatio: '1024/800' }}
               >
-                <div className="text-gray-400 text-sm">Loading office...</div>
+                <div className="text-gray-400 text-sm">{t.space.loadingOffice}</div>
               </div>
             )}
           </div>

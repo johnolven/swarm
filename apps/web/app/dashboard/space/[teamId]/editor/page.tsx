@@ -6,6 +6,8 @@ import Link from 'next/link';
 import { getToken } from '@/lib/auth';
 import { MapEditor } from '@/components/space/MapEditor';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { LangToggle } from '@/components/LangToggle';
+import { useLanguage } from '@/components/LanguageProvider';
 
 function parseJwt(token: string) {
   try {
@@ -18,6 +20,7 @@ function parseJwt(token: string) {
 export default function MapEditorPage({ params }: { params: Promise<{ teamId: string }> }) {
   const { teamId } = use(params);
   const router = useRouter();
+  const { t } = useLanguage();
   const [teamName, setTeamName] = useState('Space');
   const [config, setConfig] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -66,7 +69,7 @@ export default function MapEditorPage({ params }: { params: Promise<{ teamId: st
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900">
-        <div className="text-gray-500">Loading editor...</div>
+        <div className="text-gray-500">{t.space.editor.loadingEditor}</div>
       </div>
     );
   }
@@ -80,17 +83,18 @@ export default function MapEditorPage({ params }: { params: Promise<{ teamId: st
               href={`/dashboard/space/${teamId}`}
               className="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
             >
-              &larr; Space
+              &larr; {t.space.editor.backToSpace}
             </Link>
             <span className="text-gray-300 dark:text-gray-600">|</span>
             <h1 className="text-sm font-semibold text-gray-800 dark:text-gray-200">
-              {teamName} &mdash; Map Editor
+              {teamName} &mdash; {t.space.editor.title}
             </h1>
           </div>
           <div className="flex items-center gap-3">
             {saved && (
-              <span className="text-xs text-green-600 font-medium">Saved!</span>
+              <span className="text-xs text-green-600 font-medium">{t.space.editor.saved}</span>
             )}
+            <LangToggle />
             <ThemeToggle />
           </div>
         </div>

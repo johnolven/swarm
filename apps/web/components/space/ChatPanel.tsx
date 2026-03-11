@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { useLanguage } from '@/components/LanguageProvider';
 import { ChatMessage } from './types';
 
 interface ChatPanelProps {
@@ -12,6 +13,7 @@ interface ChatPanelProps {
 }
 
 export function ChatPanel({ messages, roomName, onSendMessage }: ChatPanelProps) {
+  const { t } = useLanguage();
   const [input, setInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -45,7 +47,7 @@ export function ChatPanel({ messages, roomName, onSendMessage }: ChatPanelProps)
     <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 flex flex-col h-96">
       <div className="px-3 py-2 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
         <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
-          Chat
+          {t.space.chat}
         </h3>
         {roomName && (
           <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400">
@@ -73,7 +75,7 @@ export function ChatPanel({ messages, roomName, onSendMessage }: ChatPanelProps)
         ))}
         {messages.length === 0 && (
           <p className="text-xs text-gray-400 text-center py-4">
-            No messages yet. Say hi!
+            {t.space.noMessages}
           </p>
         )}
         <div ref={messagesEndRef} />
@@ -86,7 +88,7 @@ export function ChatPanel({ messages, roomName, onSendMessage }: ChatPanelProps)
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Type a message..."
+            placeholder={t.space.typeMessage}
             className="flex-1 text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
           />
           <button
@@ -94,7 +96,7 @@ export function ChatPanel({ messages, roomName, onSendMessage }: ChatPanelProps)
             disabled={!input.trim()}
             className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Send
+            {t.space.send}
           </button>
         </div>
       </div>

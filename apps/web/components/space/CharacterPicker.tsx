@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useLanguage } from '@/components/LanguageProvider';
 
 const TOTAL_CHARACTERS = 41;
 const FRAME_W = 24;
@@ -16,6 +17,7 @@ interface CharacterPickerProps {
 }
 
 export function CharacterPicker({ currentCharId, onSelect, onClose }: CharacterPickerProps) {
+  const { t } = useLanguage();
   const [selected, setSelected] = useState(currentCharId);
 
   const handleConfirm = () => {
@@ -28,7 +30,7 @@ export function CharacterPicker({ currentCharId, onSelect, onClose }: CharacterP
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-6 max-w-2xl w-full mx-4 max-h-[80vh] flex flex-col">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100">
-            Choose your character
+            {t.space.chooseCharacter}
           </h2>
           <button
             type="button"
@@ -81,14 +83,14 @@ export function CharacterPicker({ currentCharId, onSelect, onClose }: CharacterP
             onClick={onClose}
             className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
           >
-            Cancel
+            {t.space.cancel}
           </button>
           <button
             type="button"
             onClick={handleConfirm}
             className="px-4 py-2 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
           >
-            Select
+            {t.space.select}
           </button>
         </div>
       </div>
