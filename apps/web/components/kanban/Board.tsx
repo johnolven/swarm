@@ -83,7 +83,12 @@ export function Board({ teamId }: BoardProps) {
       touchDragging.current = true;
       if (touchDragTask.current) setDraggedTask(touchDragTask.current);
       if (touchDragCol.current) setDraggedColumn(touchDragCol.current);
-      const el = e.currentTarget as HTMLElement;
+      // For tasks, clone the parent card (not just the grip handle)
+      let el = e.currentTarget as HTMLElement;
+      if (touchDragTask.current) {
+        const parentCard = el.closest('[data-task-id]') as HTMLElement;
+        if (parentCard) el = parentCard;
+      }
       const clone = el.cloneNode(true) as HTMLElement;
       clone.style.position = 'fixed';
       clone.style.width = el.offsetWidth + 'px';
@@ -132,13 +137,17 @@ export function Board({ teamId }: BoardProps) {
       }
 
       if (touchDragCol.current) {
-        // Detect column drop position
+        // Detect column drop position using full column area
         let foundTarget: { id: string; position: 'left' | 'right' } | null = null;
-        columnHeaderRefs.current.forEach((el, colId) => {
+        columnRefs.current.forEach((el, colId) => {
           if (colId === touchDragCol.current?.id) return;
           const rect = el.getBoundingClientRect();
+          // Also check header
+          const headerEl = columnHeaderRefs.current.get(colId);
+          const headerRect = headerEl?.getBoundingClientRect();
+          const top = headerRect ? headerRect.top : rect.top;
           if (touch.clientX >= rect.left && touch.clientX <= rect.right &&
-              touch.clientY >= rect.top - 50 && touch.clientY <= rect.bottom + 50) {
+              touch.clientY >= top - 30 && touch.clientY <= rect.bottom + 30) {
             const mid = rect.left + rect.width / 2;
             foundTarget = { id: colId, position: touch.clientX < mid ? 'left' : 'right' };
           }
