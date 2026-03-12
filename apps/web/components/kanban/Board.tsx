@@ -658,12 +658,12 @@ export function Board({ teamId }: BoardProps) {
           >
             {/* Drop indicator - left side */}
             {dropIndicator?.columnId === column.id && dropIndicator.position === 'left' && (
-              <div className="absolute left-0 top-0 bottom-0 w-1 bg-purple-500 z-10 rounded-full" />
+              <div className="absolute -left-1 top-0 bottom-0 w-1.5 bg-purple-500 z-10 rounded-full shadow-[0_0_8px_rgba(168,85,247,0.6)]" />
             )}
 
             {/* Drop indicator - right side */}
             {dropIndicator?.columnId === column.id && dropIndicator.position === 'right' && (
-              <div className="absolute right-0 top-0 bottom-0 w-1 bg-purple-500 z-10 rounded-full" />
+              <div className="absolute -right-1 top-0 bottom-0 w-1.5 bg-purple-500 z-10 rounded-full shadow-[0_0_8px_rgba(168,85,247,0.6)]" />
             )}
 
             {/* Column Header */}
@@ -728,8 +728,8 @@ export function Board({ teamId }: BoardProps) {
             {/* Column Content - Drop Zone for Tasks */}
             <div
               ref={(el) => { if (el) columnRefs.current.set(column.id, el); }}
-              className={`bg-gray-50 dark:bg-gray-800 rounded-b-lg p-4 min-h-[600px] transition-colors ${
-                dragOverColumn === column.id ? 'bg-purple-100 dark:bg-purple-900/20' : ''
+              className={`bg-gray-50 dark:bg-gray-800 rounded-b-lg p-4 min-h-[600px] transition-all duration-200 ${
+                dragOverColumn === column.id ? 'bg-purple-100 dark:bg-purple-900/30 ring-2 ring-purple-400 ring-inset' : ''
               }`}
               onDragOver={(e) => {
                 e.preventDefault();
@@ -747,7 +747,10 @@ export function Board({ teamId }: BoardProps) {
                   >
                     {/* Drop indicator - top */}
                     {taskDropIndicator?.taskId === task.id && taskDropIndicator.position === 'top' && (
-                      <div className="absolute -top-1.5 left-0 right-0 h-0.5 bg-purple-500 z-10 rounded-full" />
+                      <div className="absolute -top-2 left-0 right-0 h-1 bg-purple-500 z-10 rounded-full shadow-[0_0_8px_rgba(168,85,247,0.6)]">
+                        <div className="absolute -left-1 -top-1 w-3 h-3 bg-purple-500 rounded-full" />
+                        <div className="absolute -right-1 -top-1 w-3 h-3 bg-purple-500 rounded-full" />
+                      </div>
                     )}
 
                     <div
@@ -787,7 +790,10 @@ export function Board({ teamId }: BoardProps) {
 
                     {/* Drop indicator - bottom */}
                     {taskDropIndicator?.taskId === task.id && taskDropIndicator.position === 'bottom' && (
-                      <div className="absolute -bottom-1.5 left-0 right-0 h-0.5 bg-purple-500 z-10 rounded-full" />
+                      <div className="absolute -bottom-2 left-0 right-0 h-1 bg-purple-500 z-10 rounded-full shadow-[0_0_8px_rgba(168,85,247,0.6)]">
+                        <div className="absolute -left-1 -top-1 w-3 h-3 bg-purple-500 rounded-full" />
+                        <div className="absolute -right-1 -top-1 w-3 h-3 bg-purple-500 rounded-full" />
+                      </div>
                     )}
                   </div>
                 ))}
