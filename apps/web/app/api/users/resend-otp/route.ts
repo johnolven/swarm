@@ -7,7 +7,8 @@ export async function POST(request: NextRequest) {
     if (!email) {
       return NextResponse.json({ success: false, error: 'Email is required' }, { status: 400 });
     }
-    const result = await userService.resendOtp(email);
+    const origin = request.headers.get('origin') || request.nextUrl.origin;
+    const result = await userService.resendOtp(email, origin);
     return NextResponse.json({ success: true, data: result });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 400 });

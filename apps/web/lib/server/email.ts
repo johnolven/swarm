@@ -9,10 +9,13 @@ function getResend(): Resend {
 }
 
 const FROM_EMAIL = process.env.EMAIL_FROM || 'SwarmMind <onboarding@resend.dev>';
-const FRONTEND_URL = process.env.NEXT_PUBLIC_FRONTEND_URL || process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
-
-export async function sendVerificationEmail(to: string, otpCode: string, magicToken: string) {
-  const magicLink = `${FRONTEND_URL}/verify-email?token=${magicToken}`;
+export async function sendVerificationEmail(to: string, otpCode: string, magicToken: string, baseUrl?: string) {
+  const origin = baseUrl
+    || process.env.APP_URL
+    || (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : null)
+    || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null)
+    || 'http://localhost:3000';
+  const magicLink = `${origin}/verify-email?token=${magicToken}`;
 
   await getResend().emails.send({
     from: FROM_EMAIL,

@@ -74,7 +74,7 @@ function hashOtp(otp: string): string {
   return crypto.createHash('sha256').update(otp).digest('hex');
 }
 
-export async function initiateSignup(input: CreateUserInput) {
+export async function initiateSignup(input: CreateUserInput, baseUrl?: string) {
   const { email, password, name, nickname, avatar_id } = input;
 
   // Check email not taken
@@ -106,7 +106,7 @@ export async function initiateSignup(input: CreateUserInput) {
   });
 
   // Send verification email
-  await sendVerificationEmail(email, otpCode, magicToken);
+  await sendVerificationEmail(email, otpCode, magicToken, baseUrl);
 
   return { message: 'Verification email sent', email };
 }
@@ -176,7 +176,7 @@ async function completePendingSignup(pending: any) {
   return { token: signToken(user), user: userPayload(user) };
 }
 
-export async function resendOtp(email: string) {
+export async function resendOtp(email: string, baseUrl?: string) {
   const pending = await prisma.pendingSignup.findFirst({
     where: { email },
     orderBy: { created_at: 'desc' },
@@ -198,7 +198,7 @@ export async function resendOtp(email: string) {
     },
   });
 
-  await sendVerificationEmail(email, otpCode, magicToken);
+  await sendVerificationEmail(email, otpCode, magicToken, baseUrl);
 
   return { message: 'New verification code sent', email };
 }
