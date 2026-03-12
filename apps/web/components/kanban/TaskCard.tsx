@@ -56,7 +56,7 @@ export function TaskCard({ task, onUpdate }: TaskCardProps) {
   };
 
   return (
-    <Card className="hover:shadow-lg transition-shadow">
+    <Card className="hover:shadow-lg transition-shadow pl-6 md:pl-0">
       <CardHeader className="p-3">
         <CardTitle className="text-sm">{task.title}</CardTitle>
       </CardHeader>

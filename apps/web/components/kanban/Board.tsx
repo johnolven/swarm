@@ -669,7 +669,7 @@ export function Board({ teamId }: BoardProps) {
             {/* Column Header */}
             <div
               ref={(el) => { if (el) columnHeaderRefs.current.set(column.id, el); }}
-              className={`${column.color} dark:bg-gray-700 rounded-t-lg px-4 py-3 cursor-move`}
+              className={`${column.color} dark:bg-gray-700 rounded-t-lg px-4 py-3 cursor-move touch-none select-none`}
               onTouchStart={(e) => handleColumnTouchStart(e, column)}
               onTouchMove={(e) => handleTouchMove(e)}
               onTouchEnd={() => handleTouchEnd()}
@@ -692,7 +692,11 @@ export function Board({ teamId }: BoardProps) {
                   />
                 ) : (
                   <div className="flex items-center gap-2 flex-1">
-                    <span className="text-lg">⋮⋮</span>
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" className="text-gray-500 dark:text-gray-400 flex-shrink-0">
+                      <circle cx="5" cy="3" r="1.5" /><circle cx="11" cy="3" r="1.5" />
+                      <circle cx="5" cy="8" r="1.5" /><circle cx="11" cy="8" r="1.5" />
+                      <circle cx="5" cy="13" r="1.5" /><circle cx="11" cy="13" r="1.5" />
+                    </svg>
                     <h3 className="font-semibold dark:text-white">{column.name}</h3>
                     <span className="text-sm text-gray-600 dark:text-gray-300">
                       ({getTasksByColumn(column.id).length})
@@ -747,23 +751,38 @@ export function Board({ teamId }: BoardProps) {
                     )}
 
                     <div
-                      draggable
-                      onDragStart={(e) => handleTaskDragStart(e, task)}
-                      onDragEnd={(e) => handleTaskDragEnd(e)}
-                      onDragOver={(e) => handleTaskDragOver(e, task)}
-                      onDrop={() => handleTaskDropOnTask(task)}
-                      onMouseDown={(e) => handleTaskMouseDown(e, task)}
-                      onMouseUp={(e) => handleTaskMouseUp(e, task)}
-                      onTouchStart={(e) => handleTouchStart(e, task)}
-                      onTouchMove={(e) => handleTouchMove(e)}
-                      onTouchEnd={() => handleTouchEnd()}
-                      onTouchCancel={() => handleTouchEnd()}
-                      className={`cursor-pointer ${draggedTask?.id === task.id ? 'opacity-50' : ''}`}
+                      className={`relative ${draggedTask?.id === task.id ? 'opacity-50' : ''}`}
                     >
-                      <TaskCard
-                        task={task}
-                        onUpdate={() => mutateTasks()}
-                      />
+                      {/* Mobile drag handle */}
+                      <div
+                        className="md:hidden absolute left-0 top-0 bottom-0 w-8 flex items-center justify-center z-10 cursor-grab active:cursor-grabbing touch-none select-none"
+                        onTouchStart={(e) => handleTouchStart(e, task)}
+                        onTouchMove={(e) => handleTouchMove(e)}
+                        onTouchEnd={() => handleTouchEnd()}
+                        onTouchCancel={() => handleTouchEnd()}
+                      >
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" className="text-gray-400">
+                          <circle cx="5" cy="3" r="1.5" /><circle cx="11" cy="3" r="1.5" />
+                          <circle cx="5" cy="8" r="1.5" /><circle cx="11" cy="8" r="1.5" />
+                          <circle cx="5" cy="13" r="1.5" /><circle cx="11" cy="13" r="1.5" />
+                        </svg>
+                      </div>
+                      {/* Desktop: full card is draggable */}
+                      <div
+                        draggable
+                        onDragStart={(e) => handleTaskDragStart(e, task)}
+                        onDragEnd={(e) => handleTaskDragEnd(e)}
+                        onDragOver={(e) => handleTaskDragOver(e, task)}
+                        onDrop={() => handleTaskDropOnTask(task)}
+                        onMouseDown={(e) => handleTaskMouseDown(e, task)}
+                        onMouseUp={(e) => handleTaskMouseUp(e, task)}
+                        className="cursor-pointer"
+                      >
+                        <TaskCard
+                          task={task}
+                          onUpdate={() => mutateTasks()}
+                        />
+                      </div>
                     </div>
 
                     {/* Drop indicator - bottom */}
