@@ -365,6 +365,19 @@ model PendingSignup {
   @@map("pending_signups")
 }
 
+// PasswordReset model - Temporary storage for password reset OTP
+model PasswordReset {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  email      String
+  otp_hash   String   // SHA-256 hash of 6-digit OTP
+  attempts   Int      @default(0)
+  expires_at DateTime
+  created_at DateTime @default(now())
+
+  @@index([email])
+  @@map("password_resets")
+}
+
 // ActivityLog model - Tracks all team activity for audit trail
 model ActivityLog {
   id          String   @id @default(auto()) @map("_id") @db.ObjectId

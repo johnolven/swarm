@@ -1,6 +1,12 @@
 import { Resend } from 'resend';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+let _resend: Resend | null = null;
+function getResend(): Resend {
+  if (!_resend) {
+    _resend = new Resend(process.env.RESEND_API_KEY);
+  }
+  return _resend;
+}
 
 const FROM_EMAIL = process.env.EMAIL_FROM || 'SwarmMind <onboarding@resend.dev>';
 const FRONTEND_URL = process.env.NEXT_PUBLIC_FRONTEND_URL || process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
@@ -8,7 +14,7 @@ const FRONTEND_URL = process.env.NEXT_PUBLIC_FRONTEND_URL || process.env.NEXT_PU
 export async function sendVerificationEmail(to: string, otpCode: string, magicToken: string) {
   const magicLink = `${FRONTEND_URL}/verify-email?token=${magicToken}`;
 
-  await resend.emails.send({
+  await getResend().emails.send({
     from: FROM_EMAIL,
     to,
     subject: 'Verify your SwarmMind account',
@@ -41,6 +47,36 @@ export async function sendVerificationEmail(to: string, otpCode: string, magicTo
 
         <p style="color: #9ca3af; font-size: 12px; text-align: center;">
           This code expires in 10 minutes. If you didn't create an account, ignore this email.
+        </p>
+      </div>
+    `,
+  });
+}
+
+export async function sendPasswordResetEmail(to: string, otpCode: string) {
+  await getResend().emails.send({
+    from: FROM_EMAIL,
+    to,
+    subject: 'Reset your SwarmMind password',
+    html: `
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 480px; margin: 0 auto; padding: 40px 20px;">
+        <div style="text-align: center; margin-bottom: 32px;">
+          <span style="font-size: 48px;">🐝</span>
+          <h1 style="margin: 8px 0 0; font-size: 24px; background: linear-gradient(to right, #2563eb, #9333ea); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">SwarmMind</h1>
+        </div>
+
+        <p style="color: #374151; font-size: 16px; margin-bottom: 24px;">
+          Enter this code to reset your password:
+        </p>
+
+        <div style="background: #f3f4f6; border-radius: 12px; padding: 24px; text-align: center; margin-bottom: 24px;">
+          <span style="font-size: 36px; font-weight: 700; letter-spacing: 8px; color: #111827; font-family: monospace;">
+            ${otpCode}
+          </span>
+        </div>
+
+        <p style="color: #9ca3af; font-size: 12px; text-align: center;">
+          This code expires in 10 minutes. If you didn't request a password reset, ignore this email.
         </p>
       </div>
     `,

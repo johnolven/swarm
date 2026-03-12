@@ -97,12 +97,26 @@ export default function LoginPage() {
   const [otpValue, setOtpValue] = useState('');
   const [resendCooldown, setResendCooldown] = useState(0);
 
-  // Resend cooldown timer
+  // Forgot password state
+  const [forgotStep, setForgotStep] = useState<'none' | 'email' | 'otp' | 'newpass'>('none');
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [resetOtp, setResetOtp] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
+  const [forgotCooldown, setForgotCooldown] = useState(0);
+
+  // Cooldown timers
   useEffect(() => {
     if (resendCooldown <= 0) return;
     const timer = setTimeout(() => setResendCooldown(resendCooldown - 1), 1000);
     return () => clearTimeout(timer);
   }, [resendCooldown]);
+
+  useEffect(() => {
+    if (forgotCooldown <= 0) return;
+    const timer = setTimeout(() => setForgotCooldown(forgotCooldown - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [forgotCooldown]);
 
   const handleHumanAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -213,6 +227,108 @@ export default function LoginPage() {
     setError('');
   };
 
+  const handleForgotPassword = async () => {
+    if (!forgotEmail.trim()) return;
+    setLoading(true);
+    setError('');
+
+    try {
+      const response = await fetch('/api/users/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: forgotEmail }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Failed to send reset code');
+
+      setForgotStep('otp');
+      setForgotCooldown(60);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifyResetOtp = async () => {
+    if (resetOtp.length !== 6) return;
+    setLoading(true);
+    setError('');
+
+    try {
+      const response = await fetch('/api/users/verify-reset-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: forgotEmail, otp: resetOtp }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Verification failed');
+
+      setForgotStep('newpass');
+    } catch (err: any) {
+      setError(err.message || 'Verification failed');
+      setResetOtp('');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResetPassword = async () => {
+    if (newPassword.length < 8) {
+      setError(t.login.passwordMinLength);
+      return;
+    }
+    if (newPassword !== confirmNewPassword) {
+      setError(t.login.passwordsNoMatch);
+      return;
+    }
+    setLoading(true);
+    setError('');
+
+    try {
+      const response = await fetch('/api/users/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: forgotEmail, otp: resetOtp, newPassword }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Reset failed');
+
+      localStorage.setItem('swarm_token', data.data.token);
+      localStorage.setItem('user_type', 'human');
+      localStorage.setItem('user_email', data.data.user.email);
+      if (data.data.user.nickname) localStorage.setItem('user_nickname', data.data.user.nickname);
+      if (data.data.user.avatar_id) localStorage.setItem('swarm_character_id', String(data.data.user.avatar_id));
+
+      router.push('/dashboard');
+    } catch (err: any) {
+      setError(err.message || 'Reset failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResendResetCode = async () => {
+    if (forgotCooldown > 0) return;
+    setError('');
+    try {
+      const response = await fetch('/api/users/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: forgotEmail }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error);
+      setForgotCooldown(60);
+      setResetOtp('');
+    } catch (err: any) {
+      setError(err.message);
+    }
+  };
+
   const installCommand = `curl -s https://www.swarmind.sh/skill.md`;
 
   return (
@@ -233,8 +349,8 @@ export default function LoginPage() {
 
         {/* Card */}
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl overflow-hidden border border-gray-200 dark:border-gray-700">
-          {/* Tabs - only show when not in OTP verify step */}
-          {signupStep === 'form' && (
+          {/* Tabs - only show on main form */}
+          {signupStep === 'form' && forgotStep === 'none' && (
             <div className="flex border-b border-gray-200 dark:border-gray-700">
               <button
                 type="button"
@@ -263,8 +379,174 @@ export default function LoginPage() {
 
           {/* Content */}
           <div className="p-8">
-            {/* OTP Verification Step */}
-            {signupStep === 'verify' ? (
+            {/* Forgot Password - Enter Email */}
+            {forgotStep === 'email' ? (
+              <div>
+                <div className="text-center mb-6">
+                  <div className="text-4xl mb-3">&#128274;</div>
+                  <h2 className="text-2xl font-bold dark:text-white mb-2">
+                    {t.login.forgotPassword}
+                  </h2>
+                  <p className="text-gray-600 dark:text-gray-400 text-sm">
+                    {t.login.forgotPasswordDesc}
+                  </p>
+                </div>
+
+                {error && (
+                  <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 px-4 py-3 rounded-lg mb-4 text-sm">
+                    {error}
+                  </div>
+                )}
+
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    {t.login.email}
+                  </label>
+                  <input
+                    type="email"
+                    value={forgotEmail}
+                    onChange={(e) => setForgotEmail(e.target.value)}
+                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+                    placeholder="you@example.com"
+                  />
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleForgotPassword}
+                  disabled={loading || !forgotEmail.trim()}
+                  className="w-full py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-semibold hover:shadow-lg transition-all disabled:opacity-50"
+                >
+                  {loading ? t.login.loading : t.login.sendResetCode}
+                </button>
+
+                <div className="mt-4 text-center">
+                  <button
+                    type="button"
+                    onClick={() => { setForgotStep('none'); setError(''); }}
+                    className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 text-sm transition-colors"
+                  >
+                    &larr; {t.login.backToLogin}
+                  </button>
+                </div>
+              </div>
+            ) : forgotStep === 'otp' ? (
+              <div>
+                <div className="text-center mb-6">
+                  <div className="text-4xl mb-3">&#9993;</div>
+                  <h2 className="text-2xl font-bold dark:text-white mb-2">
+                    {t.login.checkEmail}
+                  </h2>
+                  <p className="text-gray-600 dark:text-gray-400 text-sm">
+                    {t.login.resetCodeSent.replace('{email}', forgotEmail)}
+                  </p>
+                </div>
+
+                {error && (
+                  <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 px-4 py-3 rounded-lg mb-4 text-sm">
+                    {error}
+                  </div>
+                )}
+
+                <div className="mb-6">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3 text-center">
+                    {t.login.enterCode}
+                  </label>
+                  <OtpInput value={resetOtp} onChange={setResetOtp} />
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleVerifyResetOtp}
+                  disabled={loading || resetOtp.length !== 6}
+                  className="w-full py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-semibold hover:shadow-lg transition-all disabled:opacity-50"
+                >
+                  {loading ? t.login.loading : t.login.verify}
+                </button>
+
+                <div className="mt-4 flex items-center justify-between text-sm">
+                  <button
+                    type="button"
+                    onClick={() => { setForgotStep('none'); setResetOtp(''); setError(''); }}
+                    className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
+                  >
+                    &larr; {t.login.backToLogin}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleResendResetCode}
+                    disabled={forgotCooldown > 0}
+                    className="text-purple-600 dark:text-purple-400 hover:underline disabled:opacity-50 disabled:no-underline disabled:cursor-not-allowed"
+                  >
+                    {forgotCooldown > 0
+                      ? t.login.resendIn.replace('{seconds}', String(forgotCooldown))
+                      : t.login.resendCode}
+                  </button>
+                </div>
+              </div>
+            ) : forgotStep === 'newpass' ? (
+              <div>
+                <div className="text-center mb-6">
+                  <div className="text-4xl mb-3">&#128274;</div>
+                  <h2 className="text-2xl font-bold dark:text-white mb-2">
+                    {t.login.resetPassword}
+                  </h2>
+                </div>
+
+                {error && (
+                  <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 px-4 py-3 rounded-lg mb-4 text-sm">
+                    {error}
+                  </div>
+                )}
+
+                <div className="space-y-4 mb-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      {t.login.newPassword}
+                    </label>
+                    <input
+                      type="password"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+                      placeholder="••••••••"
+                      autoFocus
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      {t.login.confirmNewPassword}
+                    </label>
+                    <input
+                      type="password"
+                      value={confirmNewPassword}
+                      onChange={(e) => setConfirmNewPassword(e.target.value)}
+                      className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+                      placeholder="••••••••"
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleResetPassword}
+                  disabled={loading || !newPassword || !confirmNewPassword}
+                  className="w-full py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-semibold hover:shadow-lg transition-all disabled:opacity-50"
+                >
+                  {loading ? t.login.loading : t.login.resetPassword}
+                </button>
+
+                <div className="mt-4 text-center">
+                  <button
+                    type="button"
+                    onClick={() => { setForgotStep('none'); setResetOtp(''); setNewPassword(''); setConfirmNewPassword(''); setError(''); }}
+                    className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 text-sm transition-colors"
+                  >
+                    &larr; {t.login.backToLogin}
+                  </button>
+                </div>
+              </div>
+            ) : signupStep === 'verify' ? (
               <div>
                 <div className="text-center mb-6">
                   <div className="text-4xl mb-3">&#9993;</div>
@@ -364,6 +646,17 @@ export default function LoginPage() {
                       placeholder="••••••••"
                       required
                     />
+                    {!isSignup && (
+                      <div className="mt-1 text-right">
+                        <button
+                          type="button"
+                          onClick={() => { setForgotStep('email'); setForgotEmail(email); setError(''); }}
+                          className="text-xs text-purple-600 dark:text-purple-400 hover:underline"
+                        >
+                          {t.login.forgotPassword}
+                        </button>
+                      </div>
+                    )}
                   </div>
 
                   {isSignup && (

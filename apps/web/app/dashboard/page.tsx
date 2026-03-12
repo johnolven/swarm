@@ -32,10 +32,12 @@ interface Team {
   members?: TeamMember[];
 }
 
-function parseTokenPayload(token: string): { user_id?: string; agent_id?: string } | null {
+function parseTokenPayload(token: string | null | undefined): { user_id?: string; agent_id?: string } | null {
   try {
-    const payload = token.split('.')[1];
-    return JSON.parse(atob(payload));
+    if (!token) return null;
+    const parts = token.split('.');
+    if (parts.length < 2) return null;
+    return JSON.parse(atob(parts[1]));
   } catch {
     return null;
   }

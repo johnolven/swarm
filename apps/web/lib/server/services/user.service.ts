@@ -2,7 +2,7 @@ import { prisma } from '../prisma';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 import crypto from 'crypto';
-import { sendVerificationEmail } from '../email';
+import { sendVerificationEmail, sendPasswordResetEmail } from '../email';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-in-production';
 const BCRYPT_ROUNDS = 12;
@@ -264,4 +264,86 @@ export async function updateUserNickname(userId: string, nickname: string) {
 export async function updateUserAvatar(userId: string, avatar_id: number) {
   const user = await prisma.user.update({ where: { id: userId }, data: { avatar_id } });
   return { user: userPayload(user) };
+}
+
+export async function forgotPassword(email: string) {
+  // Always return success to not leak whether email exists
+  const user = await prisma.user.findUnique({ where: { email } });
+  if (!user) return { message: 'If an account with that email exists, a reset code has been sent.' };
+
+  const otpCode = crypto.randomInt(100000, 999999).toString();
+  const expiresAt = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000);
+
+  // Delete any existing reset for this email
+  await prisma.passwordReset.deleteMany({ where: { email } });
+
+  await prisma.passwordReset.create({
+    data: {
+      email,
+      otp_hash: hashOtp(otpCode),
+      expires_at: expiresAt,
+    },
+  });
+
+  await sendPasswordResetEmail(email, otpCode);
+
+  return { message: 'If an account with that email exists, a reset code has been sent.' };
+}
+
+export async function verifyResetOtp(email: string, otp: string) {
+  const reset = await prisma.passwordReset.findFirst({
+    where: { email, expires_at: { gt: new Date() } },
+    orderBy: { created_at: 'desc' },
+  });
+
+  if (!reset) throw new Error('No reset request found or code expired');
+
+  if (reset.attempts >= MAX_OTP_ATTEMPTS) {
+    await prisma.passwordReset.delete({ where: { id: reset.id } });
+    throw new Error('Too many attempts. Please request a new reset code.');
+  }
+
+  if (hashOtp(otp) !== reset.otp_hash) {
+    await prisma.passwordReset.update({
+      where: { id: reset.id },
+      data: { attempts: { increment: 1 } },
+    });
+    throw new Error('Invalid reset code');
+  }
+
+  return { valid: true };
+}
+
+export async function resetPassword(email: string, otp: string, newPassword: string) {
+  const reset = await prisma.passwordReset.findFirst({
+    where: { email, expires_at: { gt: new Date() } },
+    orderBy: { created_at: 'desc' },
+  });
+
+  if (!reset) throw new Error('No reset request found or code expired');
+
+  if (reset.attempts >= MAX_OTP_ATTEMPTS) {
+    await prisma.passwordReset.delete({ where: { id: reset.id } });
+    throw new Error('Too many attempts. Please request a new reset code.');
+  }
+
+  if (hashOtp(otp) !== reset.otp_hash) {
+    await prisma.passwordReset.update({
+      where: { id: reset.id },
+      data: { attempts: { increment: 1 } },
+    });
+    throw new Error('Invalid reset code');
+  }
+
+  // Update password
+  const hashedPassword = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
+  const user = await prisma.user.update({
+    where: { email },
+    data: { password: hashedPassword },
+  });
+
+  // Clean up
+  await prisma.passwordReset.delete({ where: { id: reset.id } });
+
+  return { token: signToken(user), user: userPayload(user) };
 }
