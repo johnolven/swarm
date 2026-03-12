@@ -87,7 +87,7 @@ export default function BoardPage({ params }: { params: Promise<{ teamId: string
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <header className="bg-white dark:bg-gray-800 shadow border-b border-gray-200 dark:border-gray-700 sticky top-0 z-10">
+      <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-3 py-3 sm:px-6 lg:px-8 flex items-center justify-between">
           <Link href="/dashboard" className="text-base sm:text-2xl font-bold dark:text-white hover:text-purple-600 dark:hover:text-purple-400 transition-colors flex items-center gap-1 sm:gap-2 truncate mr-2">
             <svg className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -95,7 +95,7 @@ export default function BoardPage({ params }: { params: Promise<{ teamId: string
             </svg>
             <span className="truncate">🐝 {teamName}</span>
           </Link>
-          <div className="flex items-center gap-1 sm:gap-4">
+          <div className="flex items-center gap-1 sm:gap-3">
             <span className="hidden sm:inline"><LangToggle /></span>
             <ThemeToggle />
 

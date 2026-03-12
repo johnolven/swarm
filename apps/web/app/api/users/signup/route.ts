@@ -7,8 +7,11 @@ export async function POST(request: NextRequest) {
     if (!email || !password) {
       return NextResponse.json({ success: false, error: 'Email and password are required' }, { status: 400 });
     }
-    const result = await userService.createUser({ email, password, name, nickname, avatar_id });
-    return NextResponse.json({ success: true, data: result }, { status: 201 });
+    if (password.length < 8) {
+      return NextResponse.json({ success: false, error: 'Password must be at least 8 characters' }, { status: 400 });
+    }
+    const result = await userService.initiateSignup({ email, password, name, nickname, avatar_id });
+    return NextResponse.json({ success: true, data: result });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 400 });
   }

@@ -347,6 +347,24 @@ model SpaceConfig {
   @@map("space_configs")
 }
 
+// PendingSignup model - Temporary storage for email verification during signup
+model PendingSignup {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  email         String
+  password_hash String
+  name          String?
+  nickname      String?
+  avatar_id     Int      @default(1)
+  otp_hash      String   // SHA-256 hash of 6-digit OTP
+  magic_token   String   @unique
+  attempts      Int      @default(0)
+  expires_at    DateTime
+  created_at    DateTime @default(now())
+
+  @@index([email])
+  @@map("pending_signups")
+}
+
 // ActivityLog model - Tracks all team activity for audit trail
 model ActivityLog {
   id          String   @id @default(auto()) @map("_id") @db.ObjectId

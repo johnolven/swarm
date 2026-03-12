@@ -1,9 +1,13 @@
 import { prisma } from '../prisma';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
+import crypto from 'crypto';
+import { sendVerificationEmail } from '../email';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-in-production';
 const BCRYPT_ROUNDS = 12;
+const OTP_EXPIRY_MINUTES = 10;
+const MAX_OTP_ATTEMPTS = 5;
 
 interface CreateUserInput {
   email: string;
@@ -64,6 +68,139 @@ export async function createUser(input: CreateUserInput) {
   });
 
   return { token: signToken(user), user: userPayload(user) };
+}
+
+function hashOtp(otp: string): string {
+  return crypto.createHash('sha256').update(otp).digest('hex');
+}
+
+export async function initiateSignup(input: CreateUserInput) {
+  const { email, password, name, nickname, avatar_id } = input;
+
+  // Check email not taken
+  const existingUser = await prisma.user.findUnique({ where: { email } });
+  if (existingUser) throw new Error('User with this email already exists');
+
+  if (nickname) await ensureNicknameUnique(nickname);
+
+  const hashedPassword = await bcrypt.hash(password, BCRYPT_ROUNDS);
+  const otpCode = crypto.randomInt(100000, 999999).toString();
+  const magicToken = crypto.randomBytes(32).toString('hex');
+  const expiresAt = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000);
+
+  // Delete any existing pending signup for this email
+  await prisma.pendingSignup.deleteMany({ where: { email } });
+
+  // Create pending signup
+  await prisma.pendingSignup.create({
+    data: {
+      email,
+      password_hash: hashedPassword,
+      name: name || email.split('@')[0],
+      nickname: nickname || null,
+      avatar_id: avatar_id || 1,
+      otp_hash: hashOtp(otpCode),
+      magic_token: magicToken,
+      expires_at: expiresAt,
+    },
+  });
+
+  // Send verification email
+  await sendVerificationEmail(email, otpCode, magicToken);
+
+  return { message: 'Verification email sent', email };
+}
+
+export async function verifyOtp(email: string, otp: string) {
+  const pending = await prisma.pendingSignup.findFirst({
+    where: { email, expires_at: { gt: new Date() } },
+    orderBy: { created_at: 'desc' },
+  });
+
+  if (!pending) throw new Error('No pending signup or code expired');
+
+  if (pending.attempts >= MAX_OTP_ATTEMPTS) {
+    await prisma.pendingSignup.delete({ where: { id: pending.id } });
+    throw new Error('Too many attempts. Please sign up again.');
+  }
+
+  const otpMatch = hashOtp(otp) === pending.otp_hash;
+
+  if (!otpMatch) {
+    await prisma.pendingSignup.update({
+      where: { id: pending.id },
+      data: { attempts: { increment: 1 } },
+    });
+    throw new Error('Invalid verification code');
+  }
+
+  return completePendingSignup(pending);
+}
+
+export async function verifyMagicToken(token: string) {
+  const pending = await prisma.pendingSignup.findFirst({
+    where: { magic_token: token, expires_at: { gt: new Date() } },
+  });
+
+  if (!pending) throw new Error('Invalid or expired verification link');
+
+  return completePendingSignup(pending);
+}
+
+async function completePendingSignup(pending: any) {
+  // Re-check email uniqueness (race condition guard)
+  const existingUser = await prisma.user.findUnique({ where: { email: pending.email } });
+  if (existingUser) {
+    await prisma.pendingSignup.delete({ where: { id: pending.id } });
+    throw new Error('User with this email already exists');
+  }
+
+  if (pending.nickname) {
+    await ensureNicknameUnique(pending.nickname);
+  }
+
+  // Create the user (password is already hashed)
+  const user = await prisma.user.create({
+    data: {
+      email: pending.email,
+      password: pending.password_hash,
+      name: pending.name || pending.email.split('@')[0],
+      nickname: pending.nickname || null,
+      avatar_id: pending.avatar_id || 1,
+    },
+  });
+
+  // Clean up
+  await prisma.pendingSignup.delete({ where: { id: pending.id } });
+
+  return { token: signToken(user), user: userPayload(user) };
+}
+
+export async function resendOtp(email: string) {
+  const pending = await prisma.pendingSignup.findFirst({
+    where: { email },
+    orderBy: { created_at: 'desc' },
+  });
+
+  if (!pending) throw new Error('No pending signup found. Please sign up again.');
+
+  const otpCode = crypto.randomInt(100000, 999999).toString();
+  const magicToken = crypto.randomBytes(32).toString('hex');
+  const expiresAt = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000);
+
+  await prisma.pendingSignup.update({
+    where: { id: pending.id },
+    data: {
+      otp_hash: hashOtp(otpCode),
+      magic_token: magicToken,
+      attempts: 0,
+      expires_at: expiresAt,
+    },
+  });
+
+  await sendVerificationEmail(email, otpCode, magicToken);
+
+  return { message: 'New verification code sent', email };
 }
 
 export async function loginUser(email: string, password: string) {

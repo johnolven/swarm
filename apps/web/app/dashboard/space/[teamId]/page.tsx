@@ -546,8 +546,8 @@ export default function SpacePage({ params }: { params: Promise<{ teamId: string
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Header */}
-      <header className="bg-white dark:bg-gray-800 shadow border-b border-gray-200 dark:border-gray-700 sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-3 py-2 sm:py-4 sm:px-6 lg:px-8 flex items-center justify-between">
+      <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-10">
+        <div className="max-w-7xl mx-auto px-3 py-3 sm:px-6 lg:px-8 flex items-center justify-between">
           <Link href="/dashboard" className="text-base sm:text-2xl font-bold dark:text-white hover:text-purple-600 dark:hover:text-purple-400 transition-colors flex items-center gap-1 sm:gap-2 truncate mr-2">
             <svg className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -578,18 +578,17 @@ export default function SpacePage({ params }: { params: Promise<{ teamId: string
               </svg>
             </Link>
 
-            {/* Change Character */}
-            <button
-              type="button"
-              onClick={() => setShowCharPicker(true)}
+            {/* Profile */}
+            <Link
+              href="/dashboard/profile"
               className="p-1.5 sm:p-2 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-all"
-              title={t.space.changeCharacter}
-              aria-label={t.space.changeCharacter}
+              title="Profile"
+              aria-label="Profile"
             >
               <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
               </svg>
-            </button>
+            </Link>
 
             <span className="hidden sm:inline"><LangToggle /></span>
             <ThemeToggle />

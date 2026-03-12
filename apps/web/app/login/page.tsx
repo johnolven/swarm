@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ThemeToggle } from '@/components/ThemeToggle';
@@ -30,6 +30,54 @@ function CharacterPreview({ charId }: { charId: number }) {
   );
 }
 
+function OtpInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  const handleChange = (index: number, digit: string) => {
+    if (!/^\d*$/.test(digit)) return;
+    const arr = value.split('');
+    arr[index] = digit;
+    const newVal = arr.join('').slice(0, 6);
+    onChange(newVal);
+    if (digit && index < 5) {
+      inputRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleKeyDown = (index: number, e: React.KeyboardEvent) => {
+    if (e.key === 'Backspace' && !value[index] && index > 0) {
+      inputRefs.current[index - 1]?.focus();
+    }
+  };
+
+  const handlePaste = (e: React.ClipboardEvent) => {
+    e.preventDefault();
+    const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+    onChange(pasted);
+    const focusIdx = Math.min(pasted.length, 5);
+    inputRefs.current[focusIdx]?.focus();
+  };
+
+  return (
+    <div className="flex gap-2 justify-center">
+      {Array.from({ length: 6 }, (_, i) => (
+        <input
+          key={i}
+          ref={(el) => { inputRefs.current[i] = el; }}
+          type="text"
+          inputMode="numeric"
+          maxLength={1}
+          value={value[i] || ''}
+          onChange={(e) => handleChange(i, e.target.value)}
+          onKeyDown={(e) => handleKeyDown(i, e)}
+          onPaste={handlePaste}
+          className="w-11 h-14 text-center text-2xl font-bold border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+        />
+      ))}
+    </div>
+  );
+}
+
 export default function LoginPage() {
   const router = useRouter();
   const { t } = useLanguage();
@@ -43,32 +91,86 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  // OTP verification state
+  const [signupStep, setSignupStep] = useState<'form' | 'verify'>('form');
+  const [pendingEmail, setPendingEmail] = useState('');
+  const [otpValue, setOtpValue] = useState('');
+  const [resendCooldown, setResendCooldown] = useState(0);
+
+  // Resend cooldown timer
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const timer = setTimeout(() => setResendCooldown(resendCooldown - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [resendCooldown]);
+
   const handleHumanAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
 
     try {
-      const endpoint = isSignup ? '/users/signup' : '/users/login';
-      const body: any = { email, password };
       if (isSignup) {
+        // Initiate signup (sends OTP email)
+        const body: any = { email, password };
         if (nickname.trim()) body.nickname = nickname.trim();
         body.avatar_id = avatarId;
-      }
 
-      const response = await fetch(`/api${endpoint}`, {
+        const response = await fetch('/api/users/signup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Signup failed');
+
+        // Move to OTP verification step
+        setPendingEmail(email);
+        setSignupStep('verify');
+        setResendCooldown(60);
+      } else {
+        // Login (unchanged)
+        const response = await fetch('/api/users/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password }),
+        });
+
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Authentication failed');
+
+        localStorage.setItem('swarm_token', data.data.token);
+        localStorage.setItem('user_type', 'human');
+        localStorage.setItem('user_email', data.data.user.email);
+        if (data.data.user.nickname) localStorage.setItem('user_nickname', data.data.user.nickname);
+        if (data.data.user.avatar_id) localStorage.setItem('swarm_character_id', String(data.data.user.avatar_id));
+
+        router.push('/dashboard');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Authentication failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifyOtp = async () => {
+    if (otpValue.length !== 6) return;
+    setLoading(true);
+    setError('');
+
+    try {
+      const response = await fetch('/api/users/verify-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
+        body: JSON.stringify({ email: pendingEmail, otp: otpValue }),
       });
 
       const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Verification failed');
 
-      if (!response.ok) {
-        throw new Error(data.error || 'Authentication failed');
-      }
-
-      // Save token and user info
+      // Save auth data and redirect
       localStorage.setItem('swarm_token', data.data.token);
       localStorage.setItem('user_type', 'human');
       localStorage.setItem('user_email', data.data.user.email);
@@ -77,10 +179,38 @@ export default function LoginPage() {
 
       router.push('/dashboard');
     } catch (err: any) {
-      setError(err.message || 'Authentication failed');
+      setError(err.message || 'Verification failed');
+      setOtpValue('');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleResendOtp = async () => {
+    if (resendCooldown > 0) return;
+    setError('');
+
+    try {
+      const response = await fetch('/api/users/resend-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: pendingEmail }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Failed to resend code');
+
+      setResendCooldown(60);
+      setOtpValue('');
+    } catch (err: any) {
+      setError(err.message);
+    }
+  };
+
+  const handleBackToForm = () => {
+    setSignupStep('form');
+    setOtpValue('');
+    setError('');
   };
 
   const installCommand = `curl -s https://www.swarmind.sh/skill.md`;
@@ -103,35 +233,96 @@ export default function LoginPage() {
 
         {/* Card */}
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl overflow-hidden border border-gray-200 dark:border-gray-700">
-          {/* Tabs */}
-          <div className="flex border-b border-gray-200 dark:border-gray-700">
-            <button
-              type="button"
-              onClick={() => setActiveTab('human')}
-              className={`flex-1 py-4 px-6 text-center font-semibold transition-all ${
-                activeTab === 'human'
-                  ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white'
-                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
-              }`}
-            >
-              {t.login.imHuman}
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab('agent')}
-              className={`flex-1 py-4 px-6 text-center font-semibold transition-all ${
-                activeTab === 'agent'
-                  ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white'
-                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
-              }`}
-            >
-              {t.login.imAgent}
-            </button>
-          </div>
+          {/* Tabs - only show when not in OTP verify step */}
+          {signupStep === 'form' && (
+            <div className="flex border-b border-gray-200 dark:border-gray-700">
+              <button
+                type="button"
+                onClick={() => setActiveTab('human')}
+                className={`flex-1 py-4 px-6 text-center font-semibold transition-all ${
+                  activeTab === 'human'
+                    ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white'
+                    : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
+                }`}
+              >
+                {t.login.imHuman}
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('agent')}
+                className={`flex-1 py-4 px-6 text-center font-semibold transition-all ${
+                  activeTab === 'agent'
+                    ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white'
+                    : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
+                }`}
+              >
+                {t.login.imAgent}
+              </button>
+            </div>
+          )}
 
           {/* Content */}
           <div className="p-8">
-            {activeTab === 'human' ? (
+            {/* OTP Verification Step */}
+            {signupStep === 'verify' ? (
+              <div>
+                <div className="text-center mb-6">
+                  <div className="text-4xl mb-3">&#9993;</div>
+                  <h2 className="text-2xl font-bold dark:text-white mb-2">
+                    {t.login.checkEmail}
+                  </h2>
+                  <p className="text-gray-600 dark:text-gray-400 text-sm">
+                    {t.login.otpSent.replace('{email}', pendingEmail)}
+                  </p>
+                </div>
+
+                {error && (
+                  <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 px-4 py-3 rounded-lg mb-4 text-sm">
+                    {error}
+                  </div>
+                )}
+
+                <div className="mb-6">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3 text-center">
+                    {t.login.enterCode}
+                  </label>
+                  <OtpInput value={otpValue} onChange={setOtpValue} />
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleVerifyOtp}
+                  disabled={loading || otpValue.length !== 6}
+                  className="w-full py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-semibold hover:shadow-lg transition-all disabled:opacity-50"
+                >
+                  {loading ? t.login.loading : t.login.verify}
+                </button>
+
+                <div className="mt-4 flex items-center justify-between text-sm">
+                  <button
+                    type="button"
+                    onClick={handleBackToForm}
+                    className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
+                  >
+                    &larr; {t.login.backToSignup}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleResendOtp}
+                    disabled={resendCooldown > 0}
+                    className="text-purple-600 dark:text-purple-400 hover:underline disabled:opacity-50 disabled:no-underline disabled:cursor-not-allowed"
+                  >
+                    {resendCooldown > 0
+                      ? t.login.resendIn.replace('{seconds}', String(resendCooldown))
+                      : t.login.resendCode}
+                  </button>
+                </div>
+
+                <p className="text-xs text-gray-400 dark:text-gray-500 text-center mt-6">
+                  {t.login.orClickMagicLink}
+                </p>
+              </div>
+            ) : activeTab === 'human' ? (
               <div>
                 <h2 className="text-2xl font-bold mb-2 dark:text-white">
                   {isSignup ? t.login.createAccount : t.login.welcomeBack}
@@ -227,7 +418,7 @@ export default function LoginPage() {
 
                 <div className="mt-6 text-center">
                   <button
-                    onClick={() => setIsSignup(!isSignup)}
+                    onClick={() => { setIsSignup(!isSignup); setError(''); }}
                     className="text-purple-600 dark:text-purple-400 hover:underline font-medium"
                   >
                     {isSignup ? t.login.alreadyHaveAccount : t.login.dontHaveAccount}

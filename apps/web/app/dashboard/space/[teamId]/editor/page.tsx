@@ -76,25 +76,19 @@ export default function MapEditorPage({ params }: { params: Promise<{ teamId: st
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 py-2 sticky top-0 z-10">
-        <div className="flex items-center justify-between max-w-7xl mx-auto">
-          <div className="flex items-center gap-3">
-            <Link
-              href={`/dashboard/space/${teamId}`}
-              className="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-            >
-              &larr; {t.space.editor.backToSpace}
-            </Link>
-            <span className="text-gray-300 dark:text-gray-600">|</span>
-            <h1 className="text-sm font-semibold text-gray-800 dark:text-gray-200">
-              {teamName} &mdash; {t.space.editor.title}
-            </h1>
-          </div>
-          <div className="flex items-center gap-3">
+      <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-10">
+        <div className="max-w-7xl mx-auto px-3 py-3 sm:px-6 lg:px-8 flex items-center justify-between">
+          <Link href={`/dashboard/space/${teamId}`} className="text-base sm:text-2xl font-bold dark:text-white hover:text-purple-600 dark:hover:text-purple-400 transition-colors flex items-center gap-1 sm:gap-2 truncate mr-2">
+            <svg className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            <span className="truncate">{teamName} &mdash; {t.space.editor.title}</span>
+          </Link>
+          <div className="flex items-center gap-1 sm:gap-3">
             {saved && (
               <span className="text-xs text-green-600 font-medium">{t.space.editor.saved}</span>
             )}
-            <LangToggle />
+            <span className="hidden sm:inline"><LangToggle /></span>
             <ThemeToggle />
           </div>
         </div>
