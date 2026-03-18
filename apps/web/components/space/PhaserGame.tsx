@@ -52,6 +52,12 @@ export const PhaserGame = forwardRef<PhaserGameHandle, PhaserGameProps>(function
   const containerRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(true);
   const [progress, setProgress] = useState(0);
+  const [isTouchDevice, setIsTouchDevice] = useState(false);
+
+  useEffect(() => {
+    const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+    setIsTouchDevice(hasTouch);
+  }, []);
 
   useImperativeHandle(ref, () => ({
     syncPresences: (users: UserPresence[]) => {
@@ -149,41 +155,50 @@ export const PhaserGame = forwardRef<PhaserGameHandle, PhaserGameProps>(function
         className="rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 cursor-pointer touch-none"
         style={{ width: '100%', maxWidth: 1024, aspectRatio: '1024/800' }}
       />
-      <div className="mt-1.5 flex flex-wrap gap-3 text-[10px] text-gray-400 hidden sm:flex">
-        <span>{t.space.arrowKeysMove}</span>
-        <span>{t.space.emotes}</span>
-        <span className="flex items-center gap-1">
-          <span className="w-2 h-2 inline-block rounded-full bg-purple-500" /> {t.space.agent}
-        </span>
-        <span className="flex items-center gap-1">
-          <span className="w-2 h-2 inline-block rounded-full bg-blue-500" /> {t.space.human}
-        </span>
-      </div>
-
-      {/* Mobile D-pad */}
-      <div className="sm:hidden flex justify-center mt-3">
-        <div className="grid grid-cols-3 gap-1 w-36">
-          {(['', 'up', '', 'left', '', 'right', '', 'down', ''] as const).map((dir, i) => {
-            if (!dir) return <div key={i} className={i === 4 ? 'w-12 h-12 flex items-center justify-center' : ''}>
-              {i === 4 && <span className="text-[10px] text-gray-400">Move</span>}
-            </div>;
-            const arrows: Record<string, string> = { up: '▲', down: '▼', left: '◀', right: '▶' };
-            return (
-              <button
-                key={dir}
-                onPointerDown={(e) => { e.preventDefault(); handleDpadDown(dir); }}
-                onPointerUp={() => handleDpadUp(dir)}
-                onPointerLeave={() => handleDpadUp(dir)}
-                onPointerCancel={() => handleDpadUp(dir)}
-                onContextMenu={(e) => e.preventDefault()}
-                className="w-12 h-12 rounded-lg bg-gray-200 dark:bg-gray-700 active:bg-gray-300 dark:active:bg-gray-600 flex items-center justify-center text-xl select-none touch-none"
-              >
-                {arrows[dir]}
-              </button>
-            );
-          })}
+      {!isTouchDevice && (
+        <div className="mt-1.5 flex flex-wrap gap-3 text-[10px] text-gray-400">
+          <span>{t.space.arrowKeysMove}</span>
+          <span>{t.space.emotes}</span>
+          <span className="flex items-center gap-1">
+            <span className="w-2 h-2 inline-block rounded-full bg-purple-500" /> {t.space.agent}
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="w-2 h-2 inline-block rounded-full bg-blue-500" /> {t.space.human}
+          </span>
         </div>
-      </div>
+      )}
+
+      {/* Touch D-pad — shown on all touch devices (mobile + tablet) */}
+      {isTouchDevice && (
+        <div className="absolute bottom-4 left-4 z-20">
+          <div className="grid grid-cols-3 gap-1.5 w-36 sm:w-44 md:w-48">
+            {(['', 'up', '', 'left', '', 'right', '', 'down', ''] as const).map((dir, i) => {
+              if (!dir) return <div key={i} className={i === 4 ? 'w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 flex items-center justify-center' : ''}>
+                {i === 4 && (
+                  <span className="flex items-center gap-1 text-[10px] sm:text-xs">
+                    <span className="w-2 h-2 inline-block rounded-full bg-purple-500" />
+                    <span className="w-2 h-2 inline-block rounded-full bg-blue-500" />
+                  </span>
+                )}
+              </div>;
+              const arrows: Record<string, string> = { up: '▲', down: '▼', left: '◀', right: '▶' };
+              return (
+                <button
+                  key={dir}
+                  onPointerDown={(e) => { e.preventDefault(); handleDpadDown(dir); }}
+                  onPointerUp={() => handleDpadUp(dir)}
+                  onPointerLeave={() => handleDpadUp(dir)}
+                  onPointerCancel={() => handleDpadUp(dir)}
+                  onContextMenu={(e) => e.preventDefault()}
+                  className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-lg bg-gray-800/70 dark:bg-gray-700/80 active:bg-gray-600/90 backdrop-blur-sm text-white flex items-center justify-center text-xl sm:text-2xl select-none touch-none shadow-lg border border-gray-600/30"
+                >
+                  {arrows[dir]}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 });
